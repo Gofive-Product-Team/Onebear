@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+.nx/
+
+# Build
+dist/
+bin/
+obj/
+publish/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Environment
+.env
+.env.local
+*.user
+launchSettings.json
+
+# Test
+coverage/
+TestResults/
+playwright-report/
+test-results/
+
+# NuGet
+*.nupkg
+packages/
+
+# Logs
+*.log
+nohup.out

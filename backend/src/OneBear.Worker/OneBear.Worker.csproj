@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-OneBear.Worker-66c62f06-f483-440f-93bb-e3ce6d396850</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MassTransit.RabbitMQ" Version="9.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.4" />
+    <PackageReference Include="Quartz.Extensions.Hosting" Version="3.16.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OneBear.Application\OneBear.Application.csproj" />
+    <ProjectReference Include="..\OneBear.Infrastructure\OneBear.Infrastructure.csproj" />
+    <ProjectReference Include="..\OneBear.Domain\OneBear.Domain.csproj" />
+  </ItemGroup>
+</Project>

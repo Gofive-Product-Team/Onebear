@@ -1,0 +1,28 @@
+{
+  "common": {
+    "appName": "One Bear",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "noData": "No data available"
+  },
+  "nav": {
+    "home": "Home",
+    "chat": "Chat",
+    "customer": "Customer",
+    "dashboard": "Dashboard",
+    "settings": "Settings",
+    "payment": "Payment",
+    "satisfaction": "Satisfaction"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "sessionExpired": "Your session has expired. Please login again."
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "common": {
+    "appName": "One Bear",
+    "loading": "กำลังโหลด...",
+    "error": "เกิดข้อผิดพลาด",
+    "save": "บันทึก",
+    "cancel": "ยกเลิก",
+    "delete": "ลบ",
+    "edit": "แก้ไข",
+    "create": "สร้าง",
+    "search": "ค้นหา",
+    "noData": "ไม่มีข้อมูล"
+  },
+  "nav": {
+    "home": "หน้าหลัก",
+    "chat": "แชท",
+    "customer": "ลูกค้า",
+    "dashboard": "แดชบอร์ด",
+    "settings": "ตั้งค่า",
+    "payment": "ชำระเงิน",
+    "satisfaction": "ความพึงพอใจ"
+  },
+  "auth": {
+    "login": "เข้าสู่ระบบ",
+    "logout": "ออกจากระบบ",
+    "sessionExpired": "เซสชันของคุณหมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง"
+  }
+}

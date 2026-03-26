@@ -1,0 +1,71 @@
+version: "3.9"
+
+services:
+  # --- One Bear API ---
+  api:
+    build:
+      context: ./backend
+      dockerfile: src/OneBear.API/Dockerfile
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__CosmosDb=AccountEndpoint=https://cosmosdb:8081;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==
+      - ConnectionStrings__Redis=redis:6379
+      - ConnectionStrings__RabbitMq=amqp://guest:guest@rabbitmq:5672
+      - Azure__BlobStorage__ConnectionString=UseDevelopmentStorage=true
+      - Auth__Authority=https://login.gofive.co.th
+      - Auth__Audience=onebear-api
+      - Cors__Origins__0=http://localhost:5173
+    depends_on:
+      - redis
+      - rabbitmq
+
+  # --- One Bear Worker ---
+  worker:
+    build:
+      context: ./backend
+      dockerfile: src/OneBear.Worker/Dockerfile
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - ConnectionStrings__CosmosDb=AccountEndpoint=https://cosmosdb:8081;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==
+      - ConnectionStrings__Redis=redis:6379
+      - ConnectionStrings__RabbitMq=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - redis
+      - rabbitmq
+
+  # --- Redis ---
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+  # --- RabbitMQ ---
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+
+  # --- Azurite (Blob Storage Emulator) ---
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    ports:
+      - "10000:10000"
+      - "10001:10001"
+      - "10002:10002"
+    volumes:
+      - azurite-data:/data
+
+volumes:
+  redis-data:
+  rabbitmq-data:
+  azurite-data:
