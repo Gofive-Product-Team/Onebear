@@ -80,6 +80,13 @@
   --warning: #FBBF24;
   --error: #F87171;
 
+  /* Chat-menu right panel compatibility aliases */
+  --bg-page: var(--bg-1); --bg-card: var(--bg-2); --bg-input: var(--input-bg);
+  --t1: var(--text-1); --t2: var(--text-2); --t3: var(--text-3);
+  --border: var(--border-subtle); --border-in: var(--border-mid);
+  --success-bg: rgba(34,197,94,0.12); --warning-bg: rgba(251,191,36,0.12);
+  --error-bg: rgba(248,113,113,0.12); --info: #60A5FA; --info-bg: rgba(96,165,250,0.12);
+
   --sidebar-width: 62px;
   --panel-width: 288px;
   --detail-width: 290px;
@@ -145,9 +152,22 @@
   --warning: #F59E0B;
   --error: #EF4444;
 
+  /* Chat-menu right panel compatibility aliases */
+  --bg-page: var(--bg-1); --bg-card: var(--bg-2); --bg-input: var(--input-bg);
+  --t1: var(--text-1); --t2: var(--text-2); --t3: var(--text-3);
+  --border: var(--border-subtle); --border-in: var(--border-mid);
+  --success-bg: rgba(16,185,129,0.10); --warning-bg: rgba(245,158,11,0.10);
+  --error-bg: rgba(239,68,68,0.10); --info: #3B82F6; --info-bg: rgba(59,130,246,0.10);
+
   --sidebar-width: 62px;
   --panel-width: 288px;
   --detail-width: 290px;
+}
+
+/* Shared radius + transition variables */
+:root {
+  --r-sm:.375rem;--r-md:.5rem;--r-lg:.75rem;--r-xl:1rem;--r-2xl:1.25rem;--r-full:9999px;
+  --tr-fast:150ms cubic-bezier(.4,0,.2,1);--tr-norm:250ms cubic-bezier(.4,0,.2,1);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -1378,6 +1398,134 @@ body.view-settings .settings-view { display: flex; }
 .st-content::-webkit-scrollbar { width: 6px; }
 .st-content::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 99px; }
 
+/* ── Chat-menu right panel CSS ────────────────────────────── */
+/* Avatar color variants for right panel */
+.av-p{background:linear-gradient(135deg,#a78bfa,#7c3aed)}
+.av-o{background:linear-gradient(135deg,#fb923c,#dc2626)}
+.av-g{background:linear-gradient(135deg,#34d399,#059669)}
+.av-r{background:linear-gradient(135deg,#f472b6,#db2777)}
+.av-b{background:linear-gradient(135deg,#60a5fa,#2563eb)}
+.av-t{background:linear-gradient(135deg,#2dd4bf,#0891b2)}
+/* Platform badge colors */
+.plt-line{background:#06C755}.plt-fb{background:#1877F2}
+.plt-ig{background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)}
+.plt-web{background:#3B82F6}
+/* Status chips */
+.ci-status{font-size:.5625rem;font-weight:700;padding:2px 7px;border-radius:99px;letter-spacing:.04em}
+.st-unassigned{background:rgba(86,86,138,.15);color:var(--text-3)}
+.st-new{background:rgba(96,165,250,.12);color:#60A5FA}
+.st-inprogress{background:rgba(251,191,36,.12);color:#FBBF24}
+.st-done{background:rgba(34,197,94,.12);color:var(--success)}
+/* Right panel scroll wrapper */
+.rp-scroll{flex:1;overflow-y:auto}
+/* Customer header */
+.rp-cust-hdr{padding:20px 18px 16px;border-bottom:1px solid var(--border-subtle)}
+.rp-av-row{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px}
+.rp-av{width:52px;height:52px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;color:#fff;flex-shrink:0;position:relative}
+.rp-av-plt{position:absolute;bottom:-2px;right:-2px;width:18px;height:18px;border-radius:50%;border:2px solid var(--bg-1);display:flex;align-items:center;justify-content:center;transition:border-color .35s}
+.rp-av-plt svg{width:8px;height:8px;fill:#fff}
+[data-theme="light"] .rp-av-plt{border-color:var(--bg-1)}
+.rp-cust-info{flex:1;min-width:0}
+.rp-cust-name{font-size:1rem;font-weight:700;color:var(--text-1);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rp-original-name{font-size:.75rem;color:var(--text-3);margin-top:2px;font-style:italic}
+.rp-profile-btn{width:28px;height:28px;border-radius:8px;background:var(--input-bg);display:flex;align-items:center;justify-content:center;color:var(--text-3);flex-shrink:0;transition:all var(--tr-fast);cursor:pointer;border:none}
+.rp-profile-btn:hover{background:var(--primary-alpha);color:var(--primary)}
+.rp-profile-btn svg{width:14px;height:14px}
+.rp-status-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px}
+.rp-platform-chip{display:flex;align-items:center;gap:4px;font-size:.6875rem;color:var(--text-3);background:var(--input-bg);padding:3px 8px;border-radius:99px}
+/* Action row override for chat-menu style */
+.right-panel .rp-actions{display:flex;gap:6px;padding:12px 18px;border-bottom:1px solid var(--border-subtle);flex-shrink:0}
+.rp-act{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;border-radius:12px;background:var(--input-bg);color:var(--text-2);font-size:.6875rem;font-weight:600;transition:all var(--tr-fast);cursor:pointer;border:none;font-family:inherit}
+.rp-act:hover{background:var(--primary-alpha);color:var(--primary)}
+.rp-act svg{width:16px;height:16px}
+.rp-act.danger:hover{background:var(--error-bg);color:var(--error)}
+/* Section overrides */
+.right-panel .rp-sec{padding:14px 18px;border-bottom:1px solid var(--border-subtle)}
+.right-panel .sec-title{font-size:.6875rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.right-panel .sec-title button{color:var(--text-3);font-size:.6875rem;text-transform:none;letter-spacing:0;font-weight:600;transition:color var(--tr-fast);cursor:pointer;background:none;border:none;font-family:inherit}
+.right-panel .sec-title button:hover{color:var(--primary)}
+/* Form fields */
+.rp-field{margin-bottom:10px}
+.rp-field label{display:block;font-size:.6875rem;color:var(--text-3);margin-bottom:4px;font-weight:500}
+.rp-field input,.rp-field select,.rp-field textarea{width:100%;background:var(--input-bg);border:1.5px solid var(--border-mid);border-radius:8px;padding:8px 10px;font-size:.8125rem;color:var(--text-1);transition:border-color .2s;font-family:inherit}
+.rp-field input:focus,.rp-field select:focus,.rp-field textarea:focus{border-color:var(--primary);outline:none}
+.rp-field textarea{resize:none;min-height:72px;line-height:1.5}
+/* Tags in right panel */
+.tags-wrap{display:flex;flex-wrap:wrap;gap:6px}
+.right-panel .tag{padding:4px 10px;border-radius:99px;font-size:.75rem;font-weight:600;background:var(--primary-alpha);color:var(--primary);border:1px solid rgba(3,157,145,.2);cursor:default;display:flex;align-items:center;gap:4px;transition:none;transform:none}
+.right-panel .tag:hover{background:var(--primary-alpha);color:var(--primary);transform:none;box-shadow:none}
+.tag .tag-x{color:var(--primary);opacity:.6;cursor:pointer;font-size:12px;line-height:1}
+.tag.add-tag{background:var(--input-bg);color:var(--text-3);border-color:var(--border-mid);cursor:pointer}
+.tag.add-tag:hover{border-color:var(--primary);color:var(--primary)}
+/* Contact group */
+.contact-group{border:1.5px solid var(--border-mid);border-radius:12px;overflow:hidden;margin-bottom:10px}
+.contact-row{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--input-bg);transition:background .15s}
+.contact-row:not(:last-child){border-bottom:1px solid var(--border-subtle)}
+.contact-row:focus-within{background:var(--bg-1)}
+.contact-row svg{width:14px;height:14px;color:var(--text-3);flex-shrink:0}
+.contact-row input{flex:1;background:none;font-size:.8125rem;color:var(--text-1);min-width:0;border:none;outline:none;font-family:inherit}
+.contact-row input::placeholder{color:var(--text-3)}
+/* Address */
+.addr-list{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
+.addr-item{display:flex;align-items:flex-start;gap:8px;background:var(--input-bg);border:1.5px solid var(--border-mid);border-radius:8px;padding:8px 10px}
+.addr-item svg{width:13px;height:13px;color:var(--text-3);flex-shrink:0;margin-top:2px}
+.addr-item textarea{flex:1;background:none;font-size:.8125rem;color:var(--text-1);resize:none;min-height:36px;line-height:1.5;border:none;outline:none;font-family:inherit}
+.addr-item textarea::placeholder{color:var(--text-3)}
+.addr-item .addr-del{color:var(--text-3);cursor:pointer;font-size:14px;line-height:1;flex-shrink:0;margin-top:1px;transition:color var(--tr-fast)}
+.addr-item .addr-del:hover{color:var(--error)}
+.add-addr-btn{display:flex;align-items:center;gap:5px;width:100%;padding:7px 10px;border-radius:8px;background:var(--input-bg);border:1.5px dashed var(--border-mid);color:var(--text-3);font-size:.75rem;cursor:pointer;transition:all var(--tr-fast);font-family:inherit}
+.add-addr-btn:hover{border-color:var(--primary);color:var(--primary)}
+.add-addr-btn svg{width:12px;height:12px}
+/* Owners */
+.owners-wrap{display:flex;flex-direction:column;gap:6px}
+.owner-chip{display:flex;align-items:center;gap:10px;background:var(--input-bg);border-radius:12px;padding:8px 12px}
+.owner-chip .ow-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.ow-k{background:linear-gradient(135deg,var(--primary-light),var(--primary))}
+.ow-w{background:linear-gradient(135deg,#a78bfa,#7c3aed)}
+.ow-a{background:linear-gradient(135deg,#fb923c,#dc2626)}
+.owner-chip .ow-info{flex:1;min-width:0}
+.owner-chip .ow-name{font-size:.8125rem;font-weight:600;color:var(--text-1)}
+.owner-chip .ow-role{font-size:.6875rem;color:var(--text-3);margin-top:1px}
+.owner-chip .ow-x{color:var(--text-3);cursor:pointer;font-size:15px;line-height:1;flex-shrink:0;transition:color var(--tr-fast)}
+.owner-chip .ow-x:hover{color:var(--error)}
+.add-owner-btn{display:flex;align-items:center;gap:5px;padding:8px 12px;border-radius:12px;background:var(--input-bg);border:1.5px dashed var(--border-mid);color:var(--text-3);font-size:.75rem;cursor:pointer;transition:all var(--tr-fast);font-family:inherit}
+.add-owner-btn:hover{border-color:var(--primary);color:var(--primary)}
+.add-owner-btn svg{width:13px;height:13px}
+/* Private note */
+.private-note{background:var(--warning-bg);border:1px solid rgba(251,191,36,.2);border-radius:12px;padding:10px 12px}
+.private-note label{font-size:.6875rem;font-weight:700;color:var(--warning);text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:5px;margin-bottom:6px}
+.private-note label svg{width:12px;height:12px;stroke:var(--warning)}
+.private-note textarea{width:100%;background:transparent;font-size:.8125rem;color:var(--text-1);resize:none;min-height:60px;line-height:1.5;border:none;outline:none;font-family:inherit}
+.private-note textarea::placeholder{color:var(--warning);opacity:.5}
+/* Attachments */
+.attach-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.attach-item{aspect-ratio:1;border-radius:8px;background:var(--input-bg);overflow:hidden;cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:20px}
+.attach-count{position:absolute;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.875rem;font-weight:700;border-radius:8px}
+/* Timeline */
+.timeline{display:flex;flex-direction:column;gap:0}
+.tl-item{display:flex;gap:12px;position:relative}
+.tl-item:not(:last-child) .tl-line{position:absolute;left:11px;top:24px;bottom:-8px;width:2px;background:var(--border-subtle)}
+.tl-dot{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;border:2px solid var(--border-subtle);background:var(--bg-2);z-index:1;position:relative;margin-top:2px}
+.tl-dot.active{border-color:var(--primary);background:var(--primary-alpha)}
+.tl-dot.done{border-color:var(--success);background:rgba(34,197,94,.12)}
+.tl-dot svg{width:10px;height:10px}
+.tl-content{flex:1;min-width:0;padding-bottom:16px}
+.tl-title{font-size:.8125rem;font-weight:600;color:var(--text-1)}
+.tl-meta{font-size:.6875rem;color:var(--text-3);margin-top:2px}
+.tl-badge{display:inline-block;font-size:.5625rem;font-weight:700;padding:2px 7px;border-radius:99px;margin-top:4px}
+/* Done summary */
+.done-summary{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:16px;padding:14px 16px;margin:0 18px 12px}
+.done-sum-title{font-size:.6875rem;font-weight:700;color:var(--success);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;gap:5px}
+.done-sum-title svg{width:13px;height:13px;stroke:var(--success)}
+.done-sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.done-sum-item{text-align:center;background:rgba(34,197,94,.08);border-radius:12px;padding:10px 8px}
+.done-sum-val{font-size:1.25rem;font-weight:800;color:var(--text-1)}
+.done-sum-label{font-size:.6875rem;color:var(--text-3);margin-top:2px}
+/* Convert to customer button */
+.convert-btn{width:100%;padding:10px;border-radius:12px;background:var(--primary-alpha);border:1.5px solid rgba(3,157,145,.25);color:var(--primary);font-size:.8125rem;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:all var(--tr-fast);font-family:inherit}
+.convert-btn:hover{background:var(--primary);color:#fff}
+.convert-btn svg{width:15px;height:15px}
+
 </style>
 </head>
 <body>
@@ -1555,106 +1703,8 @@ body.view-settings .settings-view { display: flex; }
   </div>
 </div>
 
-<!-- RIGHT PANEL -->
-<div class="right-panel">
-  <div class="rp-head">
-    <div>
-      <div class="rp-name">Chat Details <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></div>
-      <div class="rp-sub">Benz Test &middot; Supanut Nakuo</div>
-    </div>
-    <button class="rp-close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-  </div>
-
-  <div class="rp-actions">
-    <button class="rp-action-btn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-      <span>Notify</span>
-    </button>
-    <button class="rp-action-btn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      <span>Tasks</span>
-    </button>
-    <button class="rp-action-btn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-      <span>Analytics</span>
-    </button>
-  </div>
-
-  <div class="ai-card">
-    <div class="ai-top">
-      <div class="ai-av">O</div>
-      <div class="ai-name">Onebear Agent</div>
-      <span class="ai-badge">AI ACTIVE</span>
-    </div>
-    <div class="ai-desc">Handling omnichat & customer engagement with auto-routing and smart responses.</div>
-  </div>
-
-  <!-- Response Time Summary (shown for active/closed chats) -->
-  <div class="rt-summary" id="rt-summary">
-    <div class="rt-summary-title">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      Response Time
-    </div>
-    <div class="rt-row">
-      <span class="rt-row-label">First Response</span>
-      <span class="rt-row-value fast" id="rt-first-value">3m 12s</span>
-    </div>
-    <div class="rt-row">
-      <span class="rt-row-label">Resolved Time</span>
-      <span class="rt-row-value normal" id="rt-resolved-value">—</span>
-    </div>
-    <div class="rt-avg" id="rt-avg" style="display:none">
-      <div class="rt-avg-row">
-        <span class="rt-avg-label">Avg. First Response</span>
-        <span class="rt-avg-value" id="rt-avg-first">—</span>
-      </div>
-      <div class="rt-avg-row">
-        <span class="rt-avg-label">Avg. Resolved</span>
-        <span class="rt-avg-value" id="rt-avg-resolved">—</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="rp-sec">
-    <div class="sec-title">Contact Info</div>
-    <div class="cf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.24h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 5.99 5.99l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span class="add">+ Add Phone</span></div>
-    <div class="cf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><span class="add">+ Add Email</span></div>
-  </div>
-
-  <div class="rp-sec">
-    <div class="sec-title">Tags</div>
-    <div class="tags"><span class="tag">VIP</span><span class="tag">Follow up</span><span class="tag">Onebear Pro</span></div>
-  </div>
-
-  <div class="rel-head">
-    <div class="rel-title">Related Documents</div>
-    <span class="see-all">See all</span>
-  </div>
-  <div class="rel-list">
-    <div class="doc-card">
-      <div class="dc-head">
-        <div class="dc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
-        <div class="dc-info"><div class="dc-title">Quotation A</div><div class="dc-id">Q251200003</div></div>
-        <span class="sent-pill">Sent</span>
-      </div>
-      <div class="dc-foot"><span class="dc-date">Tue, 16 Dec 2025</span><span class="dc-amt">5,350.00</span></div>
-    </div>
-    <div class="doc-card">
-      <div class="dc-head">
-        <div class="dc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
-        <div class="dc-info"><div class="dc-title">Updated quotation</div><div class="dc-id">Q260100002</div></div>
-      </div>
-      <div class="dc-foot"><span class="dc-date">Thu, 8 Jan 2026</span><span class="dc-amt">5,350.00</span></div>
-    </div>
-    <div class="doc-card">
-      <div class="dc-head">
-        <div class="dc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
-        <div class="dc-info"><div class="dc-title">Test quotation</div><div class="dc-id">Q250400001</div></div>
-      </div>
-      <div class="dc-foot"><span class="dc-date">Tue, 8 Apr 2025</span><span class="dc-amt">5,000.00</span></div>
-    </div>
-  </div>
-</div>
+<!-- RIGHT PANEL (dynamically rendered) -->
+<div class="right-panel" id="rightPanel"></div>
 
 <!-- SETTINGS VIEW -->
 <div class="settings-view">
@@ -2615,6 +2665,293 @@ function toggleTheme() {
   setInterval(tick, 1000);
   tick();
   updateSummary();
+})();
+
+/* ═══════════════════════════════════════
+   CHAT-MENU RIGHT PANEL
+   ═══════════════════════════════════════ */
+(function() {
+  // Platform SVGs
+  const SVG_RP = {
+    line:'<svg viewBox="0 0 24 24" style="width:8px;height:8px"><path fill="#fff" d="M12 2C6.48 2 2 5.94 2 10.78c0 3.16 2.06 5.93 5.17 7.58L6 22l4.14-2.1c.59.08 1.21.12 1.86.12 5.52 0 10-3.94 10-8.78C22 5.94 17.52 2 12 2z"/></svg>',
+    facebook:'<svg viewBox="0 0 24 24" style="width:8px;height:8px"><path fill="#fff" d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>',
+    instagram:'<svg viewBox="0 0 24 24" style="width:8px;height:8px"><rect fill="#fff" x="2" y="2" width="20" height="20" rx="5"/></svg>',
+    web:'<svg viewBox="0 0 24 24" style="width:8px;height:8px" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
+  };
+  const PLT_CLASS_RP = {line:'plt-line',facebook:'plt-fb',instagram:'plt-ig',web:'plt-web'};
+
+  // Chat data for right panel (matches chat-ids in HTML)
+  const CHAT_DATA_RP = {
+    '1': {id:'1', name:'Supanut Nakuo', customName:null, platform:'line', avColor:'av-p',
+          status:'inprogress', source:'LINE', source_label:'[prod]empeoxvenio',
+          owners:['K','W'], tags:['VIP','Follow up'], type:'individual',
+          phone:'081-234-5678', email:'supanut@email.com', interest:'Pro Package',
+          addresses:['123 ถ.สุขุมวิท แขวงคลองเตย กรุงเทพฯ 10110','88/2 หมู่ 5 ต.บางพลี จ.สมุทรปราการ 10540']},
+    '2': {id:'2', name:'Supanut Nakuo2', customName:null, platform:'facebook', avColor:'av-o',
+          status:'new', source:'Facebook', owners:[], tags:['New Lead'],
+          type:'individual', phone:'', email:'', interest:''},
+    '3': {id:'3', name:'Waris K.', customName:'Waris K.', platform:'line', avColor:'av-g',
+          status:'inprogress', source:'LINE',
+          owners:['K'], tags:['Follow up'], type:'individual',
+          phone:'', email:'', interest:'Enterprise'},
+    '4': {id:'4', name:'Arisa T.', customName:null, platform:'instagram', avColor:'av-r',
+          status:'done', source:'Instagram',
+          owners:['K'], tags:['VIP','Converted'], type:'individual',
+          phone:'089-876-5432', email:'arisa@mail.com', interest:'',
+          addresses:[], firstResponseMin:4, totalTimeMin:90},
+  };
+
+  function rpStatusLabel(s) {
+    return {unassigned:'ไม่มีผู้ดูแล',new:'New',inprogress:'In Progress',done:'Done'}[s]||s;
+  }
+  function rpStatusClass(s) {
+    return {unassigned:'st-unassigned',new:'st-new',inprogress:'st-inprogress',done:'st-done'}[s]||'';
+  }
+  function rpOwnerClass(key) {
+    return {K:'ow-k',W:'ow-w',A:'ow-a'}[key]||'ow-k';
+  }
+
+  window.renderRightPanel = function(c) {
+    const pltClass = PLT_CLASS_RP[c.platform]||'plt-line';
+    const pltSvg = SVG_RP[c.platform]||SVG_RP.line;
+    const names = {K:'KwangKamon',W:'Warisara',A:'Arisa'};
+    const roles = {K:'Admin · Sales',W:'Agent · Support',A:'Agent · Sales'};
+
+    // Customer header
+    let header = `<div class="rp-cust-hdr">
+      <div class="rp-av-row">
+        <div class="rp-av ${c.avColor}">${c.name[0]}<div class="rp-av-plt ${pltClass}">${pltSvg}</div></div>
+        <div class="rp-cust-info">
+          <div class="rp-cust-name">${c.name}
+            <button class="rp-profile-btn" title="เปิดโปรไฟล์">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </button>
+          </div>
+          ${c.customName ? `<div class="rp-original-name">ชื่อใน ${c.source}: ${c.customName}</div>` : ''}
+          <div class="rp-status-row">
+            <span class="ci-status ${rpStatusClass(c.status)}">${rpStatusLabel(c.status)}</span>
+            <span class="rp-platform-chip">${c.source}</span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+    // Quick actions
+    let actions = `<div class="rp-actions">
+      <button class="rp-act">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>ติดตาม
+      </button>
+      <button class="rp-act">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Note
+      </button>
+      <button class="rp-act">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>นัดหมาย
+      </button>
+      <button class="rp-act danger">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>ลบ
+      </button>
+    </div>`;
+
+    // Owners section
+    let ownerSec = `<div class="rp-sec">
+      <div class="sec-title">ผู้ดูแล <button>+ เพิ่ม</button></div>
+      <div class="owners-wrap">`;
+    if(c.owners && c.owners.length) {
+      c.owners.forEach(function(o) {
+        ownerSec += `<div class="owner-chip">
+          <div class="ow-av ${rpOwnerClass(o)}">${o}</div>
+          <div class="ow-info"><div class="ow-name">${names[o]||o}</div><div class="ow-role">${roles[o]||'Agent'}</div></div>
+          <span class="ow-x">✕</span>
+        </div>`;
+      });
+    }
+    ownerSec += `<button class="add-owner-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>มอบหมาย
+    </button></div></div>`;
+
+    // Response time section (preserved from original index.html)
+    let rtSection = `<div class="rt-summary" id="rt-summary">
+      <div class="rt-summary-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Response Time
+      </div>
+      <div class="rt-row"><span class="rt-row-label">First Response</span><span class="rt-row-value" id="rt-first-value">—</span></div>
+      <div class="rt-row"><span class="rt-row-label">Resolved Time</span><span class="rt-row-value" id="rt-resolved-value">—</span></div>
+      <div class="rt-avg" id="rt-avg" style="display:none">
+        <div class="rt-avg-row"><span class="rt-avg-label">Avg. First Response</span><span class="rt-avg-value" id="rt-avg-first">—</span></div>
+        <div class="rt-avg-row"><span class="rt-avg-label">Avg. Resolved</span><span class="rt-avg-value" id="rt-avg-resolved">—</span></div>
+      </div>
+    </div>`;
+
+    let content = '';
+
+    if(c.status === 'unassigned') {
+      content = ownerSec + `
+        <div class="rp-sec">
+          <div class="sec-title">ข้อมูลเบื้องต้น</div>
+          <div class="rp-field"><label>แพลตฟอร์ม</label><input type="text" value="${c.source}" readonly></div>
+          <button class="convert-btn" style="margin-top:8px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>สร้างเป็นลูกค้า
+          </button>
+        </div>` + rtSection;
+
+    } else if(c.status === 'new') {
+      content = ownerSec + `
+        <div class="rp-sec">
+          <div class="sec-title">ข้อมูลติดต่อ <button>แก้ไข</button></div>
+          <div class="contact-group">
+            <div class="contact-row">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.24h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 5.99 5.99l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              <input type="tel" value="${c.phone||''}" placeholder="+ เพิ่มเบอร์โทร">
+            </div>
+            <div class="contact-row">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              <input type="email" value="${c.email||''}" placeholder="+ เพิ่มอีเมล">
+            </div>
+            <div class="contact-row">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <input type="text" value="${c.interest||''}" placeholder="ความสนใจ...">
+            </div>
+          </div>
+          <div class="sec-title" style="margin-top:12px">แท็ก <button>+ เพิ่ม</button></div>
+          <div class="tags-wrap">
+            ${(c.tags||[]).map(function(t){return `<span class="tag">${t}<span class="tag-x">✕</span></span>`;}).join('')}
+            <span class="tag add-tag">+ เพิ่มแท็ก</span>
+          </div>
+        </div>
+        <div class="rp-sec">
+          <div class="private-note">
+            <label><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Private Note</label>
+            <textarea placeholder="บันทึกส่วนตัว (มองเห็นเฉพาะทีม)..."></textarea>
+          </div>
+        </div>` + rtSection;
+
+    } else if(c.status === 'inprogress') {
+      content = ownerSec + `
+        <div class="rp-sec">
+          <div class="sec-title">ข้อมูลติดต่อ <button>แก้ไข</button></div>
+          <div class="contact-group">
+            <div class="contact-row">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.24h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 5.99 5.99l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              <input type="tel" value="${c.phone||''}" placeholder="+ เพิ่มเบอร์โทร">
+            </div>
+            <div class="contact-row">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              <input type="email" value="${c.email||''}" placeholder="+ เพิ่มอีเมล">
+            </div>
+            <div class="contact-row">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <input type="text" value="${c.interest||''}" placeholder="ความสนใจ...">
+            </div>
+          </div>
+          <div class="sec-title" style="margin-top:12px">แท็ก <button>+ เพิ่ม</button></div>
+          <div class="tags-wrap">
+            ${(c.tags||[]).map(function(t){return `<span class="tag">${t}<span class="tag-x">✕</span></span>`;}).join('')}
+            <span class="tag add-tag">+ เพิ่มแท็ก</span>
+          </div>
+          <div class="sec-title" style="margin-top:14px">ที่อยู่ <button onclick="addRpAddress('addrList-rp-${c.id}')">+ เพิ่ม</button></div>
+          <div class="addr-list" id="addrList-rp-${c.id}">
+            ${(c.addresses||[]).map(function(a){return `<div class="addr-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              <textarea rows="2">${a}</textarea>
+              <span class="addr-del" onclick="this.closest('.addr-item').remove()">✕</span>
+            </div>`;}).join('')}
+          </div>
+          <button class="add-addr-btn" onclick="addRpAddress('addrList-rp-${c.id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>เพิ่มที่อยู่
+          </button>
+        </div>
+        <div class="rp-sec">
+          <div class="sec-title">ไฟล์แนบในแช็ต</div>
+          <div class="attach-grid">
+            <div class="attach-item">🖼️</div><div class="attach-item">🖼️</div>
+            <div class="attach-item">📄</div><div class="attach-item">🖼️</div>
+            <div class="attach-item" style="position:relative">🖼️<div class="attach-count">+5</div></div>
+          </div>
+        </div>
+        <div class="rp-sec">
+          <div class="sec-title">Related Information</div>
+          <div class="timeline">
+            <div class="tl-item"><div class="tl-dot done"><svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><div class="tl-line"></div><div class="tl-content"><div class="tl-title">ออเดอร์ #OL260100042</div><div class="tl-meta">1 เม.ย. 2026 09:42 น. · 5,350 บาท</div><span class="tl-badge" style="background:var(--success-bg);color:var(--success)">สร้างออเดอร์แล้ว</span></div></div>
+            <div class="tl-item"><div class="tl-dot done"><svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><div class="tl-line"></div><div class="tl-content"><div class="tl-title">รอชำระเงิน</div><div class="tl-meta">1 เม.ย. 2026 10:05 น.</div><span class="tl-badge" style="background:var(--success-bg);color:var(--success)">ชำระแล้ว</span></div></div>
+            <div class="tl-item"><div class="tl-dot active"><svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div class="tl-line"></div><div class="tl-content"><div class="tl-title">ตรวจสอบการชำระเงิน</div><div class="tl-meta">กำลังตรวจสอบ...</div><span class="tl-badge" style="background:var(--primary-alpha);color:var(--primary)">กำลังดำเนินการ</span></div></div>
+            <div class="tl-item"><div class="tl-dot"><svg viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="tl-line"></div><div class="tl-content"><div class="tl-title">สำเร็จ</div><div class="tl-meta">รอดำเนินการ</div><span class="tl-badge st-unassigned">Pending</span></div></div>
+            <div class="tl-item"><div class="tl-dot"><svg viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div><div class="tl-content"><div class="tl-title">ขนส่ง</div><div class="tl-meta">รอดำเนินการ</div><span class="tl-badge st-unassigned">Pending</span></div></div>
+          </div>
+        </div>
+        <div class="rp-sec">
+          <div class="private-note">
+            <label><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Private Note</label>
+            <textarea placeholder="บันทึกส่วนตัว..."></textarea>
+          </div>
+        </div>` + rtSection;
+
+    } else if(c.status === 'done') {
+      var frt = c.firstResponseMin || 0;
+      var total = c.totalTimeMin || 0;
+      content = `<div class="done-summary">
+          <div class="done-sum-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>สรุปการสนทนา</div>
+          <div class="done-sum-grid">
+            <div class="done-sum-item"><div class="done-sum-val">${frt} นาที</div><div class="done-sum-label">ตอบกลับครั้งแรก</div></div>
+            <div class="done-sum-item"><div class="done-sum-val">${total >= 60 ? Math.floor(total/60)+'ชม.'+(total%60?total%60+'น.':'') : total+'นาที'}</div><div class="done-sum-label">เวลาทั้งหมด</div></div>
+          </div>
+        </div>` + ownerSec + `
+        <div class="rp-sec">
+          <div class="sec-title">ข้อมูลติดต่อ</div>
+          <div class="contact-group">
+            <div class="contact-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.24h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 5.99 5.99l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg><input type="tel" value="${c.phone||'-'}" readonly></div>
+            <div class="contact-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><input type="email" value="${c.email||'-'}" readonly></div>
+          </div>
+          ${(c.addresses||[]).length ? `<div class="sec-title" style="margin-top:12px">ที่อยู่</div><div class="addr-list">${(c.addresses||[]).map(function(a){return `<div class="addr-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><textarea rows="2" readonly style="opacity:.8">${a}</textarea></div>`;}).join('')}</div>` : ''}
+        </div>
+        <div class="rp-sec">
+          <div class="sec-title">แท็ก</div>
+          <div class="tags-wrap">
+            ${(c.tags||[]).map(function(t){return `<span class="tag">${t}</span>`;}).join('')}
+            ${!(c.tags||[]).length ? '<span style="font-size:.8125rem;color:var(--text-3)">ไม่มีแท็ก</span>' : ''}
+          </div>
+        </div>
+        <div class="rp-sec">
+          <div class="sec-title">Related Information</div>
+          <div class="timeline">
+            <div class="tl-item"><div class="tl-dot done"><svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><div class="tl-line"></div><div class="tl-content"><div class="tl-title">ออเดอร์ #OL251200018</div><div class="tl-meta">14 ธ.ค. 2025 11:20 น. · 5,350 บาท</div><span class="tl-badge" style="background:var(--success-bg);color:var(--success)">สร้างออเดอร์แล้ว</span></div></div>
+            <div class="tl-item"><div class="tl-dot done"><svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><div class="tl-line"></div><div class="tl-content"><div class="tl-title">รอชำระเงิน</div><div class="tl-meta">14 ธ.ค. 2025 14:05 น.</div><span class="tl-badge" style="background:var(--success-bg);color:var(--success)">ชำระแล้ว</span></div></div>
+            <div class="tl-item"><div class="tl-dot done"><svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><div class="tl-line"></div><div class="tl-content"><div class="tl-title">ตรวจสอบการชำระเงิน</div><div class="tl-meta">14 ธ.ค. 2025 15:30 น.</div><span class="tl-badge" style="background:var(--success-bg);color:var(--success)">ผ่าน</span></div></div>
+            <div class="tl-item"><div class="tl-dot done"><svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><div class="tl-line"></div><div class="tl-content"><div class="tl-title">สำเร็จ</div><div class="tl-meta">15 ธ.ค. 2025 09:00 น.</div><span class="tl-badge" style="background:var(--success-bg);color:var(--success)">สำเร็จ</span></div></div>
+            <div class="tl-item"><div class="tl-dot done"><svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><div class="tl-content"><div class="tl-title">ขนส่ง</div><div class="tl-meta">16 ธ.ค. 2025 · Kerry Express</div><span class="tl-badge" style="background:var(--success-bg);color:var(--success)">จัดส่งสำเร็จ</span></div></div>
+          </div>
+        </div>`;
+    }
+
+    document.getElementById('rightPanel').innerHTML =
+      `<div class="rp-scroll">${header}${actions}${content}</div>`;
+
+    // Re-run updateSummary so response time fills in correctly
+    if(typeof updateSummary === 'function') updateSummary();
+  };
+
+  window.addRpAddress = function(listId) {
+    var list = document.getElementById(listId);
+    if(!list) return;
+    var item = document.createElement('div');
+    item.className = 'addr-item';
+    item.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;margin-top:2px;color:var(--text-3)"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><textarea rows="2" placeholder="กรอกที่อยู่..."></textarea><span class="addr-del" onclick="this.closest(\'.addr-item\').remove()">✕</span>';
+    list.appendChild(item);
+    item.querySelector('textarea').focus();
+  };
+
+  // Wire up chat click handler to render right panel
+  document.querySelectorAll('.ci').forEach(function(ci) {
+    ci.addEventListener('click', function() {
+      var chatId = this.getAttribute('data-chat-id');
+      var chatData = CHAT_DATA_RP[chatId];
+      if(chatData) renderRightPanel(chatData);
+    });
+  });
+
+  // Render right panel for initial active chat
+  var initialChat = CHAT_DATA_RP['1'];
+  if(initialChat) renderRightPanel(initialChat);
 })();
 </script>
 </body>
