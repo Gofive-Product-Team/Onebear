@@ -85,11 +85,38 @@ public static class DependencyInjection
         services.AddKeyedScoped<IPlatformAdapter, LazadaAdapter>(SocialPlatform.Lazada);
         services.AddKeyedScoped<IPlatformAdapter, ShopeeAdapter>(SocialPlatform.Shopee);
 
-        // HttpClient for LINE API
-        services.AddHttpClient("line-api", client =>
-        {
+        // HttpClients for platform APIs
+        void ConfigureJsonClient(System.Net.Http.HttpClient client) =>
             client.DefaultRequestHeaders.Accept.Add(
                 new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+
+        services.AddHttpClient("line-api", client => ConfigureJsonClient(client));
+        services.AddHttpClient("facebook-api", client =>
+        {
+            client.BaseAddress = new Uri("https://graph.facebook.com/v21.0/");
+            ConfigureJsonClient(client);
+        });
+        services.AddHttpClient("instagram-api", client =>
+        {
+            client.BaseAddress = new Uri("https://graph.facebook.com/v21.0/");
+            ConfigureJsonClient(client);
+        });
+        services.AddHttpClient("whatsapp-api", client =>
+        {
+            client.BaseAddress = new Uri("https://graph.facebook.com/v21.0/");
+            ConfigureJsonClient(client);
+        });
+        services.AddHttpClient("email-api", client => ConfigureJsonClient(client));
+        services.AddHttpClient("tiktok-api", client =>
+        {
+            client.BaseAddress = new Uri("https://open.tiktokapis.com/");
+            ConfigureJsonClient(client);
+        });
+        services.AddHttpClient("lazada-api", client => ConfigureJsonClient(client));
+        services.AddHttpClient("shopee-api", client =>
+        {
+            client.BaseAddress = new Uri("https://partner.shopeemobile.com/api/v2/");
+            ConfigureJsonClient(client);
         });
 
         return services;
