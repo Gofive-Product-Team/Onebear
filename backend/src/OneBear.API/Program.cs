@@ -268,12 +268,19 @@ app.MapHealthChecks("/api/v1/health");
 
 if (app.Environment.IsDevelopment())
 {
-    using IServiceScope scope = app.Services.CreateScope();
-    CosmosDbContext cosmosDb = scope.ServiceProvider.GetRequiredService<CosmosDbContext>();
-    await cosmosDb.EnsureDatabaseCreatedAsync();
+    try
+    {
+        using IServiceScope scope = app.Services.CreateScope();
+        CosmosDbContext cosmosDb = scope.ServiceProvider.GetRequiredService<CosmosDbContext>();
+        await cosmosDb.EnsureDatabaseCreatedAsync();
 
-    CosmosSeeder seeder = scope.ServiceProvider.GetRequiredService<CosmosSeeder>();
-    await seeder.SeedDevelopmentDataAsync();
+        CosmosSeeder seeder = scope.ServiceProvider.GetRequiredService<CosmosSeeder>();
+        await seeder.SeedDevelopmentDataAsync();
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "Cosmos DB not available — skipping database seeding. App will run but database operations will fail.");
+    }
 }
 
 app.Run();
