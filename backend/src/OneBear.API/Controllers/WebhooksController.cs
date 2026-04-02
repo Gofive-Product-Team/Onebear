@@ -52,18 +52,29 @@ public class WebhooksController : ControllerBase
         if (integration is null || !integration.IsActive)
             return Ok(); // Return 200 to prevent platform retries
 
-        IDictionary<string, string> headers = Request.Headers
-            .ToDictionary(h => h.Key, h => h.Value.ToString());
+        // Dev bypass: skip signature validation with X-Webhook-Dev-Bypass header
+        bool isDev = HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment();
+        bool devBypass = isDev && Request.Headers.ContainsKey("X-Webhook-Dev-Bypass");
 
-        IPlatformAdapter adapter = _sp.GetRequiredKeyedService<IPlatformAdapter>(platform);
-        Result<WebhookValidationResult> signatureResult =
-            await adapter.ValidateWebhookSignatureAsync(body, headers, integration, ct);
-
-        if (signatureResult is not Result<WebhookValidationResult>.Success)
+        if (!devBypass)
         {
-            _logger.LogWarning("{Platform} webhook signature validation failed for integration {IntegrationId}",
-                platform, integrationId);
-            return Unauthorized();
+            IDictionary<string, string> headers = Request.Headers
+                .ToDictionary(h => h.Key, h => h.Value.ToString());
+
+            IPlatformAdapter adapter = _sp.GetRequiredKeyedService<IPlatformAdapter>(platform);
+            Result<WebhookValidationResult> signatureResult =
+                await adapter.ValidateWebhookSignatureAsync(body, headers, integration, ct);
+
+            if (signatureResult is not Result<WebhookValidationResult>.Success)
+            {
+                _logger.LogWarning("{Platform} webhook signature validation failed for integration {IntegrationId}",
+                    platform, integrationId);
+                return Unauthorized();
+            }
+        }
+        else
+        {
+            _logger.LogInformation("[DEV] Signature validation bypassed for {Platform} webhook", platform);
         }
 
         using JsonDocument doc = await JsonDocument.ParseAsync(new MemoryStream(body), cancellationToken: ct);
