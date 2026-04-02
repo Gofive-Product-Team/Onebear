@@ -1,20 +1,27 @@
 namespace OneBear.Infrastructure.Persistence.Cosmos.Repositories;
 
+using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.Logging;
 using OneBear.Domain.Entities;
 using OneBear.Domain.Interfaces.Repositories;
 
-public class ChatbotConfigurationRepository : IChatbotConfigurationRepository
+public class ChatbotConfigurationRepository : CosmosRepositoryBase<ChatbotConfiguration>, IChatbotConfigurationRepository
 {
-    private readonly CosmosDbContext _context;
+    public ChatbotConfigurationRepository(CosmosDbContext context, ILogger<ChatbotConfigurationRepository> logger)
+        : base(context.ChatbotConfigurations, logger) { }
 
-    public ChatbotConfigurationRepository(CosmosDbContext context)
+    protected override string GetEntityId(ChatbotConfiguration entity) => entity.Id;
+
+    public async Task<ChatbotConfiguration?> GetByCompanyIdAsync(string companyId, CancellationToken ct = default)
     {
-        _context = context;
+        QueryDefinition query = new QueryDefinition("SELECT * FROM c WHERE c.companyId = @companyId")
+            .WithParameter("@companyId", companyId);
+
+        (List<ChatbotConfiguration> items, _) = await QueryAsync<ChatbotConfiguration>(
+            query, new PartitionKey(companyId), 1, null, ct);
+        return items.FirstOrDefault();
     }
 
-    public Task<ChatbotConfiguration?> GetByCompanyIdAsync(string companyId, CancellationToken ct = default)
-        => throw new NotImplementedException();
-
     public Task<ChatbotConfiguration> UpsertAsync(ChatbotConfiguration config, CancellationToken ct = default)
-        => throw new NotImplementedException();
+        => UpsertItemAsync(config, new PartitionKey(config.CompanyId), ct);
 }
