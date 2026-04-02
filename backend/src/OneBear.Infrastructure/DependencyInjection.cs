@@ -11,7 +11,9 @@ using OneBear.Infrastructure.Messaging;
 using OneBear.Infrastructure.Persistence.Cosmos;
 using OneBear.Infrastructure.Persistence.Cosmos.Repositories;
 using OneBear.Infrastructure.Persistence.Cosmos.Seeding;
+using Azure.Storage.Blobs;
 using OneBear.Infrastructure.PlatformAdapters;
+using OneBear.Infrastructure.Storage;
 using StackExchange.Redis;
 
 public static class DependencyInjection
@@ -56,6 +58,14 @@ public static class DependencyInjection
         services.AddScoped<IUserVerificationRepository, UserVerificationRepository>();
 
         services.AddTransient<CosmosSeeder>();
+
+        // Azure Blob Storage
+        string? blobConnectionString = configuration.GetConnectionString("BlobStorage");
+        if (!string.IsNullOrEmpty(blobConnectionString))
+        {
+            services.AddSingleton(new BlobServiceClient(blobConnectionString));
+            services.AddSingleton<IBlobStorageService, AzureBlobStorageService>();
+        }
 
         // Event publisher (MassTransit)
         services.AddScoped<IEventPublisher, MassTransitEventPublisher>();

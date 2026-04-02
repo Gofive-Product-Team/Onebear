@@ -186,7 +186,8 @@ builder.Services.AddScoped<ISignalRNotifier, SignalRNotifierService>();
 // SignalR real-time infrastructure services
 builder.Services.AddSingleton<IAttendanceService, AttendanceService>();
 builder.Services.AddSingleton<ITypingTracker, TypingTracker>();
-builder.Services.AddScoped<IRoomAuthorizationService, StubRoomAuthorizationService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IRoomAuthorizationService, RoomAuthorizationService>();
 
 // Application layer (services, validators, orchestrator)
 builder.Services.AddApplication();
