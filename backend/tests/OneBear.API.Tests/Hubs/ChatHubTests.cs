@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using OneBear.API.Auth;
 using OneBear.API.Hubs;
+using OneBear.Application.Common.Interfaces;
 
 namespace OneBear.API.Tests.Hubs;
 
@@ -13,6 +14,9 @@ public class ChatHubTests
     private readonly Mock<IHubCallerClients> _mockClients;
     private readonly Mock<HubCallerContext> _mockContext;
     private readonly Mock<ILogger<ChatHub>> _mockLogger;
+    private readonly Mock<IRoomAuthorizationService> _mockRoomAuth;
+    private readonly Mock<IAttendanceService> _mockAttendance;
+    private readonly Mock<ITypingTracker> _mockTypingTracker;
     private readonly ChatHub _hub;
 
     private const string TestUserId = "user-123";
@@ -26,6 +30,9 @@ public class ChatHubTests
         _mockClients = new Mock<IHubCallerClients>();
         _mockContext = new Mock<HubCallerContext>();
         _mockLogger = new Mock<ILogger<ChatHub>>();
+        _mockRoomAuth = new Mock<IRoomAuthorizationService>();
+        _mockAttendance = new Mock<IAttendanceService>();
+        _mockTypingTracker = new Mock<ITypingTracker>();
 
         // Set up user claims
         Claim[] claims = new[]
@@ -39,7 +46,19 @@ public class ChatHubTests
         _mockContext.Setup(c => c.User).Returns(user);
         _mockContext.Setup(c => c.ConnectionId).Returns(TestConnectionId);
 
-        _hub = new ChatHub(_mockLogger.Object)
+        // Default: all rooms authorized
+        _mockRoomAuth.Setup(r => r.CanAccessRoomAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        // Default: no attended rooms
+        _mockAttendance.Setup(a => a.GetAttendedRoomsAsync(It.IsAny<string>()))
+            .ReturnsAsync(Array.Empty<string>());
+
+        _hub = new ChatHub(
+            _mockLogger.Object,
+            _mockRoomAuth.Object,
+            _mockAttendance.Object,
+            _mockTypingTracker.Object)
         {
             Groups = _mockGroups.Object,
             Clients = _mockClients.Object,
@@ -47,10 +66,16 @@ public class ChatHubTests
         };
     }
 
+    // ────────────────────────────────────────────────────────
+    // OnConnectedAsync
+    // ────────────────────────────────────────────────────────
+
     [Fact]
     public async Task OnConnectedAsync_ShouldAddToUserAndCompanyGroups()
     {
-        // Arrange -- already set up in constructor
+        // Arrange
+        Mock<ISingleClientProxy> mockCaller = new Mock<ISingleClientProxy>();
+        _mockClients.Setup(c => c.Caller).Returns(mockCaller.Object);
 
         // Act
         await _hub.OnConnectedAsync();
@@ -65,6 +90,22 @@ public class ChatHubTests
     }
 
     [Fact]
+    public async Task OnConnectedAsync_ShouldSendConnectedEventToCaller()
+    {
+        // Arrange
+        Mock<ISingleClientProxy> mockCaller = new Mock<ISingleClientProxy>();
+        _mockClients.Setup(c => c.Caller).Returns(mockCaller.Object);
+
+        // Act
+        await _hub.OnConnectedAsync();
+
+        // Assert
+        mockCaller.Verify(
+            c => c.SendCoreAsync("Connected", It.Is<object?[]>(args => args.Length == 1), default),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task OnConnectedAsync_ShouldThrow_WhenNoClaimsPresent()
     {
         // Arrange
@@ -74,34 +115,74 @@ public class ChatHubTests
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _hub.OnConnectedAsync());
     }
 
+    // ────────────────────────────────────────────────────────
+    // OnDisconnectedAsync
+    // ────────────────────────────────────────────────────────
+
     [Fact]
-    public async Task OnDisconnectedAsync_ShouldComplete_WithoutException()
+    public async Task OnDisconnectedAsync_ShouldCleanUpAttendance()
     {
-        // Arrange -- no additional setup needed
+        // Arrange
+        string[] attendedRooms = new[] { "room-1", "room-2" };
+        _mockAttendance.Setup(a => a.GetAttendedRoomsAsync(TestConnectionId))
+            .ReturnsAsync(attendedRooms);
+
+        Mock<IClientProxy> mockGroupProxy = new Mock<IClientProxy>();
+        _mockClients.Setup(c => c.Group(It.IsAny<string>())).Returns(mockGroupProxy.Object);
 
         // Act
         await _hub.OnDisconnectedAsync(null);
 
-        // Assert -- should complete without throwing
+        // Assert
+        _mockAttendance.Verify(a => a.ExitAllRoomsForConnectionAsync(TestConnectionId), Times.Once);
+    }
+
+    [Fact]
+    public async Task OnDisconnectedAsync_ShouldBroadcastAttendanceChangedForEachAttendedRoom()
+    {
+        // Arrange
+        string[] attendedRooms = new[] { "room-1", "room-2" };
+        _mockAttendance.Setup(a => a.GetAttendedRoomsAsync(TestConnectionId))
+            .ReturnsAsync(attendedRooms);
+
+        Mock<IClientProxy> mockGroupProxy = new Mock<IClientProxy>();
+        _mockClients.Setup(c => c.Group(It.IsAny<string>())).Returns(mockGroupProxy.Object);
+
+        // Act
+        await _hub.OnDisconnectedAsync(null);
+
+        // Assert: AttendanceChanged sent for each room
+        mockGroupProxy.Verify(
+            c => c.SendCoreAsync("AttendanceChanged", It.Is<object?[]>(args => args.Length == 1), default),
+            Times.Exactly(attendedRooms.Length));
     }
 
     [Fact]
     public async Task OnDisconnectedAsync_ShouldComplete_WithException()
     {
         // Arrange
+        _mockAttendance.Setup(a => a.GetAttendedRoomsAsync(TestConnectionId))
+            .ReturnsAsync(Array.Empty<string>());
         Exception testException = new InvalidOperationException("test error");
 
         // Act
         await _hub.OnDisconnectedAsync(testException);
 
-        // Assert -- should complete without throwing
+        // Assert -- should complete without rethrowing
+        _mockAttendance.Verify(a => a.ExitAllRoomsForConnectionAsync(TestConnectionId), Times.Once);
     }
 
+    // ────────────────────────────────────────────────────────
+    // JoinRooms
+    // ────────────────────────────────────────────────────────
+
     [Fact]
-    public async Task JoinRooms_ShouldAddToRoomGroups()
+    public async Task JoinRooms_ShouldAddToRoomGroups_WhenAuthorized()
     {
         // Arrange
         string[] roomIds = new[] { "room-1", "room-2", "room-3" };
+        _mockRoomAuth.Setup(r => r.CanAccessRoomAsync(TestUserId, It.IsAny<string>()))
+            .ReturnsAsync(true);
 
         // Act
         await _hub.JoinRooms(roomIds);
@@ -119,6 +200,28 @@ public class ChatHubTests
     }
 
     [Fact]
+    public async Task JoinRooms_ShouldSkipUnauthorizedRoomsSilently()
+    {
+        // Arrange
+        string[] roomIds = new[] { "room-allowed", "room-denied" };
+        _mockRoomAuth.Setup(r => r.CanAccessRoomAsync(TestUserId, "room-allowed"))
+            .ReturnsAsync(true);
+        _mockRoomAuth.Setup(r => r.CanAccessRoomAsync(TestUserId, "room-denied"))
+            .ReturnsAsync(false);
+
+        // Act -- must not throw
+        await _hub.JoinRooms(roomIds);
+
+        // Assert: only allowed room joined
+        _mockGroups.Verify(
+            g => g.AddToGroupAsync(TestConnectionId, "room:room-allowed", default),
+            Times.Once);
+        _mockGroups.Verify(
+            g => g.AddToGroupAsync(TestConnectionId, "room:room-denied", default),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task JoinRooms_ShouldHandleEmptyArray()
     {
         // Arrange
@@ -133,26 +236,29 @@ public class ChatHubTests
             Times.Never);
     }
 
+    // ────────────────────────────────────────────────────────
+    // AttendRoom
+    // ────────────────────────────────────────────────────────
+
     [Fact]
-    public async Task LeaveRoom_ShouldRemoveFromRoomGroup()
+    public async Task AttendRoom_ShouldThrowHubException_WhenUnauthorized()
     {
         // Arrange
-        string roomId = "room-1";
+        string roomId = "room-denied";
+        _mockRoomAuth.Setup(r => r.CanAccessRoomAsync(TestUserId, roomId))
+            .ReturnsAsync(false);
 
-        // Act
-        await _hub.LeaveRoom(roomId);
-
-        // Assert
-        _mockGroups.Verify(
-            g => g.RemoveFromGroupAsync(TestConnectionId, $"room:{roomId}", default),
-            Times.Once);
+        // Act & Assert
+        await Assert.ThrowsAsync<HubException>(() => _hub.AttendRoom(roomId));
     }
 
     [Fact]
-    public async Task AttendRoom_ShouldAddToPresenceGroupAndBroadcast()
+    public async Task AttendRoom_ShouldAddToPresenceGroupAndBroadcast_WhenAuthorized()
     {
         // Arrange
         string roomId = "room-1";
+        _mockRoomAuth.Setup(r => r.CanAccessRoomAsync(TestUserId, roomId)).ReturnsAsync(true);
+
         Mock<IClientProxy> mockClientProxy = new Mock<IClientProxy>();
         _mockClients.Setup(c => c.Group($"room:{roomId}")).Returns(mockClientProxy.Object);
 
@@ -163,11 +269,17 @@ public class ChatHubTests
         _mockGroups.Verify(
             g => g.AddToGroupAsync(TestConnectionId, $"presence:{roomId}", default),
             Times.Once);
+        _mockAttendance.Verify(
+            a => a.RecordAttendAsync(TestConnectionId, roomId, TestUserId),
+            Times.Once);
         mockClientProxy.Verify(
-            c => c.SendCoreAsync("AttendanceChanged", It.Is<object?[]>(args =>
-                args.Length == 1), default),
+            c => c.SendCoreAsync("AttendanceChanged", It.Is<object?[]>(args => args.Length == 1), default),
             Times.Once);
     }
+
+    // ────────────────────────────────────────────────────────
+    // ExitRoom
+    // ────────────────────────────────────────────────────────
 
     [Fact]
     public async Task ExitRoom_ShouldRemoveFromPresenceGroupAndBroadcast()
@@ -184,14 +296,39 @@ public class ChatHubTests
         _mockGroups.Verify(
             g => g.RemoveFromGroupAsync(TestConnectionId, $"presence:{roomId}", default),
             Times.Once);
+        _mockAttendance.Verify(
+            a => a.RecordExitAsync(TestConnectionId, roomId),
+            Times.Once);
         mockClientProxy.Verify(
-            c => c.SendCoreAsync("AttendanceChanged", It.Is<object?[]>(args =>
-                args.Length == 1), default),
+            c => c.SendCoreAsync("AttendanceChanged", It.Is<object?[]>(args => args.Length == 1), default),
             Times.Once);
     }
 
+    // ────────────────────────────────────────────────────────
+    // LeaveRoom
+    // ────────────────────────────────────────────────────────
+
     [Fact]
-    public async Task SendMessage_ShouldBroadcastToRoom()
+    public async Task LeaveRoom_ShouldRemoveFromRoomGroup()
+    {
+        // Arrange
+        string roomId = "room-1";
+
+        // Act
+        await _hub.LeaveRoom(roomId);
+
+        // Assert
+        _mockGroups.Verify(
+            g => g.RemoveFromGroupAsync(TestConnectionId, $"room:{roomId}", default),
+            Times.Once);
+    }
+
+    // ────────────────────────────────────────────────────────
+    // SendMessage
+    // ────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SendMessage_ShouldBroadcastToRoom_WhenAuthorized()
     {
         // Arrange
         SendMessagePayload payload = new SendMessagePayload
@@ -200,6 +337,8 @@ public class ChatHubTests
             Content = "Hello, World!",
             MessageType = "Text"
         };
+        _mockRoomAuth.Setup(r => r.CanAccessRoomAsync(TestUserId, payload.RoomId)).ReturnsAsync(true);
+
         Mock<IClientProxy> mockClientProxy = new Mock<IClientProxy>();
         _mockClients.Setup(c => c.Group($"room:{payload.RoomId}")).Returns(mockClientProxy.Object);
 
@@ -208,9 +347,23 @@ public class ChatHubTests
 
         // Assert
         mockClientProxy.Verify(
-            c => c.SendCoreAsync("ReceiveMessage", It.Is<object?[]>(args =>
-                args.Length == 1), default),
+            c => c.SendCoreAsync("ReceiveMessage", It.Is<object?[]>(args => args.Length == 1), default),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task SendMessage_ShouldThrowHubException_WhenUnauthorized()
+    {
+        // Arrange
+        SendMessagePayload payload = new SendMessagePayload
+        {
+            RoomId = "room-denied",
+            Content = "Hello!"
+        };
+        _mockRoomAuth.Setup(r => r.CanAccessRoomAsync(TestUserId, payload.RoomId)).ReturnsAsync(false);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<HubException>(() => _hub.SendMessage(payload));
     }
 
     [Fact]
@@ -223,6 +376,8 @@ public class ChatHubTests
             Content = "Hello!"
             // MessageType is null
         };
+        _mockRoomAuth.Setup(r => r.CanAccessRoomAsync(TestUserId, payload.RoomId)).ReturnsAsync(true);
+
         Mock<IClientProxy> mockClientProxy = new Mock<IClientProxy>();
         _mockClients.Setup(c => c.Group($"room:{payload.RoomId}")).Returns(mockClientProxy.Object);
 
@@ -231,16 +386,21 @@ public class ChatHubTests
 
         // Assert
         mockClientProxy.Verify(
-            c => c.SendCoreAsync("ReceiveMessage", It.Is<object?[]>(args =>
-                args.Length == 1), default),
+            c => c.SendCoreAsync("ReceiveMessage", It.Is<object?[]>(args => args.Length == 1), default),
             Times.Once);
     }
 
+    // ────────────────────────────────────────────────────────
+    // SendTyping
+    // ────────────────────────────────────────────────────────
+
     [Fact]
-    public async Task SendTyping_ShouldBroadcastToOthersInRoom()
+    public async Task SendTyping_ShouldBroadcastToOthersInRoom_WhenAuthorized()
     {
         // Arrange
         string roomId = "room-1";
+        _mockRoomAuth.Setup(r => r.CanAccessRoomAsync(TestUserId, roomId)).ReturnsAsync(true);
+
         Mock<IClientProxy> mockClientProxy = new Mock<IClientProxy>();
         _mockClients.Setup(c => c.OthersInGroup($"room:{roomId}")).Returns(mockClientProxy.Object);
 
@@ -248,10 +408,30 @@ public class ChatHubTests
         await _hub.SendTyping(roomId, true);
 
         // Assert
+        _mockTypingTracker.Verify(t => t.Track(TestUserId, roomId, true), Times.Once);
         mockClientProxy.Verify(
-            c => c.SendCoreAsync("TypingIndicator", It.Is<object?[]>(args =>
-                args.Length == 1), default),
+            c => c.SendCoreAsync("TypingIndicator", It.Is<object?[]>(args => args.Length == 1), default),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task SendTyping_ShouldNotBroadcast_WhenUnauthorized()
+    {
+        // Arrange
+        string roomId = "room-denied";
+        _mockRoomAuth.Setup(r => r.CanAccessRoomAsync(TestUserId, roomId)).ReturnsAsync(false);
+
+        Mock<IClientProxy> mockClientProxy = new Mock<IClientProxy>();
+        _mockClients.Setup(c => c.OthersInGroup($"room:{roomId}")).Returns(mockClientProxy.Object);
+
+        // Act -- must not throw
+        await _hub.SendTyping(roomId, true);
+
+        // Assert: nothing sent and tracker not called
+        _mockTypingTracker.Verify(t => t.Track(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+        mockClientProxy.Verify(
+            c => c.SendCoreAsync(It.IsAny<string>(), It.IsAny<object?[]>(), default),
+            Times.Never);
     }
 
     [Fact]
@@ -259,6 +439,8 @@ public class ChatHubTests
     {
         // Arrange
         string roomId = "room-1";
+        _mockRoomAuth.Setup(r => r.CanAccessRoomAsync(TestUserId, roomId)).ReturnsAsync(true);
+
         Mock<IClientProxy> mockClientProxy = new Mock<IClientProxy>();
         _mockClients.Setup(c => c.OthersInGroup($"room:{roomId}")).Returns(mockClientProxy.Object);
 
@@ -266,9 +448,9 @@ public class ChatHubTests
         await _hub.SendTyping(roomId, false);
 
         // Assert
+        _mockTypingTracker.Verify(t => t.Track(TestUserId, roomId, false), Times.Once);
         mockClientProxy.Verify(
-            c => c.SendCoreAsync("TypingIndicator", It.Is<object?[]>(args =>
-                args.Length == 1), default),
+            c => c.SendCoreAsync("TypingIndicator", It.Is<object?[]>(args => args.Length == 1), default),
             Times.Once);
     }
 }

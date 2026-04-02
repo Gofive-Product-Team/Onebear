@@ -10,6 +10,7 @@ using OneBear.API.Auth;
 using OneBear.API.Hubs;
 using OneBear.API.Middleware;
 using OneBear.API.Services;
+using OneBear.Application.Common.Interfaces;
 using OneBear.Domain.Enums;
 using OneBear.Domain.Interfaces;
 using OneBear.Infrastructure;
@@ -180,6 +181,11 @@ else
 
 // SignalR notifier (server-side push service for controllers and services)
 builder.Services.AddScoped<ISignalRNotifier, SignalRNotifierService>();
+
+// SignalR real-time infrastructure services
+builder.Services.AddSingleton<IAttendanceService, AttendanceService>();
+builder.Services.AddSingleton<ITypingTracker, TypingTracker>();
+builder.Services.AddScoped<IRoomAuthorizationService, StubRoomAuthorizationService>();
 
 // Infrastructure (Cosmos DB, Redis, Repositories)
 builder.Services.AddInfrastructure(builder.Configuration);

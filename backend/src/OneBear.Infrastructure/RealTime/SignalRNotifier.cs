@@ -26,4 +26,9 @@ public class SignalRNotifier : ISignalRNotifier
     {
         throw new NotImplementedException("Use SignalRNotifierService from the API project.");
     }
+
+    public Task SendToRoomExceptAsync(string roomId, string excludeConnectionId, string eventName, object payload, CancellationToken ct = default)
+    {
+        throw new NotImplementedException("Use SignalRNotifierService from the API project.");
+    }
 }

@@ -32,4 +32,10 @@ public class SignalRNotifierService : ISignalRNotifier
         _logger.LogDebug("SignalR push: {Event} to company:{CompanyId}", eventName, companyId);
         await _hubContext.Clients.Group($"company:{companyId}").SendAsync(eventName, payload, ct);
     }
+
+    public async Task SendToRoomExceptAsync(string roomId, string excludeConnectionId, string eventName, object payload, CancellationToken ct = default)
+    {
+        _logger.LogDebug("SignalR push: {Event} to room:{RoomId} except {ConnectionId}", eventName, roomId, excludeConnectionId);
+        await _hubContext.Clients.GroupExcept($"room:{roomId}", excludeConnectionId).SendAsync(eventName, payload, ct);
+    }
 }
