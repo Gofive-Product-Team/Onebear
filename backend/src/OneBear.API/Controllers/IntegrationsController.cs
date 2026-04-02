@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace OneBear.API.Controllers;
 
 [ApiController]
 [Route("api/v1/companies/{companyId}/integrations")]
 [Authorize]
+[EnableRateLimiting("api")]
 public class IntegrationsController : ControllerBase
 {
     // ──────────────────────────────────────────────

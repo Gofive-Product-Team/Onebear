@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -15,6 +16,7 @@ namespace OneBear.API.Auth;
 /// </summary>
 [ApiController]
 [Route("api/v1/dev")]
+[EnableRateLimiting("auth")]
 public class DevTokenController : ControllerBase
 {
     private readonly AuthOptions _authOptions;

@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace OneBear.API.Controllers;
 
 [ApiController]
+[EnableRateLimiting("webhook")]
 public class WebhooksController : ControllerBase
 {
     // ──────────────────────────────────────────────

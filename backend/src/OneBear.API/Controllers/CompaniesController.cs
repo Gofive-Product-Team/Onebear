@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace OneBear.API.Controllers;
 
 [ApiController]
 [Route("api/v1/companies/{companyId}")]
 [Authorize]
+[EnableRateLimiting("api")]
 public class CompaniesController : ControllerBase
 {
     /// <summary>Get feature settings for a company.</summary>

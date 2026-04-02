@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace OneBear.API.Controllers;
 
 [ApiController]
 [Route("api/v1/companies/{companyId}/rooms")]
 [Authorize]
+[EnableRateLimiting("api")]
 public class RoomsController : ControllerBase
 {
     /// <summary>List rooms with pagination.</summary>

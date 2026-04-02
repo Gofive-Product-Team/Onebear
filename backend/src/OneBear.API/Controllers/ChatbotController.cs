@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace OneBear.API.Controllers;
 
 [ApiController]
 [Authorize]
+[EnableRateLimiting("api")]
 public class ChatbotController : ControllerBase
 {
     // ──────────────────────────────────────────────

@@ -1,7 +1,9 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using OneBear.API.Auth;
@@ -185,6 +187,47 @@ builder.Services.AddInfrastructure(builder.Configuration);
 // Health checks
 builder.Services.AddHealthChecks();
 
+// Rate limiting
+builder.Services.AddRateLimiter(options =>
+{
+    // webhook: 500 requests/minute per IP
+    options.AddFixedWindowLimiter("webhook", opt =>
+    {
+        opt.PermitLimit = 500;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 50;
+    });
+
+    // api: 300 requests/minute per tenant (partition by companyId from JWT)
+    options.AddFixedWindowLimiter("api", opt =>
+    {
+        opt.PermitLimit = 300;
+        opt.Window = TimeSpan.FromMinutes(1);
+    });
+
+    // auth: 20 requests/minute per IP
+    options.AddFixedWindowLimiter("auth", opt =>
+    {
+        opt.PermitLimit = 20;
+        opt.Window = TimeSpan.FromMinutes(1);
+    });
+
+    options.RejectionStatusCode = 429;
+    options.OnRejected = async (context, ct) =>
+    {
+        context.HttpContext.Response.Headers["Retry-After"] = "60";
+        Microsoft.AspNetCore.Mvc.ProblemDetails problemDetails = new()
+        {
+            Status = 429,
+            Title = "Too Many Requests",
+            Detail = "Rate limit exceeded. Try again later.",
+            Instance = context.HttpContext.Request.Path
+        };
+        await context.HttpContext.Response.WriteAsJsonAsync(problemDetails, ct);
+    };
+});
+
 var app = builder.Build();
 
 // Middleware pipeline
@@ -197,6 +240,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("OneBear");
+app.UseRateLimiter();
 
 // Dev auth bypass: auto-authenticate requests without token (Development only)
 if (app.Environment.IsDevelopment())
