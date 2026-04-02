@@ -45,4 +45,28 @@ public class IntegrationChannelRepository : CosmosRepositoryBase<IntegrationChan
 
     public Task DeleteAsync(string id, string companyId, CancellationToken ct = default)
         => DeleteItemAsync(id, new PartitionKey(companyId), ct);
+
+    public async Task<List<IntegrationChannel>> GetAllWithExpiringTokensAsync(
+        long expiryThresholdTimestamp, CancellationToken ct = default)
+    {
+        // Cross-partition query for integrations with tokens expiring before the threshold
+        QueryDefinition query = new QueryDefinition(
+            "SELECT * FROM c WHERE c.isActive = true " +
+            "AND IS_DEFINED(c.credentials.tokenExpiresAt) " +
+            "AND c.credentials.tokenExpiresAt != null " +
+            "AND c.credentials.tokenExpiresAt <= @threshold")
+            .WithParameter("@threshold", expiryThresholdTimestamp);
+
+        QueryRequestOptions options = new() { MaxItemCount = 100 };
+        using FeedIterator<IntegrationChannel> iterator = _container.GetItemQueryIterator<IntegrationChannel>(
+            query, requestOptions: options);
+
+        List<IntegrationChannel> results = new();
+        while (iterator.HasMoreResults)
+        {
+            FeedResponse<IntegrationChannel> response = await iterator.ReadNextAsync(ct);
+            results.AddRange(response);
+        }
+        return results;
+    }
 }

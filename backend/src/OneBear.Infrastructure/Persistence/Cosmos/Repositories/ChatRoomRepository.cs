@@ -98,4 +98,45 @@ public class ChatRoomRepository : CosmosRepositoryBase<ChatRoom>, IChatRoomRepos
             query, new PartitionKey(companyId), 1, null, ct);
         return items.FirstOrDefault();
     }
+
+    public async Task<List<ChatRoom>> GetRoomsWithDueFollowupsAsync(long beforeTimestamp, CancellationToken ct = default)
+    {
+        // Cross-partition query: rooms with followupTimestamp <= now
+        QueryDefinition query = new QueryDefinition(
+            "SELECT * FROM c WHERE IS_DEFINED(c.followupTimestamp) " +
+            "AND c.followupTimestamp != null " +
+            "AND c.followupTimestamp <= @threshold")
+            .WithParameter("@threshold", beforeTimestamp);
+
+        QueryRequestOptions options = new() { MaxItemCount = 100 };
+        using FeedIterator<ChatRoom> iterator = _container.GetItemQueryIterator<ChatRoom>(
+            query, requestOptions: options);
+
+        List<ChatRoom> results = new();
+        while (iterator.HasMoreResults)
+        {
+            FeedResponse<ChatRoom> response = await iterator.ReadNextAsync(ct);
+            results.AddRange(response);
+        }
+        return results;
+    }
+
+    public async Task<List<ChatRoom>> GetRoomsWithAttendeesAsync(CancellationToken ct = default)
+    {
+        // Cross-partition query: rooms with non-empty AttendedUserIds
+        QueryDefinition query = new QueryDefinition(
+            "SELECT * FROM c WHERE ARRAY_LENGTH(c.attendedUserIds) > 0");
+
+        QueryRequestOptions options = new() { MaxItemCount = 100 };
+        using FeedIterator<ChatRoom> iterator = _container.GetItemQueryIterator<ChatRoom>(
+            query, requestOptions: options);
+
+        List<ChatRoom> results = new();
+        while (iterator.HasMoreResults)
+        {
+            FeedResponse<ChatRoom> response = await iterator.ReadNextAsync(ct);
+            results.AddRange(response);
+        }
+        return results;
+    }
 }

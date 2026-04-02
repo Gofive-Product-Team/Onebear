@@ -21,19 +21,50 @@ public class AttendedUserCleanupJob : IJob
         _logger = logger;
     }
 
-    public Task Execute(IJobExecutionContext context)
+    public async Task Execute(IJobExecutionContext context)
     {
-        _logger.LogInformation("Starting attended user cleanup job (threshold: {Threshold})",
-            StaleThreshold);
+        CancellationToken ct = context.CancellationToken;
 
-        // AttendedUserIds are managed in-memory by the AttendanceService in the API process.
-        // This job serves as a safety net to clear stale attendance data from persisted ChatRoom documents.
-        // The primary cleanup is handled by SignalR OnDisconnectedAsync.
-        //
-        // In a multi-replica setup, this job would query rooms with non-empty AttendedUserIds
-        // and clear entries older than the stale threshold.
+        _logger.LogInformation("Starting attended user cleanup job (threshold: {Threshold})", StaleThreshold);
 
-        _logger.LogInformation("Attended user cleanup job completed");
-        return Task.CompletedTask;
+        // Query rooms with non-empty AttendedUserIds
+        // In a multi-replica setup, SignalR disconnect may not fire for all replicas.
+        // This job clears stale attendance data persisted in Cosmos.
+        List<ChatRoom> roomsWithAttendees = await _roomRepo.GetRoomsWithAttendeesAsync(ct);
+
+        int cleaned = 0;
+
+        // The stale threshold is based on last message timestamp as a proxy for activity.
+        // Rooms where the last update was > 15 minutes ago with non-empty attendance are stale.
+        long staleBeforeTimestamp = DateTimeOffset.UtcNow.Add(-StaleThreshold).ToUnixTimeMilliseconds();
+
+        foreach (ChatRoom room in roomsWithAttendees)
+        {
+            // Use the later of lastMessageTimestamp or updatedTimestamp as activity indicator
+            long lastActivity = Math.Max(
+                room.LastMessageTimestamp ?? 0,
+                room.UpdatedTimestamp ?? 0);
+
+            if (lastActivity > 0 && lastActivity < staleBeforeTimestamp)
+            {
+                _logger.LogInformation(
+                    "Clearing stale attendance for room {RoomId} ({Count} users, last activity {Last})",
+                    room.Id, room.AttendedUserIds.Count, lastActivity);
+
+                room.AttendedUserIds.Clear();
+
+                try
+                {
+                    await _roomRepo.UpdateAsync(room, ct);
+                    cleaned++;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error clearing attendance for room {RoomId}", room.Id);
+                }
+            }
+        }
+
+        _logger.LogInformation("Attended user cleanup job completed: {Cleaned} rooms cleaned", cleaned);
     }
 }

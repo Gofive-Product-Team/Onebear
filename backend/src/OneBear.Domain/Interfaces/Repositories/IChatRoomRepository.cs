@@ -12,4 +12,6 @@ public interface IChatRoomRepository
     Task<ChatRoom> UpdateAsync(ChatRoom room, CancellationToken ct = default);
     Task<int> GetBadgeCountAsync(string companyId, string? assignToUserId, CancellationToken ct = default);
     Task<ChatRoom?> GetByUserAndIntegrationAsync(string companyId, string userId, string integrationId, CancellationToken ct = default);
+    Task<List<ChatRoom>> GetRoomsWithDueFollowupsAsync(long beforeTimestamp, CancellationToken ct = default);
+    Task<List<ChatRoom>> GetRoomsWithAttendeesAsync(CancellationToken ct = default);
 }

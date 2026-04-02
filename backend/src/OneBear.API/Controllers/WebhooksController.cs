@@ -33,13 +33,12 @@ public class WebhooksController : ControllerBase
     }
 
     // ──────────────────────────────────────────────
-    // Platform webhooks (anonymous)
+    // Generic platform webhook handler
     // ──────────────────────────────────────────────
 
-    [HttpPost("api/v1/webhooks/line/{companyId}/{integrationId}")]
-    public async Task<IActionResult> LineWebhook(string companyId, string integrationId, CancellationToken ct)
+    private async Task<IActionResult> HandlePlatformWebhookAsync(
+        string platform, string companyId, string integrationId, CancellationToken ct)
     {
-        // Read raw body for signature validation
         Request.EnableBuffering();
         byte[] body;
         using (MemoryStream ms = new())
@@ -49,64 +48,81 @@ public class WebhooksController : ControllerBase
         }
         Request.Body.Position = 0;
 
-        // Look up integration by companyId partition key
         IntegrationChannel? integration = await _integrationService.GetByIdAsync(integrationId, companyId, ct);
         if (integration is null || !integration.IsActive)
             return Ok(); // Return 200 to prevent platform retries
 
-        // Validate LINE webhook signature
         IDictionary<string, string> headers = Request.Headers
             .ToDictionary(h => h.Key, h => h.Value.ToString());
 
-        IPlatformAdapter adapter = _sp.GetRequiredKeyedService<IPlatformAdapter>(SocialPlatform.Line);
+        IPlatformAdapter adapter = _sp.GetRequiredKeyedService<IPlatformAdapter>(platform);
         Result<WebhookValidationResult> signatureResult =
             await adapter.ValidateWebhookSignatureAsync(body, headers, integration, ct);
 
         if (signatureResult is not Result<WebhookValidationResult>.Success)
         {
-            _logger.LogWarning("LINE webhook signature validation failed for integration {IntegrationId}", integrationId);
+            _logger.LogWarning("{Platform} webhook signature validation failed for integration {IntegrationId}",
+                platform, integrationId);
             return Unauthorized();
         }
 
-        // Parse body and process through the orchestrator
         using JsonDocument doc = await JsonDocument.ParseAsync(new MemoryStream(body), cancellationToken: ct);
         Result<InboundMessageResult> result =
-            await _orchestrator.ProcessInboundAsync(SocialPlatform.Line, integrationId, companyId, doc, ct);
+            await _orchestrator.ProcessInboundAsync(platform, integrationId, companyId, doc, ct);
 
         if (result is Result<InboundMessageResult>.Failure failure)
-            _logger.LogWarning("LINE inbound processing failed: {Error}", failure.Error.Message);
+            _logger.LogWarning("{Platform} inbound processing failed: {Error}", platform, failure.Error.Message);
 
-        // Always return 200 to prevent platform retries
         return Ok();
     }
 
-    [HttpPost("api/v1/webhooks/facebook")]
-    public IActionResult FacebookWebhook()
-        => Ok(new { status = "received" });
+    // ──────────────────────────────────────────────
+    // Platform webhooks (anonymous)
+    // ──────────────────────────────────────────────
 
-    [HttpGet("api/v1/webhooks/facebook")]
+    [HttpPost("api/v1/webhooks/line/{companyId}/{integrationId}")]
+    public Task<IActionResult> LineWebhook(string companyId, string integrationId, CancellationToken ct)
+        => HandlePlatformWebhookAsync(SocialPlatform.Line, companyId, integrationId, ct);
+
+    [HttpPost("api/v1/webhooks/facebook/{companyId}/{integrationId}")]
+    public Task<IActionResult> FacebookWebhook(string companyId, string integrationId, CancellationToken ct)
+        => HandlePlatformWebhookAsync(SocialPlatform.Facebook, companyId, integrationId, ct);
+
+    [HttpGet("api/v1/webhooks/facebook/{companyId}/{integrationId}")]
     public IActionResult FacebookVerify([FromQuery(Name = "hub.challenge")] string challenge)
         => Ok(challenge);
 
-    [HttpPost("api/v1/webhooks/whatsapp")]
-    public IActionResult WhatsAppWebhook()
-        => Ok(new { status = "received" });
+    [HttpPost("api/v1/webhooks/instagram/{companyId}/{integrationId}")]
+    public Task<IActionResult> InstagramWebhook(string companyId, string integrationId, CancellationToken ct)
+        => HandlePlatformWebhookAsync(SocialPlatform.Instagram, companyId, integrationId, ct);
 
-    [HttpGet("api/v1/webhooks/whatsapp")]
+    [HttpGet("api/v1/webhooks/instagram/{companyId}/{integrationId}")]
+    public IActionResult InstagramVerify([FromQuery(Name = "hub.challenge")] string challenge)
+        => Ok(challenge);
+
+    [HttpPost("api/v1/webhooks/whatsapp/{companyId}/{integrationId}")]
+    public Task<IActionResult> WhatsAppWebhook(string companyId, string integrationId, CancellationToken ct)
+        => HandlePlatformWebhookAsync(SocialPlatform.WhatsApp, companyId, integrationId, ct);
+
+    [HttpGet("api/v1/webhooks/whatsapp/{companyId}/{integrationId}")]
     public IActionResult WhatsAppVerify([FromQuery(Name = "hub.challenge")] string challenge)
         => Ok(challenge);
 
-    [HttpPost("api/v1/webhooks/lazada")]
-    public IActionResult LazadaWebhook()
-        => Ok(new { status = "received" });
+    [HttpPost("api/v1/webhooks/email/{companyId}/{integrationId}")]
+    public Task<IActionResult> EmailWebhook(string companyId, string integrationId, CancellationToken ct)
+        => HandlePlatformWebhookAsync(SocialPlatform.Email, companyId, integrationId, ct);
 
-    [HttpPost("api/v1/webhooks/shopee")]
-    public IActionResult ShopeeWebhook()
-        => Ok(new { status = "received" });
+    [HttpPost("api/v1/webhooks/tiktok/{companyId}/{integrationId}")]
+    public Task<IActionResult> TikTokWebhook(string companyId, string integrationId, CancellationToken ct)
+        => HandlePlatformWebhookAsync(SocialPlatform.TikTok, companyId, integrationId, ct);
 
-    [HttpPost("api/v1/webhooks/tiktok")]
-    public IActionResult TikTokWebhook()
-        => Ok(new { status = "received" });
+    [HttpPost("api/v1/webhooks/lazada/{companyId}/{integrationId}")]
+    public Task<IActionResult> LazadaWebhook(string companyId, string integrationId, CancellationToken ct)
+        => HandlePlatformWebhookAsync(SocialPlatform.Lazada, companyId, integrationId, ct);
+
+    [HttpPost("api/v1/webhooks/shopee/{companyId}/{integrationId}")]
+    public Task<IActionResult> ShopeeWebhook(string companyId, string integrationId, CancellationToken ct)
+        => HandlePlatformWebhookAsync(SocialPlatform.Shopee, companyId, integrationId, ct);
 
     // ──────────────────────────────────────────────
     // Internal webhooks (API key)

@@ -1,6 +1,7 @@
 namespace OneBear.Worker.Jobs;
 
 using Microsoft.Extensions.Logging;
+using OneBear.Application.Notifications.Services;
 using OneBear.Domain.Entities;
 using OneBear.Domain.Interfaces;
 using OneBear.Domain.Interfaces.Repositories;
@@ -11,18 +12,18 @@ public class FollowupReminderJob : IJob
 {
     private readonly IFollowupScheduleRepository _scheduleRepo;
     private readonly IChatRoomRepository _roomRepo;
-    private readonly ISignalRNotifier _signalRNotifier;
+    private readonly NotificationService _notificationService;
     private readonly ILogger<FollowupReminderJob> _logger;
 
     public FollowupReminderJob(
         IFollowupScheduleRepository scheduleRepo,
         IChatRoomRepository roomRepo,
-        ISignalRNotifier signalRNotifier,
+        NotificationService notificationService,
         ILogger<FollowupReminderJob> logger)
     {
         _scheduleRepo = scheduleRepo;
         _roomRepo = roomRepo;
-        _signalRNotifier = signalRNotifier;
+        _notificationService = notificationService;
         _logger = logger;
     }
 
@@ -33,19 +34,47 @@ public class FollowupReminderJob : IJob
 
         _logger.LogInformation("Starting followup reminder job at {Timestamp}", now);
 
-        // Query all companies for due schedules.
-        // In production, this would iterate over active companies.
-        // For now, we use a broad query approach.
+        int notified = 0;
+        int errors = 0;
 
-        // The FollowupScheduleRepository.GetDueSchedulesAsync requires a companyId.
-        // A production implementation would maintain a list of active companies
-        // or use a cross-partition query.
+        // Query rooms that have a followup timestamp due
+        // Rooms with followupTimestamp <= now need reminders
+        // We use the room's own followupTimestamp field to avoid needing cross-partition queries
+        // on FollowupSchedule — the room itself carries the due time
+        List<ChatRoom> dueRooms = await _roomRepo.GetRoomsWithDueFollowupsAsync(now, ct);
 
-        // Process due schedules for demonstration:
-        // 1. Find schedules where scheduledTimestamp <= now AND isProcessed = false
-        // 2. For each schedule, notify the room owner via SignalR
-        // 3. Mark as processed
+        _logger.LogInformation("Found {Count} rooms with due follow-ups", dueRooms.Count);
 
-        _logger.LogInformation("Followup reminder job completed");
+        foreach (ChatRoom room in dueRooms)
+        {
+            try
+            {
+                string? assignedUserId = room.AssignToUserId;
+                if (string.IsNullOrEmpty(assignedUserId))
+                {
+                    _logger.LogDebug("Room {RoomId} has due follow-up but no assigned agent, skipping", room.Id);
+                    continue;
+                }
+
+                await _notificationService.NotifyFollowUpReminderAsync(
+                    room.Id, room.CompanyId, assignedUserId, room.FollowupContent, ct);
+
+                // Clear the followup after notifying
+                room.FollowupTimestamp = null;
+                room.FollowupContent = null;
+                await _roomRepo.UpdateAsync(room, ct);
+
+                notified++;
+            }
+            catch (Exception ex)
+            {
+                errors++;
+                _logger.LogError(ex, "Error processing followup for room {RoomId}", room.Id);
+            }
+        }
+
+        _logger.LogInformation(
+            "Followup reminder job completed: {Notified} notified, {Errors} errors",
+            notified, errors);
     }
 }
