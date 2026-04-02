@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { cn } from '@one-bear/ui'
 import { useSignalR } from '@/hooks/useSignalR'
 import { useSignalREvents } from '@/hooks/useSignalREvents'
+import { useRoomConnection } from '@/hooks/useRoomConnection'
 import { useTyping } from '@/hooks/useTyping'
 import { useRoom } from '@/api/useRooms'
 import { useAuthStore } from '@/stores/auth-store'
@@ -18,8 +19,9 @@ export function ChatLayout({ roomId }: Props) {
 	const user = useAuthStore((s) => s.user)
 	const companyId = user?.companyId ?? ''
 
-	const { connection } = useSignalR()
+	const { connection, isConnected } = useSignalR()
 	useSignalREvents(connection)
+	useRoomConnection(connection, roomId ?? null)
 
 	const { typingUsers, sendTyping } = useTyping(connection, roomId ?? null)
 	const { data: activeRoom } = useRoom(companyId, roomId ?? null)

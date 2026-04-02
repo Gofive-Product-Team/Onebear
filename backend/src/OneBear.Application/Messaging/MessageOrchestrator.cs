@@ -129,12 +129,21 @@ public class MessageOrchestrator
         ChatRoomDto roomDto = MessageMappingHelpers.ToDto(room);
 
         // Step 8: SignalR notifications
+        // Send message to room group (for active viewers)
+        await _signalRNotifier.SendToRoomAsync(room.Id, "ReceiveMessage", messageDto, ct);
+
+        // Send room update to company group (for room list refresh)
+        await _signalRNotifier.SendToCompanyAsync(room.CompanyId, "RoomUpdated", new
+        {
+            roomId = room.Id,
+            changes = new { lastMessageTimestamp = chatMessage.Timestamp, unreadCount = room.Unread }
+        }, ct);
+
         if (isNewRoom && !string.IsNullOrEmpty(room.AssignToUserId))
         {
             await _signalRNotifier.SendToUserAsync(
                 room.AssignToUserId, "ReceiveRoom", roomDto, ct);
         }
-        await _signalRNotifier.SendToRoomAsync(room.Id, "ReceiveMessage", messageDto, ct);
 
         // Step 9: Publish notification event
         await _eventPublisher.PublishAsync(new SocialChatNotification
