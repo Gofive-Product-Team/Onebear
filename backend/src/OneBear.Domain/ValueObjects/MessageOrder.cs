@@ -5,10 +5,7 @@ using System.Text.Json.Serialization;
 public class MessageOrder
 {
     [JsonPropertyName("orderId")]
-    public string? OrderId { get; set; }
-
-    [JsonPropertyName("orderNumber")]
-    public string? OrderNumber { get; set; }
+    public string OrderId { get; set; } = default!;
 
     [JsonPropertyName("status")]
     public string? Status { get; set; }
@@ -18,4 +15,7 @@ public class MessageOrder
 
     [JsonPropertyName("currency")]
     public string? Currency { get; set; }
+
+    [JsonPropertyName("items")]
+    public List<OrderItem>? Items { get; set; }
 }

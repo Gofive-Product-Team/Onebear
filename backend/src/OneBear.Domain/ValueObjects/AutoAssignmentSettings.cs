@@ -7,9 +7,9 @@ public class AutoAssignmentSettings
     [JsonPropertyName("isEnabled")]
     public bool IsEnabled { get; set; }
 
-    [JsonPropertyName("strategy")]
-    public string Strategy { get; set; } = "round-robin";
+    [JsonPropertyName("mode")]
+    public string Mode { get; set; } = "roundRobin";
 
-    [JsonPropertyName("userIds")]
-    public List<string> UserIds { get; set; } = new();
+    [JsonPropertyName("agentUserIds")]
+    public List<string> AgentUserIds { get; set; } = new();
 }
