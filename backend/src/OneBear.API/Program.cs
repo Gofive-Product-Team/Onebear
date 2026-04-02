@@ -9,6 +9,8 @@ using OneBear.API.Middleware;
 using OneBear.API.Services;
 using OneBear.Domain.Enums;
 using OneBear.Domain.Interfaces;
+using OneBear.Infrastructure;
+using OneBear.Infrastructure.Persistence.Cosmos;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -165,6 +167,9 @@ else
 // SignalR notifier (server-side push service for controllers and services)
 builder.Services.AddScoped<ISignalRNotifier, SignalRNotifierService>();
 
+// Infrastructure (Cosmos DB, Redis, Repositories)
+builder.Services.AddInfrastructure(builder.Configuration);
+
 // Health checks
 builder.Services.AddHealthChecks();
 
@@ -185,6 +190,13 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
 app.MapHealthChecks("/api/v1/health");
+
+if (app.Environment.IsDevelopment())
+{
+    using IServiceScope scope = app.Services.CreateScope();
+    CosmosDbContext cosmosDb = scope.ServiceProvider.GetRequiredService<CosmosDbContext>();
+    await cosmosDb.EnsureDatabaseCreatedAsync();
+}
 
 app.Run();
 
