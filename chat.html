@@ -701,10 +701,15 @@ function renderChatItem(c) {
     rightMeta = renderOwners(c.owners);
   }
 
-  const previewClass = c.unread > 0 ? 'ci-preview unread' : 'ci-preview';
-  const previewOrTyping = c.isTyping
-    ? `<div class="ci-typing"><span></span><span></span><span></span></div>`
-    : `<div class="${previewClass}">${c.lastMsg}</div>`;
+  let previewOrTyping;
+  if (c.isTyping) {
+    previewOrTyping = `<div class="ci-typing"><span></span><span></span><span></span></div>`;
+  } else if (c.unread >= 2) {
+    previewOrTyping = `<div class="ci-preview unread">${c.unread} new messages</div>`;
+  } else {
+    const previewClass = c.unread === 1 ? 'ci-preview unread' : 'ci-preview';
+    previewOrTyping = `<div class="${previewClass}">${c.lastMsg}</div>`;
+  }
 
   const active = c.id === activeId ? ' on' : '';
   const donering = c.status==='done' ? '<div class="ci-done-ring"></div>' : '';
@@ -987,29 +992,52 @@ function renderRightPanel(c) {
       <div class="rp-sec">
         <div class="sec-title">Related Information</div>
         <div class="timeline">
+          <!-- 1. ออเดอร์ -->
           <div class="tl-item">
-            <div class="tl-dot done" style="border-color:var(--success);background:var(--success-bg)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="tl-dot done"><svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
             <div class="tl-line"></div>
             <div class="tl-content">
-              <div class="tl-title">ออเดอร์ออนไลน์ #OL260100042</div>
-              <div class="tl-meta">8 ม.ค. 2026 · 5,350 บาท</div>
-              <span class="tl-badge st-new" style="background:var(--info-bg);color:var(--info)">จัดส่งแล้ว</span>
+              <div class="tl-title">ออเดอร์ #OL260100042</div>
+              <div class="tl-meta">1 เม.ย. 2026 09:42 น. · 5,350 บาท</div>
+              <span class="tl-badge" style="background:var(--success-bg);color:var(--success)">สร้างออเดอร์แล้ว</span>
             </div>
           </div>
+          <!-- 2. รอชำระ -->
           <div class="tl-item">
-            <div class="tl-dot active"><svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+            <div class="tl-dot done"><svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
             <div class="tl-line"></div>
             <div class="tl-content">
-              <div class="tl-title">นัดหมาย Demo Product</div>
-              <div class="tl-meta">5 เม.ย. 2026 10:00 น.</div>
-              <span class="tl-badge st-inprogress">รอดำเนินการ</span>
+              <div class="tl-title">รอชำระเงิน</div>
+              <div class="tl-meta">1 เม.ย. 2026 10:05 น.</div>
+              <span class="tl-badge" style="background:var(--success-bg);color:var(--success)">ชำระแล้ว</span>
             </div>
           </div>
+          <!-- 3. ตรวจสอบ (active) -->
           <div class="tl-item">
-            <div class="tl-dot"><svg viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+            <div class="tl-dot active"><svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+            <div class="tl-line"></div>
             <div class="tl-content">
-              <div class="tl-title">ใบสั่งซื้อ SO2600001</div>
-              <div class="tl-meta">รอสร้าง</div>
+              <div class="tl-title">ตรวจสอบการชำระเงิน</div>
+              <div class="tl-meta">กำลังตรวจสอบ...</div>
+              <span class="tl-badge" style="background:var(--primary-alpha);color:var(--primary)">กำลังดำเนินการ</span>
+            </div>
+          </div>
+          <!-- 4. สำเร็จ (pending) -->
+          <div class="tl-item">
+            <div class="tl-dot"><svg viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            <div class="tl-line"></div>
+            <div class="tl-content">
+              <div class="tl-title">สำเร็จ</div>
+              <div class="tl-meta">รอดำเนินการ</div>
+              <span class="tl-badge st-unassigned">Pending</span>
+            </div>
+          </div>
+          <!-- 5. ขนส่ง (pending) -->
+          <div class="tl-item">
+            <div class="tl-dot"><svg viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
+            <div class="tl-content">
+              <div class="tl-title">ขนส่ง</div>
+              <div class="tl-meta">รอดำเนินการ</div>
               <span class="tl-badge st-unassigned">Pending</span>
             </div>
           </div>
@@ -1062,9 +1090,45 @@ function renderRightPanel(c) {
         <div class="timeline">
           <div class="tl-item">
             <div class="tl-dot done"><svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="tl-line"></div>
             <div class="tl-content">
-              <div class="tl-title">ออเดอร์ออนไลน์ #OL251200018</div>
-              <div class="tl-meta">16 ธ.ค. 2025 · 5,350 บาท</div>
+              <div class="tl-title">ออเดอร์ #OL251200018</div>
+              <div class="tl-meta">14 ธ.ค. 2025 11:20 น. · 5,350 บาท</div>
+              <span class="tl-badge" style="background:var(--success-bg);color:var(--success)">สร้างออเดอร์แล้ว</span>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot done"><svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="tl-line"></div>
+            <div class="tl-content">
+              <div class="tl-title">รอชำระเงิน</div>
+              <div class="tl-meta">14 ธ.ค. 2025 14:05 น.</div>
+              <span class="tl-badge" style="background:var(--success-bg);color:var(--success)">ชำระแล้ว</span>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot done"><svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="tl-line"></div>
+            <div class="tl-content">
+              <div class="tl-title">ตรวจสอบการชำระเงิน</div>
+              <div class="tl-meta">14 ธ.ค. 2025 15:30 น.</div>
+              <span class="tl-badge" style="background:var(--success-bg);color:var(--success)">ผ่าน</span>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot done"><svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="tl-line"></div>
+            <div class="tl-content">
+              <div class="tl-title">สำเร็จ</div>
+              <div class="tl-meta">15 ธ.ค. 2025 09:00 น.</div>
+              <span class="tl-badge" style="background:var(--success-bg);color:var(--success)">สำเร็จ</span>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot done"><svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="tl-content">
+              <div class="tl-title">ขนส่ง</div>
+              <div class="tl-meta">16 ธ.ค. 2025 · Kerry Express · TH123456789</div>
               <span class="tl-badge" style="background:var(--success-bg);color:var(--success)">จัดส่งสำเร็จ</span>
             </div>
           </div>
