@@ -1,8 +1,8 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using Moq;
+using OneBear.API.Auth;
 using OneBear.API.Hubs;
 
 namespace OneBear.API.Tests.Hubs;
@@ -30,9 +30,9 @@ public class ChatHubTests
         // Set up user claims
         Claim[] claims = new[]
         {
-            new Claim(JwtRegisteredClaimNames.Sub, TestUserId),
-            new Claim("company_id", TestCompanyId),
-            new Claim("name", TestDisplayName)
+            new Claim(AuthConstants.ClaimUserId, TestUserId),
+            new Claim(AuthConstants.ClaimCompanyId, TestCompanyId),
+            new Claim(AuthConstants.ClaimDisplayName, TestDisplayName)
         };
         ClaimsPrincipal user = new ClaimsPrincipal(new ClaimsIdentity(claims, "test"));
 
@@ -65,21 +65,13 @@ public class ChatHubTests
     }
 
     [Fact]
-    public async Task OnConnectedAsync_ShouldUseFallbackValues_WhenNoClaimsPresent()
+    public async Task OnConnectedAsync_ShouldThrow_WhenNoClaimsPresent()
     {
         // Arrange
         _mockContext.Setup(c => c.User).Returns(new ClaimsPrincipal(new ClaimsIdentity()));
 
-        // Act
-        await _hub.OnConnectedAsync();
-
-        // Assert
-        _mockGroups.Verify(
-            g => g.AddToGroupAsync(TestConnectionId, "user:anonymous", default),
-            Times.Once);
-        _mockGroups.Verify(
-            g => g.AddToGroupAsync(TestConnectionId, "company:unknown", default),
-            Times.Once);
+        // Act & Assert
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _hub.OnConnectedAsync());
     }
 
     [Fact]

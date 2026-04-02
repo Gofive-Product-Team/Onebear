@@ -16,8 +16,8 @@ public class ChatHub : Hub
 
     public override async Task OnConnectedAsync()
     {
-        string userId = Context.User?.GetUserId() ?? "anonymous";
-        string companyId = Context.User?.GetCompanyId() ?? "unknown";
+        string userId = Context.User!.GetUserId();
+        string companyId = Context.User!.GetCompanyId();
         string connectionId = Context.ConnectionId;
 
         // Auto-join user-specific and company-wide groups
@@ -33,8 +33,8 @@ public class ChatHub : Hub
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        string userId = Context.User?.GetUserId() ?? "anonymous";
-        string companyId = Context.User?.GetCompanyId() ?? "unknown";
+        string userId = Context.User!.GetUserId();
+        string companyId = Context.User!.GetCompanyId();
         string connectionId = Context.ConnectionId;
 
         // Groups are auto-cleaned by SignalR on disconnect, but we log it
@@ -48,7 +48,7 @@ public class ChatHub : Hub
     /// <summary>Subscribe to one or more chat room groups.</summary>
     public async Task JoinRooms(string[] roomIds)
     {
-        string? userId = Context.User?.GetUserId();
+        string userId = Context.User!.GetUserId();
         // TODO: validate user has access to each room (participant check or Chat.Admin)
         foreach (string roomId in roomIds)
         {
@@ -66,7 +66,7 @@ public class ChatHub : Hub
     /// <summary>Signal active viewing of a room (presence).</summary>
     public async Task AttendRoom(string roomId)
     {
-        string? userId = Context.User?.GetUserId();
+        string userId = Context.User!.GetUserId();
         string displayName = Context.User?.GetDisplayName() ?? "Unknown";
 
         await Groups.AddToGroupAsync(Context.ConnectionId, $"presence:{roomId}");
@@ -85,7 +85,7 @@ public class ChatHub : Hub
     /// <summary>Signal stop viewing a room.</summary>
     public async Task ExitRoom(string roomId)
     {
-        string? userId = Context.User?.GetUserId();
+        string userId = Context.User!.GetUserId();
         string displayName = Context.User?.GetDisplayName() ?? "Unknown";
 
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"presence:{roomId}");
@@ -102,8 +102,8 @@ public class ChatHub : Hub
     /// <summary>Agent sends a message. Delegates to MessageOrchestrator.</summary>
     public async Task SendMessage(SendMessagePayload payload)
     {
-        string? userId = Context.User?.GetUserId();
-        string? companyId = Context.User?.GetCompanyId();
+        string userId = Context.User!.GetUserId();
+        string companyId = Context.User!.GetCompanyId();
 
         _logger.LogInformation("SendMessage from {UserId} to room {RoomId}", userId, payload.RoomId);
 
@@ -125,7 +125,7 @@ public class ChatHub : Hub
     /// <summary>Typing indicator with server-side relay.</summary>
     public async Task SendTyping(string roomId, bool isTyping)
     {
-        string? userId = Context.User?.GetUserId();
+        string userId = Context.User!.GetUserId();
         string displayName = Context.User?.GetDisplayName() ?? "Unknown";
 
         await Clients.OthersInGroup($"room:{roomId}").SendAsync("TypingIndicator", new

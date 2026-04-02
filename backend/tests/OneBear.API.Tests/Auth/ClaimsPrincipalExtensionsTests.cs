@@ -1,4 +1,3 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using OneBear.API.Auth;
 
@@ -6,204 +5,178 @@ namespace OneBear.API.Tests.Auth;
 
 public class ClaimsPrincipalExtensionsTests
 {
+    // --- GetUserId ---
+
     [Fact]
     public void GetUserId_ShouldReturnSubClaim()
     {
-        // Arrange
-        var claims = new[] { new Claim(JwtRegisteredClaimNames.Sub, "user-123") };
-        ClaimsPrincipal principal = new ClaimsPrincipal(new ClaimsIdentity(claims));
+        Claim[] claims = [new(AuthConstants.ClaimUserId, "user-123")];
+        ClaimsPrincipal principal = new(new ClaimsIdentity(claims));
 
-        // Act
-        string? userId = principal.GetUserId();
+        string userId = principal.GetUserId();
 
-        // Assert
         Assert.Equal("user-123", userId);
     }
 
     [Fact]
-    public void GetUserId_ShouldFallbackToNameIdentifier_WhenNoSubClaim()
+    public void GetUserId_ShouldThrow_WhenMissing()
     {
-        // Arrange
-        var claims = new[] { new Claim(ClaimTypes.NameIdentifier, "user-456") };
-        ClaimsPrincipal principal = new ClaimsPrincipal(new ClaimsIdentity(claims));
+        ClaimsPrincipal principal = new(new ClaimsIdentity());
 
-        // Act
-        string? userId = principal.GetUserId();
-
-        // Assert
-        Assert.Equal("user-456", userId);
+        Assert.Throws<UnauthorizedAccessException>(() => principal.GetUserId());
     }
 
-    [Fact]
-    public void GetUserId_ShouldReturnNull_WhenNoClaims()
-    {
-        // Arrange
-        ClaimsPrincipal principal = new ClaimsPrincipal(new ClaimsIdentity());
-
-        // Act
-        string? userId = principal.GetUserId();
-
-        // Assert
-        Assert.Null(userId);
-    }
+    // --- GetCompanyId ---
 
     [Fact]
     public void GetCompanyId_ShouldReturnCompanyIdClaim()
     {
-        // Arrange
-        var claims = new[] { new Claim("company_id", "comp-001") };
-        ClaimsPrincipal principal = new ClaimsPrincipal(new ClaimsIdentity(claims));
+        Claim[] claims = [new(AuthConstants.ClaimCompanyId, "comp-001")];
+        ClaimsPrincipal principal = new(new ClaimsIdentity(claims));
 
-        // Act
-        string? companyId = principal.GetCompanyId();
+        string companyId = principal.GetCompanyId();
 
-        // Assert
         Assert.Equal("comp-001", companyId);
     }
 
     [Fact]
-    public void GetCompanyId_ShouldReturnNull_WhenNoCompanyIdClaim()
+    public void GetCompanyId_ShouldThrow_WhenMissing()
     {
-        // Arrange
-        ClaimsPrincipal principal = new ClaimsPrincipal(new ClaimsIdentity());
+        ClaimsPrincipal principal = new(new ClaimsIdentity());
 
-        // Act
-        string? companyId = principal.GetCompanyId();
+        Assert.Throws<UnauthorizedAccessException>(() => principal.GetCompanyId());
+    }
 
-        // Assert
-        Assert.Null(companyId);
+    // --- GetDisplayName ---
+
+    [Fact]
+    public void GetDisplayName_ShouldReturnClaim()
+    {
+        Claim[] claims = [new(AuthConstants.ClaimDisplayName, "Test User")];
+        ClaimsPrincipal principal = new(new ClaimsIdentity(claims));
+
+        Assert.Equal("Test User", principal.GetDisplayName());
     }
 
     [Fact]
-    public void GetPermissions_ShouldReturnAllPermissionValues()
+    public void GetDisplayName_ShouldReturnNull_WhenMissing()
     {
-        // Arrange
-        var claims = new[]
-        {
-            new Claim("permissions", "3001"),
-            new Claim("permissions", "3003"),
-            new Claim("permissions", "3005")
-        };
-        ClaimsPrincipal principal = new ClaimsPrincipal(new ClaimsIdentity(claims));
+        ClaimsPrincipal principal = new(new ClaimsIdentity());
 
-        // Act
-        List<int> permissions = principal.GetPermissions().ToList();
+        Assert.Null(principal.GetDisplayName());
+    }
 
-        // Assert
-        Assert.Equal(3, permissions.Count);
+    // --- GetEmail ---
+
+    [Fact]
+    public void GetEmail_ShouldReturnClaim()
+    {
+        Claim[] claims = [new(AuthConstants.ClaimEmail, "test@example.com")];
+        ClaimsPrincipal principal = new(new ClaimsIdentity(claims));
+
+        Assert.Equal("test@example.com", principal.GetEmail());
+    }
+
+    [Fact]
+    public void GetEmail_ShouldReturnNull_WhenMissing()
+    {
+        ClaimsPrincipal principal = new(new ClaimsIdentity());
+
+        Assert.Null(principal.GetEmail());
+    }
+
+    // --- GetPermissions (JSON array format) ---
+
+    [Fact]
+    public void GetPermissions_ShouldParseJsonArray()
+    {
+        Claim[] claims = [new(AuthConstants.ClaimPermissions, "[3001,3002,3005]")];
+        ClaimsPrincipal principal = new(new ClaimsIdentity(claims));
+
+        int[] permissions = principal.GetPermissions();
+
+        Assert.Equal(3, permissions.Length);
         Assert.Contains(3001, permissions);
-        Assert.Contains(3003, permissions);
+        Assert.Contains(3002, permissions);
         Assert.Contains(3005, permissions);
     }
 
     [Fact]
-    public void GetPermissions_ShouldSkipNonNumericValues()
+    public void GetPermissions_ShouldReturnEmpty_WhenNoClaim()
     {
-        // Arrange
-        var claims = new[]
-        {
-            new Claim("permissions", "3001"),
-            new Claim("permissions", "invalid"),
-            new Claim("permissions", "3002")
-        };
-        ClaimsPrincipal principal = new ClaimsPrincipal(new ClaimsIdentity(claims));
+        ClaimsPrincipal principal = new(new ClaimsIdentity());
 
-        // Act
-        List<int> permissions = principal.GetPermissions().ToList();
+        int[] permissions = principal.GetPermissions();
 
-        // Assert
-        Assert.Equal(2, permissions.Count);
-        Assert.Contains(3001, permissions);
-        Assert.Contains(3002, permissions);
-    }
-
-    [Fact]
-    public void GetPermissions_ShouldReturnEmpty_WhenNoPermissionClaims()
-    {
-        // Arrange
-        ClaimsPrincipal principal = new ClaimsPrincipal(new ClaimsIdentity());
-
-        // Act
-        List<int> permissions = principal.GetPermissions().ToList();
-
-        // Assert
         Assert.Empty(permissions);
     }
 
     [Fact]
-    public void HasPermission_ShouldReturnTrue_WhenPermissionExists()
+    public void GetPermissions_ShouldReturnEmpty_WhenEmptyArray()
     {
-        // Arrange
-        var claims = new[]
-        {
-            new Claim("permissions", "3001"),
-            new Claim("permissions", "3002")
-        };
-        ClaimsPrincipal principal = new ClaimsPrincipal(new ClaimsIdentity(claims));
+        Claim[] claims = [new(AuthConstants.ClaimPermissions, "[]")];
+        ClaimsPrincipal principal = new(new ClaimsIdentity(claims));
 
-        // Act
-        bool result = principal.HasPermission(3001);
+        int[] permissions = principal.GetPermissions();
 
-        // Assert
-        Assert.True(result);
+        Assert.Empty(permissions);
+    }
+
+    // --- HasPermission ---
+
+    [Fact]
+    public void HasPermission_ShouldReturnTrue_WhenPresent()
+    {
+        Claim[] claims = [new(AuthConstants.ClaimPermissions, "[3001,3002]")];
+        ClaimsPrincipal principal = new(new ClaimsIdentity(claims));
+
+        Assert.True(principal.HasPermission(3001));
     }
 
     [Fact]
-    public void HasPermission_ShouldReturnFalse_WhenPermissionDoesNotExist()
+    public void HasPermission_ShouldReturnFalse_WhenAbsent()
     {
-        // Arrange
-        var claims = new[]
-        {
-            new Claim("permissions", "3001"),
-            new Claim("permissions", "3002")
-        };
-        ClaimsPrincipal principal = new ClaimsPrincipal(new ClaimsIdentity(claims));
+        Claim[] claims = [new(AuthConstants.ClaimPermissions, "[3001,3002]")];
+        ClaimsPrincipal principal = new(new ClaimsIdentity(claims));
 
-        // Act
-        bool result = principal.HasPermission(3005);
+        Assert.False(principal.HasPermission(3005));
+    }
 
-        // Assert
-        Assert.False(result);
+    // --- IsApiKeyAuth ---
+
+    [Fact]
+    public void IsApiKeyAuth_ShouldReturnTrue_WhenApiKeyMethod()
+    {
+        Claim[] claims = [new(AuthConstants.ClaimAuthMethod, AuthConstants.ClaimAuthMethodApiKey)];
+        ClaimsPrincipal principal = new(new ClaimsIdentity(claims));
+
+        Assert.True(principal.IsApiKeyAuth());
     }
 
     [Fact]
-    public void GetDisplayName_ShouldReturnNameClaim()
+    public void IsApiKeyAuth_ShouldReturnFalse_WhenNotApiKey()
     {
-        // Arrange
-        var claims = new[] { new Claim("name", "Test User") };
-        ClaimsPrincipal principal = new ClaimsPrincipal(new ClaimsIdentity(claims));
+        ClaimsPrincipal principal = new(new ClaimsIdentity());
 
-        // Act
-        string? displayName = principal.GetDisplayName();
+        Assert.False(principal.IsApiKeyAuth());
+    }
 
-        // Assert
-        Assert.Equal("Test User", displayName);
+    // --- GetApiKeyScope ---
+
+    [Fact]
+    public void GetApiKeyScope_ShouldReturnScope()
+    {
+        Claim[] claims = [new(AuthConstants.ClaimApiKeyScope, "webhook")];
+        ClaimsPrincipal principal = new(new ClaimsIdentity(claims));
+
+        Assert.Equal("webhook", principal.GetApiKeyScope());
     }
 
     [Fact]
-    public void GetDisplayName_ShouldFallbackToClaimTypeName_WhenNoNameClaim()
+    public void GetApiKeyScope_ShouldReturnNull_WhenMissing()
     {
-        // Arrange
-        var claims = new[] { new Claim(ClaimTypes.Name, "Fallback User") };
-        ClaimsPrincipal principal = new ClaimsPrincipal(new ClaimsIdentity(claims));
+        ClaimsPrincipal principal = new(new ClaimsIdentity());
 
-        // Act
-        string? displayName = principal.GetDisplayName();
-
-        // Assert
-        Assert.Equal("Fallback User", displayName);
-    }
-
-    [Fact]
-    public void GetDisplayName_ShouldReturnNull_WhenNoNameClaims()
-    {
-        // Arrange
-        ClaimsPrincipal principal = new ClaimsPrincipal(new ClaimsIdentity());
-
-        // Act
-        string? displayName = principal.GetDisplayName();
-
-        // Assert
-        Assert.Null(displayName);
+        Assert.Null(principal.GetApiKeyScope());
     }
 }
