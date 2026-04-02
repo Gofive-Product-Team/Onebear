@@ -186,6 +186,13 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("Default");
+
+// Dev auth bypass: auto-authenticate requests without token (Development only)
+if (app.Environment.IsDevelopment())
+{
+    app.UseMiddleware<DevAuthBypassMiddleware>();
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
