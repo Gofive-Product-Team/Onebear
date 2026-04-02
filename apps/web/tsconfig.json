@@ -5,7 +5,15 @@
     "allowJs": false,
     "esModuleInterop": false,
     "allowSyntheticDefaultImports": true,
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@one-bear/shared-types": ["../../libs/shared-types/src/index.ts"],
+      "@one-bear/ui": ["../../libs/ui/src/index.ts"],
+      "@one-bear/i18n": ["../../libs/i18n/src/index.ts"],
+      "@one-bear/api-client": ["../../libs/api-client/src/index.ts"]
+    }
   },
   "files": [],
   "include": ["src/**/*.ts", "src/**/*.tsx"],

@@ -1,13 +1,18 @@
-import { createRootRoute, createRoute, Outlet, Link, useNavigate } from '@tanstack/react-router'
+import { createRootRoute, createRoute, Outlet, useNavigate, useParams } from '@tanstack/react-router'
 import { useAuthStore } from '../stores/auth-store'
 import { LoginPage } from '../pages/LoginPage'
 import { ErrorBoundary } from '../components/ErrorBoundary'
+import { AppShell } from '../components/layout/AppShell'
+import { ChatLayout } from '../components/chat/ChatLayout'
+import { DashboardPage } from '../pages/DashboardPage'
+import { CustomerPage } from '../pages/CustomerPage'
+import { SettingsPage } from '../pages/SettingsPage'
+import { PaymentPage } from '../pages/PaymentPage'
+import { SatisfactionPage } from '../pages/SatisfactionPage'
 
 // Root layout with auth guard
 function RootLayout() {
 	const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-	const user = useAuthStore((s) => s.user)
-	const logout = useAuthStore((s) => s.logout)
 	const navigate = useNavigate()
 
 	if (!isAuthenticated) {
@@ -16,70 +21,9 @@ function RootLayout() {
 
 	return (
 		<ErrorBoundary>
-			<div className="min-h-screen bg-gray-50">
-				<nav className="bg-white border-b border-gray-200 px-4 py-3">
-					<div className="flex items-center gap-6">
-						<span className="font-bold text-lg">One Bear</span>
-						<Link
-							to="/"
-							className="text-sm text-gray-600 hover:text-gray-900 [&.active]:text-blue-600 [&.active]:font-medium"
-						>
-							Home
-						</Link>
-						<Link
-							to="/chat"
-							className="text-sm text-gray-600 hover:text-gray-900 [&.active]:text-blue-600 [&.active]:font-medium"
-						>
-							Chat
-						</Link>
-						<Link
-							to="/customer"
-							className="text-sm text-gray-600 hover:text-gray-900 [&.active]:text-blue-600 [&.active]:font-medium"
-						>
-							Customer
-						</Link>
-						<Link
-							to="/dashboard"
-							className="text-sm text-gray-600 hover:text-gray-900 [&.active]:text-blue-600 [&.active]:font-medium"
-						>
-							Dashboard
-						</Link>
-						<Link
-							to="/settings"
-							className="text-sm text-gray-600 hover:text-gray-900 [&.active]:text-blue-600 [&.active]:font-medium"
-						>
-							Settings
-						</Link>
-						<Link
-							to="/payment"
-							className="text-sm text-gray-600 hover:text-gray-900 [&.active]:text-blue-600 [&.active]:font-medium"
-						>
-							Payment
-						</Link>
-						<Link
-							to="/satisfaction"
-							className="text-sm text-gray-600 hover:text-gray-900 [&.active]:text-blue-600 [&.active]:font-medium"
-						>
-							Satisfaction
-						</Link>
-						<div className="ml-auto flex items-center gap-3">
-							{user && <span className="text-sm text-gray-500">{user.displayName}</span>}
-							<button
-								onClick={() => {
-									logout()
-									navigate({ to: '/' })
-								}}
-								className="text-sm text-gray-500 hover:text-red-600"
-							>
-								Logout
-							</button>
-						</div>
-					</div>
-				</nav>
-				<main className="p-6">
-					<Outlet />
-				</main>
-			</div>
+			<AppShell>
+				<Outlet />
+			</AppShell>
 		</ErrorBoundary>
 	)
 }
@@ -116,79 +60,84 @@ const indexRoute = createRoute({
 const chatRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/chat',
-	component: () => <TodoPage name="Chat — Room List" />,
+	component: () => <ChatLayout />,
 })
+
+function ChatRoomPage() {
+	const { roomId } = useParams({ from: '/chat/$roomId' })
+	return <ChatLayout roomId={roomId} />
+}
 
 const chatRoomRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/chat/$roomId',
-	component: () => <TodoPage name="Chat — Conversation View" />,
+	component: ChatRoomPage,
 })
 
 const customerRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/customer',
-	component: () => <TodoPage name="Customer Management" />,
+	component: CustomerPage,
 })
 
 const dashboardRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/dashboard',
-	component: () => <TodoPage name="Dashboard — Analytics" />,
+	component: DashboardPage,
 })
 
 const settingsRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/settings',
-	component: () => <TodoPage name="Settings" />,
+	component: SettingsPage,
 })
 
 const settingsIntegrationsRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/settings/integrations',
-	component: () => <TodoPage name="Settings — Integrations" />,
+	component: SettingsPage,
 })
 
 const settingsGreetingRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/settings/greeting',
-	component: () => <TodoPage name="Settings — Greeting Messages" />,
+	component: SettingsPage,
 })
 
 const settingsAutoReplyRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/settings/auto-reply',
-	component: () => <TodoPage name="Settings — Auto Reply" />,
+	component: SettingsPage,
 })
 
 const settingsAutoAssignmentRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/settings/auto-assignment',
-	component: () => <TodoPage name="Settings — Auto Assignment" />,
+	component: SettingsPage,
 })
 
 const settingsShortcutsRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/settings/shortcuts',
-	component: () => <TodoPage name="Settings — Shortcuts" />,
+	component: SettingsPage,
 })
 
 const settingsChatbotRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/settings/chatbot',
-	component: () => <TodoPage name="Settings — AI Chatbot" />,
+	component: SettingsPage,
 })
 
 const paymentRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/payment',
-	component: () => <TodoPage name="Payment" />,
+	component: PaymentPage,
 })
 
 const satisfactionRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/satisfaction',
-	component: () => <TodoPage name="Satisfaction Survey" />,
+	component: SatisfactionPage,
 })
 
 // Build route tree

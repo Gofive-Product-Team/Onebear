@@ -79,15 +79,79 @@ export const api = {
 	},
 	integrations: {
 		list: (companyId: string) => fetchApi(`/companies/${companyId}/integrations`),
+		get: (companyId: string, integrationId: string) =>
+			fetchApi(`/companies/${companyId}/integrations/${integrationId}`),
+		connect: (companyId: string, platform: string, body: object) =>
+			fetchApi(`/companies/${companyId}/integrations/${platform}`, {
+				method: 'POST',
+				body: JSON.stringify(body),
+			}),
+		delete: (companyId: string, integrationId: string) =>
+			fetchApi(`/companies/${companyId}/integrations/${integrationId}`, { method: 'DELETE' }),
+		greetings: (companyId: string, integrationId: string) =>
+			fetchApi(`/companies/${companyId}/integrations/${integrationId}/greetings`),
+		updateGreetings: (companyId: string, integrationId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/integrations/${integrationId}/greetings`, {
+				method: 'PUT',
+				body: JSON.stringify(body),
+			}),
+		autoReplies: (companyId: string, integrationId: string) =>
+			fetchApi(`/companies/${companyId}/integrations/${integrationId}/auto-replies`),
+		updateAutoReplies: (companyId: string, integrationId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/integrations/${integrationId}/auto-replies`, {
+				method: 'PUT',
+				body: JSON.stringify(body),
+			}),
+		autoAssignment: (companyId: string, integrationId: string) =>
+			fetchApi(`/companies/${companyId}/integrations/${integrationId}/auto-assignment`),
+		updateAutoAssignment: (companyId: string, integrationId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/integrations/${integrationId}/auto-assignment`, {
+				method: 'PUT',
+				body: JSON.stringify(body),
+			}),
+		shortcuts: (companyId: string, integrationId: string) =>
+			fetchApi(`/companies/${companyId}/integrations/${integrationId}/shortcuts`),
+		addShortcut: (companyId: string, integrationId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/integrations/${integrationId}/shortcuts`, {
+				method: 'POST',
+				body: JSON.stringify(body),
+			}),
+		deleteShortcut: (companyId: string, integrationId: string, shortcutId: string) =>
+			fetchApi(`/companies/${companyId}/integrations/${integrationId}/shortcuts/${shortcutId}`, {
+				method: 'DELETE',
+			}),
 	},
 	users: {
 		me: (companyId: string) => fetchApi(`/companies/${companyId}/users/me`),
 		notifications: (companyId: string) => fetchApi(`/companies/${companyId}/users/me/notifications`),
+		list: (companyId: string) => fetchApi(`/companies/${companyId}/users`),
+	},
+	customers: {
+		list: (companyId: string, params?: Record<string, string>) =>
+			fetchApi(`/companies/${companyId}/customers${params ? '?' + new URLSearchParams(params) : ''}`),
+		get: (companyId: string, customerId: string) =>
+			fetchApi(`/companies/${companyId}/customers/${customerId}`),
 	},
 	companies: {
 		featureSettings: (companyId: string) => fetchApi(`/companies/${companyId}/feature-settings`),
 	},
 	chatbot: {
 		configuration: (companyId: string) => fetchApi(`/companies/${companyId}/chatbot/configuration`),
+		update: (companyId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/chatbot/configuration`, {
+				method: 'PUT',
+				body: JSON.stringify(body),
+			}),
+		knowledgeSources: (companyId: string) =>
+			fetchApi(`/companies/${companyId}/chatbot/knowledge-sources`),
+		addKnowledgeSource: (companyId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/chatbot/knowledge-sources`, {
+				method: 'POST',
+				body: JSON.stringify(body),
+			}),
+		deleteKnowledgeSource: (companyId: string, sourceId: string) =>
+			fetchApi(`/companies/${companyId}/chatbot/knowledge-sources/${sourceId}`, {
+				method: 'DELETE',
+			}),
 	},
 }
