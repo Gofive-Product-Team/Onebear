@@ -1,5 +1,9 @@
 import { createRootRoute, createRoute, Outlet, useNavigate, useParams } from '@tanstack/react-router'
+import { createContext, useContext } from 'react'
+import type { HubConnection } from '@microsoft/signalr'
 import { useAuthStore } from '../stores/auth-store'
+import { useSignalR } from '../hooks/useSignalR'
+import { useSignalREvents } from '../hooks/useSignalREvents'
 import { LoginPage } from '../pages/LoginPage'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { AppShell } from '../components/layout/AppShell'
@@ -10,10 +14,24 @@ import { SettingsPage } from '../pages/SettingsPage'
 import { PaymentPage } from '../pages/PaymentPage'
 import { SatisfactionPage } from '../pages/SatisfactionPage'
 
-// Root layout with auth guard
+// SignalR context — connection lives at root level, survives route changes
+interface SignalRContextValue {
+	connection: HubConnection | null
+	isConnected: boolean
+}
+const SignalRContext = createContext<SignalRContextValue>({ connection: null, isConnected: false })
+export function useSignalRContext() {
+	return useContext(SignalRContext)
+}
+
+// Root layout with auth guard + SignalR provider
 function RootLayout() {
 	const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
 	const navigate = useNavigate()
+
+	// SignalR lives here — never unmounts while authenticated
+	const { connection, isConnected } = useSignalR()
+	useSignalREvents(connection)
 
 	if (!isAuthenticated) {
 		return <LoginPage onSuccess={() => navigate({ to: '/chat' })} />
@@ -21,9 +39,11 @@ function RootLayout() {
 
 	return (
 		<ErrorBoundary>
-			<AppShell>
-				<Outlet />
-			</AppShell>
+			<SignalRContext.Provider value={{ connection, isConnected }}>
+				<AppShell>
+					<Outlet />
+				</AppShell>
+			</SignalRContext.Provider>
 		</ErrorBoundary>
 	)
 }

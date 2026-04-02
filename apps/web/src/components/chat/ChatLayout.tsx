@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react'
 import { cn } from '@one-bear/ui'
-import { useSignalR } from '@/hooks/useSignalR'
-import { useSignalREvents } from '@/hooks/useSignalREvents'
+import { useSignalRContext } from '@/routes/__root'
 import { useRoomConnection } from '@/hooks/useRoomConnection'
 import { useTyping } from '@/hooks/useTyping'
 import { useRoom } from '@/api/useRooms'
@@ -19,12 +18,11 @@ export function ChatLayout({ roomId }: Props) {
 	const user = useAuthStore((s) => s.user)
 	const companyId = user?.companyId ?? ''
 
-	const { connection, isConnected, state: signalRState } = useSignalR()
-	useSignalREvents(connection)
-	useRoomConnection(connection, roomId ?? null)
+	const { connection, isConnected } = useSignalRContext()
+	useRoomConnection(connection, roomId ?? null, isConnected)
 
-	// Debug: log SignalR state changes
-	console.log('[ChatLayout] SignalR state:', signalRState, 'connected:', isConnected, 'roomId:', roomId)
+	// Debug: log SignalR state
+	console.log('[ChatLayout] SignalR connected:', isConnected, 'roomId:', roomId)
 
 	const { typingUsers, sendTyping } = useTyping(connection, roomId ?? null)
 	const { data: activeRoom } = useRoom(companyId, roomId ?? null)
@@ -72,7 +70,7 @@ export function ChatLayout({ roomId }: Props) {
 										'h-2 w-2 rounded-full shrink-0',
 										isConnected ? 'bg-green-500' : 'bg-red-500',
 									)}
-									title={`SignalR: ${signalRState}`}
+									title={`SignalR: ${isConnected ? 'Connected' : 'Disconnected'}`}
 								/>
 								{/* Mobile back button */}
 								<button

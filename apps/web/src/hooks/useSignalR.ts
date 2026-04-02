@@ -1,58 +1,63 @@
 import { useEffect, useRef, useState } from 'react'
 import { HubConnectionState } from '@microsoft/signalr'
 import type { HubConnection } from '@microsoft/signalr'
-import { startSignalR, stopSignalR, getSignalRConnection } from '../lib/signalr'
+import { startSignalR, stopSignalR } from '../lib/signalr'
 import { useAuthStore } from '../stores/auth-store'
 
 /**
- * Manages SignalR connection lifecycle tied to auth state.
- * Connection is a singleton — survives component re-mounts and StrictMode.
- * Only disconnects when user logs out.
+ * Singleton SignalR connection manager.
+ * Connection survives component re-mounts / StrictMode / route changes.
+ * Only stops on logout.
  */
 export function useSignalR() {
-	const [state, setState] = useState<HubConnectionState>(HubConnectionState.Disconnected)
-	const [connection, setConnection] = useState<HubConnection | null>(null)
 	const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-	const connectingRef = useRef(false)
+	const [connection, setConnection] = useState<HubConnection | null>(null)
+	const [state, setState] = useState<HubConnectionState>(HubConnectionState.Disconnected)
+	const mountedRef = useRef(true)
 
 	useEffect(() => {
-		// Logout → disconnect
+		mountedRef.current = true
+		return () => { mountedRef.current = false }
+	}, [])
+
+	useEffect(() => {
 		if (!isAuthenticated) {
 			stopSignalR().then(() => {
-				setState(HubConnectionState.Disconnected)
-				setConnection(null)
+				if (mountedRef.current) {
+					setConnection(null)
+					setState(HubConnectionState.Disconnected)
+				}
 			})
 			return
 		}
 
-		// Already connecting or connected → just sync state
-		if (connectingRef.current) return
-
-		async function connect() {
-			connectingRef.current = true
-			try {
-				const conn = await startSignalR()
+		startSignalR()
+			.then((conn) => {
+				if (!mountedRef.current) return
 				setConnection(conn)
 				setState(conn.state)
 
-				conn.onreconnecting(() => setState(HubConnectionState.Reconnecting))
-				conn.onreconnected(() => setState(HubConnectionState.Connected))
-				conn.onclose(() => {
+				// Poll state every 500ms to sync React state with SignalR state
+				// (SignalR state changes are not observable via callbacks in all cases)
+				const interval = setInterval(() => {
+					if (mountedRef.current && conn) {
+						setState(conn.state)
+					}
+				}, 500)
+
+				conn.onreconnecting(() => { if (mountedRef.current) setState(HubConnectionState.Reconnecting) })
+				conn.onreconnected(() => { if (mountedRef.current) setState(HubConnectionState.Connected) })
+				conn.onclose(() => { if (mountedRef.current) setState(HubConnectionState.Disconnected) })
+
+				// Clean up interval (NOT the connection)
+				return () => clearInterval(interval)
+			})
+			.catch((err) => {
+				if (mountedRef.current) {
+					console.error('[useSignalR] Failed:', err)
 					setState(HubConnectionState.Disconnected)
-					setConnection(null)
-					connectingRef.current = false
-				})
-			} catch (err) {
-				console.error('[useSignalR] Failed to connect:', err)
-				setState(HubConnectionState.Disconnected)
-				connectingRef.current = false
-			}
-		}
-
-		connect()
-
-		// Do NOT stop connection on cleanup — it's a singleton.
-		// Only stop when isAuthenticated becomes false (above).
+				}
+			})
 	}, [isAuthenticated])
 
 	return { state, connection, isConnected: state === HubConnectionState.Connected }

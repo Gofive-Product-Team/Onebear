@@ -28,7 +28,9 @@ export function useSignalREvents(connection: HubConnection | null) {
 		if (!connection) return
 
 		connection.on('ReceiveMessage', (message: MessageDto) => {
-			queryClient.invalidateQueries({ queryKey: ['messages', message.roomId] })
+			console.log('[SignalR Event] ReceiveMessage:', message.roomId)
+			// Invalidate all message queries that contain this roomId (partial match)
+			queryClient.invalidateQueries({ queryKey: ['messages'], refetchType: 'active' })
 			queryClient.invalidateQueries({ queryKey: ['rooms'] })
 		})
 
@@ -41,12 +43,13 @@ export function useSignalREvents(connection: HubConnection | null) {
 		})
 
 		connection.on('RoomUpdated', (update: RoomUpdateDto) => {
+			console.log('[SignalR Event] RoomUpdated:', update)
 			queryClient.invalidateQueries({ queryKey: ['room', update.roomId] })
 			queryClient.invalidateQueries({ queryKey: ['rooms'] })
 		})
 
-		connection.on('MessageStatusUpdated', (status: { messageId: string; roomId: string }) => {
-			queryClient.invalidateQueries({ queryKey: ['messages', status.roomId] })
+		connection.on('MessageStatusUpdated', (_status: { messageId: string; roomId: string }) => {
+			queryClient.invalidateQueries({ queryKey: ['messages'], refetchType: 'active' })
 		})
 
 		return () => {
