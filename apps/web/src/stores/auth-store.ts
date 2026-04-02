@@ -61,11 +61,4 @@ export const useAuthStore = create<AuthState>()(
 	),
 )
 
-// Permission constants matching backend
-export const Permission = {
-	ChatView: 3001,
-	ChatResolve: 3002,
-	ChatMention: 3003,
-	ChatAssignAll: 3004,
-	ChatAdmin: 3005,
-} as const
+export { Permission } from '@one-bear/shared-types'

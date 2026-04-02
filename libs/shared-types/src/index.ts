@@ -29,3 +29,5 @@ export interface PagedResponse<T> {
 
 export type SocialPlatform = 'Line' | 'Facebook' | 'Instagram' | 'WhatsApp' | 'Email' | 'TikTok' | 'Lazada' | 'Shopee'
 export type ChatState = 'New' | 'InProgress' | 'Closed' | 'Resolved'
+
+export { Permission, type PermissionId } from './permissions'

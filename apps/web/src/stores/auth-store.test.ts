@@ -103,14 +103,14 @@ describe('useAuthStore', () => {
 		it('should return true when user has the permission', () => {
 			useAuthStore.getState().login('test-token', 3600, mockUser)
 			expect(useAuthStore.getState().hasPermission(Permission.ChatView)).toBe(true)
-			expect(useAuthStore.getState().hasPermission(Permission.ChatResolve)).toBe(true)
+			expect(useAuthStore.getState().hasPermission(Permission.ChatResolved)).toBe(true)
 			expect(useAuthStore.getState().hasPermission(Permission.ChatMention)).toBe(true)
 		})
 
 		it('should return false when user does not have the permission', () => {
 			useAuthStore.getState().login('test-token', 3600, mockUser)
-			expect(useAuthStore.getState().hasPermission(Permission.ChatAssignAll)).toBe(false)
-			expect(useAuthStore.getState().hasPermission(Permission.ChatAdmin)).toBe(false)
+			expect(useAuthStore.getState().hasPermission(Permission.ChatAssignAllCompany)).toBe(false)
+			expect(useAuthStore.getState().hasPermission(Permission.ChatAccessAllData)).toBe(false)
 		})
 
 		it('should return false for a permission id not in the list', () => {
@@ -122,10 +122,10 @@ describe('useAuthStore', () => {
 	describe('Permission constants', () => {
 		it('should have the correct permission values', () => {
 			expect(Permission.ChatView).toBe(3001)
-			expect(Permission.ChatResolve).toBe(3002)
+			expect(Permission.ChatResolved).toBe(3002)
 			expect(Permission.ChatMention).toBe(3003)
-			expect(Permission.ChatAssignAll).toBe(3004)
-			expect(Permission.ChatAdmin).toBe(3005)
+			expect(Permission.ChatAssignAllCompany).toBe(3004)
+			expect(Permission.ChatAccessAllData).toBe(3005)
 		})
 	})
 })
