@@ -76,8 +76,11 @@ public abstract class CosmosRepositoryBase<T> where T : CosmosEntity
             {
                 return await ReplaceItemAsync(entity, pk, ct);
             }
-            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.PreconditionFailed && attempt < maxRetries - 1)
+            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.PreconditionFailed)
             {
+                if (attempt >= maxRetries - 1)
+                    break;
+
                 _logger.LogWarning("ETag conflict on {Type} {Id}, retry {Attempt}/{Max}",
                     typeof(T).Name, GetEntityId(entity), attempt + 1, maxRetries);
 
