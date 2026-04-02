@@ -20,8 +20,8 @@ public class DevAuthBypassMiddleware
     public DevAuthBypassMiddleware(RequestDelegate next, IConfiguration config)
     {
         _next = next;
-        _devSigningKey = config["Auth:DevSigningKey"] ?? "OneBear-Dev-Signing-Key-Min-32-Chars!!";
-        _audience = config["Auth:Audience"] ?? "onebear-api";
+        _devSigningKey = config["Authentication:DevSigningKey"] ?? "OneBear-Dev-Signing-Key-Min-32-Chars!!";
+        _audience = config["Authentication:Audience"] ?? "onebear-api";
     }
 
     public async Task InvokeAsync(HttpContext context)
