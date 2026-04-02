@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { formatRelativeTime, formatTime } from './date'
+import { formatRelativeTime, formatTime, formatDate, formatDateSeparator } from './date'
 
 describe('date utilities', () => {
 	afterEach(() => {
@@ -77,6 +77,60 @@ describe('date utilities', () => {
 			// Both should be non-empty time strings
 			expect(morning.length).toBeGreaterThan(0)
 			expect(evening.length).toBeGreaterThan(0)
+		})
+	})
+
+	describe('formatDate', () => {
+		it('should return date in "Jan 15, 2024" format', () => {
+			// Use a UTC noon time to avoid timezone-boundary issues
+			const result = formatDate('2024-01-15T12:00:00Z')
+			// en-US locale: "Jan 15, 2024"
+			expect(result).toMatch(/Jan\s+15,\s+2024/)
+		})
+
+		it('should format different months correctly', () => {
+			expect(formatDate('2024-07-04T12:00:00Z')).toMatch(/Jul\s+4,\s+2024/)
+			expect(formatDate('2024-12-25T12:00:00Z')).toMatch(/Dec\s+25,\s+2024/)
+		})
+	})
+
+	describe('formatDateSeparator', () => {
+		afterEach(() => {
+			vi.useRealTimers()
+		})
+
+		it('should return "Today" when the date is today', () => {
+			vi.useFakeTimers()
+			vi.setSystemTime(new Date('2024-01-15T10:00:00'))
+			expect(formatDateSeparator('2024-01-15T08:00:00')).toBe('Today')
+		})
+
+		it('should return "Yesterday" when the date is yesterday', () => {
+			vi.useFakeTimers()
+			vi.setSystemTime(new Date('2024-01-15T10:00:00'))
+			expect(formatDateSeparator('2024-01-14T23:00:00')).toBe('Yesterday')
+		})
+
+		it('should return weekday name for dates 2-6 days ago', () => {
+			vi.useFakeTimers()
+			// 2024-01-15 is a Monday; 3 days ago is Friday 2024-01-12
+			vi.setSystemTime(new Date('2024-01-15T10:00:00'))
+			const result = formatDateSeparator('2024-01-12T10:00:00')
+			expect(result).toBe('Friday')
+		})
+
+		it('should return formatted date for dates 7 or more days ago', () => {
+			vi.useFakeTimers()
+			vi.setSystemTime(new Date('2024-01-15T10:00:00'))
+			// 8 days ago
+			const result = formatDateSeparator('2024-01-07T12:00:00')
+			expect(result).toMatch(/Jan\s+7,\s+2024/)
+		})
+
+		it('should return "Today" when the date is later the same day', () => {
+			vi.useFakeTimers()
+			vi.setSystemTime(new Date('2024-03-10T22:00:00'))
+			expect(formatDateSeparator('2024-03-10T06:00:00')).toBe('Today')
 		})
 	})
 })

@@ -1,20 +1,11 @@
 import { useAuthStore } from '../stores/auth-store'
+import { ApiError, type ProblemDetails } from './errors'
+
+export { ApiError } from './errors'
 
 const API_BASE = '/api/v1'
 
-export class ApiError extends Error {
-	constructor(
-		public status: number,
-		public statusText: string,
-		public body: unknown,
-		public correlationId?: string,
-	) {
-		super(`API ${status}: ${statusText}`)
-		this.name = 'ApiError'
-	}
-}
-
-async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
+async function fetchApi<T>(path: string, options?: RequestInit, retryCount = 0): Promise<T> {
 	const { token, isTokenExpired, logout } = useAuthStore.getState()
 
 	if (token && isTokenExpired()) {
@@ -35,6 +26,12 @@ async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
 	})
 
 	if (!response.ok) {
+		// Retry once on 5xx
+		if (response.status >= 500 && retryCount < 1) {
+			await new Promise((resolve) => setTimeout(resolve, 1000))
+			return fetchApi<T>(path, options, retryCount + 1)
+		}
+
 		if (response.status === 401) {
 			logout()
 		}
@@ -49,7 +46,7 @@ async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
 		throw new ApiError(
 			response.status,
 			response.statusText,
-			body,
+			body as ProblemDetails | null,
 			response.headers.get('X-Correlation-Id') ?? correlationId,
 		)
 	}

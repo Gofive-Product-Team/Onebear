@@ -16,3 +16,26 @@ export function formatRelativeTime(isoDate: string): string {
 export function formatTime(isoDate: string): string {
 	return new Date(isoDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
+
+export function formatDate(isoDate: string): string {
+	return new Date(isoDate).toLocaleDateString('en-US', {
+		month: 'short',
+		day: 'numeric',
+		year: 'numeric',
+	})
+}
+
+export function formatDateSeparator(isoDate: string): string {
+	const date = new Date(isoDate)
+	const now = new Date()
+	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+	const target = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+	const diffDays = Math.floor((today.getTime() - target.getTime()) / 86400000)
+
+	if (diffDays === 0) return 'Today'
+	if (diffDays === 1) return 'Yesterday'
+	if (diffDays < 7) {
+		return date.toLocaleDateString('en-US', { weekday: 'long' })
+	}
+	return formatDate(isoDate)
+}

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { ApiError, api } from './api-client'
+import { ApiError as ApiErrorFromErrors } from './errors'
 import { useAuthStore } from '../stores/auth-store'
 import type { UserProfile } from '../stores/auth-store'
 
@@ -18,13 +19,16 @@ describe('api-client', () => {
 	})
 
 	describe('ApiError', () => {
+		it('should be re-exported from api-client (same reference as errors.ts)', () => {
+			expect(ApiError).toBe(ApiErrorFromErrors)
+		})
+
 		it('should create an error with status and statusText', () => {
-			const error = new ApiError(404, 'Not Found', { message: 'Resource not found' }, 'corr-123')
+			const error = new ApiError(404, 'Not Found', null, 'corr-123')
 			expect(error).toBeInstanceOf(Error)
 			expect(error.name).toBe('ApiError')
 			expect(error.status).toBe(404)
 			expect(error.statusText).toBe('Not Found')
-			expect(error.body).toEqual({ message: 'Resource not found' })
 			expect(error.correlationId).toBe('corr-123')
 			expect(error.message).toBe('API 404: Not Found')
 		})
@@ -146,6 +150,67 @@ describe('api-client', () => {
 
 			const result = await api.rooms.resolve('company-1', 'room-1')
 			expect(result).toEqual({})
+		})
+
+		it('should retry once on 5xx response and succeed on second attempt', async () => {
+			vi.useFakeTimers()
+			useAuthStore.getState().login('my-token', 3600, mockUser)
+
+			const errorResponse = new Response(JSON.stringify({ detail: 'Server Error' }), {
+				status: 500,
+				statusText: 'Internal Server Error',
+				headers: { 'Content-Type': 'application/json' },
+			})
+			const successResponse = new Response(JSON.stringify({ id: 'room-1' }), { status: 200 })
+
+			const fetchSpy = vi.spyOn(globalThis, 'fetch')
+			fetchSpy.mockResolvedValueOnce(errorResponse).mockResolvedValueOnce(successResponse)
+
+			const promise = api.rooms.get('company-1', 'room-1')
+			// Advance the 1s retry delay
+			await vi.advanceTimersByTimeAsync(1000)
+			const result = await promise
+
+			expect(fetchSpy).toHaveBeenCalledTimes(2)
+			expect(result).toEqual({ id: 'room-1' })
+			vi.useRealTimers()
+		})
+
+		it('should throw ApiError after exhausting retries on persistent 5xx', async () => {
+			vi.useFakeTimers()
+			useAuthStore.getState().login('my-token', 3600, mockUser)
+
+			const errorResponse1 = new Response(null, { status: 500, statusText: 'Internal Server Error' })
+			const errorResponse2 = new Response(null, { status: 500, statusText: 'Internal Server Error' })
+
+			const fetchSpy = vi.spyOn(globalThis, 'fetch')
+			fetchSpy.mockResolvedValueOnce(errorResponse1).mockResolvedValueOnce(errorResponse2)
+
+			// Collect the result via allSettled so the rejection is always handled,
+			// then advance timers so the 1 s retry delay fires.
+			const settled = Promise.allSettled([api.rooms.get('company-1', 'room-1')])
+			await vi.advanceTimersByTimeAsync(1000)
+			const [result] = await settled
+
+			expect(result.status).toBe('rejected')
+			expect((result as PromiseRejectedResult).reason).toBeInstanceOf(ApiError)
+			expect(fetchSpy).toHaveBeenCalledTimes(2)
+			vi.useRealTimers()
+		})
+
+		it('should not retry on 4xx errors', async () => {
+			useAuthStore.getState().login('my-token', 3600, mockUser)
+
+			const errorResponse = new Response(JSON.stringify({ detail: 'Not Found' }), {
+				status: 404,
+				statusText: 'Not Found',
+				headers: { 'Content-Type': 'application/json' },
+			})
+
+			const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(errorResponse)
+
+			await expect(api.rooms.get('company-1', 'room-1')).rejects.toThrow(ApiError)
+			expect(fetchSpy).toHaveBeenCalledTimes(1)
 		})
 	})
 })
