@@ -319,14 +319,37 @@ input,textarea,select{font-family:inherit;outline:none;border:none}
 .tag .tag-x{color:var(--primary);opacity:.6;cursor:pointer;font-size:12px;line-height:1}
 .tag.add-tag{background:var(--bg-input);color:var(--t3);border-color:var(--border-in);cursor:pointer}
 .tag.add-tag:hover{border-color:var(--primary);color:var(--primary)}
+/* Grouped contact field */
+.contact-group{border:1.5px solid var(--border-in);border-radius:var(--r-lg);overflow:hidden;margin-bottom:10px}
+.contact-row{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg-input);transition:background .15s}
+.contact-row:not(:last-child){border-bottom:1px solid var(--border)}
+.contact-row:focus-within{background:var(--bg-page)}
+.contact-row svg{width:14px;height:14px;color:var(--t3);flex-shrink:0}
+.contact-row input{flex:1;background:none;font-size:.8125rem;color:var(--t1);min-width:0}
+.contact-row input::placeholder{color:var(--t3)}
+/* Address list */
+.addr-list{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
+.addr-item{display:flex;align-items:flex-start;gap:8px;background:var(--bg-input);border:1.5px solid var(--border-in);border-radius:var(--r-md);padding:8px 10px}
+.addr-item svg{width:13px;height:13px;color:var(--t3);flex-shrink:0;margin-top:2px}
+.addr-item textarea{flex:1;background:none;font-size:.8125rem;color:var(--t1);resize:none;min-height:36px;line-height:1.5;border:none}
+.addr-item textarea::placeholder{color:var(--t3)}
+.addr-item .addr-del{color:var(--t3);cursor:pointer;font-size:14px;line-height:1;flex-shrink:0;margin-top:1px;transition:color var(--tr-fast)}
+.addr-item .addr-del:hover{color:var(--error)}
+.add-addr-btn{display:flex;align-items:center;gap:5px;width:100%;padding:7px 10px;border-radius:var(--r-md);background:var(--bg-input);border:1.5px dashed var(--border-in);color:var(--t3);font-size:.75rem;cursor:pointer;transition:all var(--tr-fast)}
+.add-addr-btn:hover{border-color:var(--primary);color:var(--primary)}
+.add-addr-btn svg{width:12px;height:12px}
 /* Owners section */
-.owners-wrap{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.owner-chip{display:flex;align-items:center;gap:6px;background:var(--bg-input);border-radius:var(--r-full);padding:4px 10px 4px 4px;font-size:.75rem;color:var(--t2)}
-.owner-chip .ow-av{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff}
-.owner-chip .ow-x{color:var(--t3);cursor:pointer;font-size:13px;line-height:1;margin-left:2px}
+.owners-wrap{display:flex;flex-direction:column;gap:6px}
+.owner-chip{display:flex;align-items:center;gap:10px;background:var(--bg-input);border-radius:var(--r-lg);padding:8px 12px}
+.owner-chip .ow-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;box-shadow:0 0 0 2px var(--bg-page)}
+.owner-chip .ow-info{flex:1;min-width:0}
+.owner-chip .ow-name{font-size:.8125rem;font-weight:600;color:var(--t1)}
+.owner-chip .ow-role{font-size:.6875rem;color:var(--t3);margin-top:1px}
+.owner-chip .ow-x{color:var(--t3);cursor:pointer;font-size:15px;line-height:1;flex-shrink:0;transition:color var(--tr-fast)}
 .owner-chip .ow-x:hover{color:var(--error)}
-.add-owner-btn{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:var(--r-full);background:var(--bg-input);border:1.5px dashed var(--border-in);color:var(--t3);font-size:.75rem;cursor:pointer;transition:all var(--tr-fast)}
+.add-owner-btn{display:flex;align-items:center;gap:5px;padding:8px 12px;border-radius:var(--r-lg);background:var(--bg-input);border:1.5px dashed var(--border-in);color:var(--t3);font-size:.75rem;cursor:pointer;transition:all var(--tr-fast)}
 .add-owner-btn:hover{border-color:var(--primary);color:var(--primary)}
+.add-owner-btn svg{width:13px;height:13px}
 /* Private note */
 .private-note{background:var(--warning-bg);border:1px solid rgba(251,191,36,.2);border-radius:var(--r-lg);padding:10px 12px}
 .private-note label{font-size:.6875rem;font-weight:700;color:var(--warning);text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:5px;margin-bottom:6px}
@@ -544,7 +567,7 @@ const CHATS = [
    pinned:true, hasFollowUp:true, hasPrivateNote:false, isTyping:false,
    source:'LINE', interest:'Pro Package', tags:['VIP','Follow up'],
    source_label:'[prod]empeoxvenio', type:'individual', phone:'081-234-5678', email:'supanut@email.com',
-   address:'123 ถ.สุขุมวิท กรุงเทพฯ 10110'},
+   addresses:['123 ถ.สุขุมวิท แขวงคลองเตย กรุงเทพฯ 10110','88/2 หมู่ 5 ต.บางพลี จ.สมุทรปราการ 10540']},
 
   {id:2, name:'สมชาย ปลาดาว', customName:null, platform:'facebook', avColor:'av-o',
    lastMsg:'ราคาแพ็กเกจ Pro เท่าไหร่ครับ?', unread:5, isRead:false,
@@ -565,7 +588,7 @@ const CHATS = [
    pinned:false, hasFollowUp:false, hasPrivateNote:false, isTyping:false,
    source:'LINE', interest:'Enterprise', tags:['VIP','Converted'],
    type:'company', phone:'02-345-6789', email:'warisara@corp.com',
-   address:'456/7 ถ.รัชดาฯ กรุงเทพฯ 10400', taxId:'0105563012345',
+   addresses:['456/7 ถ.รัชดาภิเษก แขวงลาดยาว กรุงเทพฯ 10400'], taxId:'0105563012345',
    firstResponseMin:4, totalTimeMin:90},
 
   {id:5, name:'ธนพล สุขใส', customName:null, platform:'web', avColor:'av-b',
@@ -913,14 +936,20 @@ function renderRightPanel(c) {
   let ownerSec = `<div class="rp-sec">
     <div class="sec-title">ผู้ดูแล <button>+ เพิ่ม</button></div>
     <div class="owners-wrap">`;
+  const roles = {K:'Admin · Sales',W:'Agent · Support',A:'Agent · Sales'};
   if(c.owners && c.owners.length) {
     c.owners.forEach(o => {
       const oCls = ownerClass(o);
-      ownerSec += `<div class="owner-chip"><div class="ow-av ${oCls}">${o}</div>${names[o]||o}<span class="ow-x">✕</span></div>`;
+      ownerSec += `<div class="owner-chip">
+        <div class="ow-av ${oCls}">${o}</div>
+        <div class="ow-info"><div class="ow-name">${names[o]||o}</div><div class="ow-role">${roles[o]||'Agent'}</div></div>
+        <span class="ow-x">✕</span>
+      </div>`;
     });
   }
-  ownerSec += `<button class="add-owner-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M12 5v14M5 12h14"/></svg>มอบหมาย</button>
-    </div></div>`;
+  ownerSec += `<button class="add-owner-btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>มอบหมาย
+  </button></div></div>`;
 
   let content = '';
 
@@ -941,12 +970,21 @@ function renderRightPanel(c) {
       ${ownerSec}
       <div class="rp-sec">
         <div class="sec-title">ข้อมูลติดต่อ <button>แก้ไข</button></div>
-        <div class="rp-field"><label>เบอร์โทรศัพท์</label><input type="tel" value="${c.phone||''}" placeholder="+ เพิ่มเบอร์โทร"></div>
-        <div class="rp-field"><label>อีเมล</label><input type="email" value="${c.email||''}" placeholder="+ เพิ่มอีเมล"></div>
-        <div class="rp-field"><label>ความสนใจ</label><input type="text" value="${c.interest||''}" placeholder="เช่น Pro Package..."></div>
-      </div>
-      <div class="rp-sec">
-        <div class="sec-title">แท็ก <button>+ เพิ่ม</button></div>
+        <div class="contact-group">
+          <div class="contact-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.24h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 5.99 5.99l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            <input type="tel" value="${c.phone||''}" placeholder="+ เพิ่มเบอร์โทร">
+          </div>
+          <div class="contact-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <input type="email" value="${c.email||''}" placeholder="+ เพิ่มอีเมล">
+          </div>
+          <div class="contact-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <input type="text" value="${c.interest||''}" placeholder="ความสนใจ เช่น Pro Package...">
+          </div>
+        </div>
+        <div class="sec-title" style="margin-top:12px">แท็ก <button>+ เพิ่ม</button></div>
         <div class="tags-wrap">
           ${(c.tags||[]).map(t=>`<span class="tag">${t}<span class="tag-x">✕</span></span>`).join('')}
           <span class="tag add-tag">+ เพิ่มแท็ก</span>
@@ -964,20 +1002,40 @@ function renderRightPanel(c) {
       ${ownerSec}
       <div class="rp-sec">
         <div class="sec-title">ข้อมูลติดต่อ <button>แก้ไข</button></div>
-        <div class="rp-row2">
-          <div class="rp-field"><label>เบอร์โทร</label><input type="tel" value="${c.phone||''}"></div>
-          <div class="rp-field"><label>อีเมล</label><input type="email" value="${c.email||''}"></div>
+        <div class="contact-group">
+          <div class="contact-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.24h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 5.99 5.99l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            <input type="tel" value="${c.phone||''}" placeholder="+ เพิ่มเบอร์โทร">
+          </div>
+          <div class="contact-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <input type="email" value="${c.email||''}" placeholder="+ เพิ่มอีเมล">
+          </div>
+          <div class="contact-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <input type="text" value="${c.interest||''}" placeholder="ความสนใจ...">
+          </div>
+          ${c.type==='company' ? `<div class="contact-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+            <input type="text" value="${c.taxId||''}" placeholder="เลขที่เสียภาษี">
+          </div>` : ''}
         </div>
-        <div class="rp-field"><label>ความสนใจ</label><input type="text" value="${c.interest||''}"></div>
-        <div class="rp-field"><label>ที่อยู่</label><textarea>${c.address||''}</textarea></div>
-        ${c.type==='company' ? `<div class="rp-field"><label>เลขที่เสียภาษี</label><input type="text" value="${c.taxId||''}"></div>` : ''}
-      </div>
-      <div class="rp-sec">
-        <div class="sec-title">แท็ก <button>+ เพิ่ม</button></div>
+        <div class="sec-title" style="margin-top:12px">แท็ก <button>+ เพิ่ม</button></div>
         <div class="tags-wrap">
           ${(c.tags||[]).map(t=>`<span class="tag">${t}<span class="tag-x">✕</span></span>`).join('')}
           <span class="tag add-tag">+ เพิ่มแท็ก</span>
         </div>
+        <div class="sec-title" style="margin-top:14px">ที่อยู่ <button onclick="addAddress(this)">+ เพิ่ม</button></div>
+        <div class="addr-list" id="addrList-${c.id}">
+          ${(c.addresses||[]).map((a,i)=>`<div class="addr-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <textarea rows="2">${a}</textarea>
+            <span class="addr-del" onclick="this.closest('.addr-item').remove()">✕</span>
+          </div>`).join('')}
+        </div>
+        <button class="add-addr-btn" onclick="addAddress('addrList-${c.id}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>เพิ่มที่อยู่
+        </button>
       </div>
       <div class="rp-sec">
         <div class="sec-title">ไฟล์แนบในแช็ต</div>
@@ -1070,13 +1128,32 @@ function renderRightPanel(c) {
       ${ownerSec}
       <div class="rp-sec">
         <div class="sec-title">ข้อมูลติดต่อ</div>
-        <div class="rp-row2">
-          <div class="rp-field"><label>เบอร์โทร</label><input type="tel" value="${c.phone||'-'}" readonly></div>
-          <div class="rp-field"><label>อีเมล</label><input type="email" value="${c.email||'-'}" readonly></div>
+        <div class="contact-group">
+          <div class="contact-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.24h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 5.99 5.99l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            <input type="tel" value="${c.phone||'-'}" readonly>
+          </div>
+          <div class="contact-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <input type="email" value="${c.email||'-'}" readonly>
+          </div>
+          <div class="contact-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <input type="text" value="${c.interest||'-'}" readonly>
+          </div>
+          ${c.type==='company'&&c.taxId ? `<div class="contact-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+            <input type="text" value="${c.taxId}" readonly>
+          </div>` : ''}
         </div>
-        <div class="rp-field"><label>ความสนใจ</label><input type="text" value="${c.interest||'-'}" readonly></div>
-        ${c.address ? `<div class="rp-field"><label>ที่อยู่</label><textarea readonly style="opacity:.7">${c.address}</textarea></div>` : ''}
-        ${c.type==='company'&&c.taxId ? `<div class="rp-field"><label>เลขที่เสียภาษี</label><input type="text" value="${c.taxId}" readonly></div>` : ''}
+        ${(c.addresses||[]).length ? `
+        <div class="sec-title" style="margin-top:12px">ที่อยู่</div>
+        <div class="addr-list">
+          ${(c.addresses||[]).map(a=>`<div class="addr-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <textarea rows="2" readonly style="opacity:.8">${a}</textarea>
+          </div>`).join('')}
+        </div>` : ''}
       </div>
       <div class="rp-sec">
         <div class="sec-title">แท็ก</div>
@@ -1207,6 +1284,16 @@ function openModal(id) {
     </div>
     ${c.tags&&c.tags.length ? `<div style="margin-top:16px"><div style="font-size:.6875rem;color:var(--t3);margin-bottom:8px">แท็ก</div><div class="tags-wrap">${c.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div></div>` : ''}`;
   document.getElementById('profileModal').classList.add('show');
+}
+
+function addAddress(listId) {
+  const list = document.getElementById(listId);
+  if(!list) return;
+  const item = document.createElement('div');
+  item.className = 'addr-item';
+  item.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;color:var(--t3);flex-shrink:0;margin-top:2px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><textarea rows="2" placeholder="กรอกที่อยู่..."></textarea><span class="addr-del" onclick="this.closest('.addr-item').remove()">✕</span>`;
+  list.appendChild(item);
+  item.querySelector('textarea').focus();
 }
 
 function closeModal() {
