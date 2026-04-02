@@ -8,6 +8,7 @@ using OneBear.Domain.Interfaces.Repositories;
 using OneBear.Infrastructure.Caching;
 using OneBear.Infrastructure.Persistence.Cosmos;
 using OneBear.Infrastructure.Persistence.Cosmos.Repositories;
+using OneBear.Infrastructure.Persistence.Cosmos.Seeding;
 using StackExchange.Redis;
 
 public static class DependencyInjection
@@ -50,6 +51,8 @@ public static class DependencyInjection
         services.AddScoped<IChatbotConfigurationRepository, ChatbotConfigurationRepository>();
         services.AddScoped<ICompanyFeatureSettingsRepository, CompanyFeatureSettingsRepository>();
         services.AddScoped<IUserVerificationRepository, UserVerificationRepository>();
+
+        services.AddTransient<CosmosSeeder>();
 
         return services;
     }

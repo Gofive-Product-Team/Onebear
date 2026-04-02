@@ -11,6 +11,7 @@ using OneBear.Domain.Enums;
 using OneBear.Domain.Interfaces;
 using OneBear.Infrastructure;
 using OneBear.Infrastructure.Persistence.Cosmos;
+using OneBear.Infrastructure.Persistence.Cosmos.Seeding;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -196,6 +197,9 @@ if (app.Environment.IsDevelopment())
     using IServiceScope scope = app.Services.CreateScope();
     CosmosDbContext cosmosDb = scope.ServiceProvider.GetRequiredService<CosmosDbContext>();
     await cosmosDb.EnsureDatabaseCreatedAsync();
+
+    CosmosSeeder seeder = scope.ServiceProvider.GetRequiredService<CosmosSeeder>();
+    await seeder.SeedDevelopmentDataAsync();
 }
 
 app.Run();
