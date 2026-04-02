@@ -8,92 +8,85 @@ public class PermissionHandlerTests
 {
     private readonly PermissionHandler _handler = new();
 
-    [Fact]
-    public async Task HandleRequirementAsync_ShouldSucceed_WhenUserHasMatchingPermission()
+    private AuthorizationHandlerContext CreateContext(PermissionRequirement requirement, ClaimsPrincipal user)
     {
-        // Arrange
-        var requirement = new PermissionRequirement(3001);
-        var claims = new[] { new Claim("permissions", "3001") };
-        ClaimsPrincipal user = new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"));
-        AuthorizationHandlerContext context = new AuthorizationHandlerContext(
-            new[] { requirement }, user, null);
+        return new AuthorizationHandlerContext([requirement], user, null);
+    }
 
-        // Act
+    [Fact]
+    public async Task ShouldSucceed_WhenUserHasRequiredPermission()
+    {
+        PermissionRequirement requirement = new(3001);
+        Claim[] claims = [new(AuthConstants.ClaimPermissions, "[3001,3002]")];
+        ClaimsPrincipal user = new(new ClaimsIdentity(claims, "TestAuth"));
+
+        AuthorizationHandlerContext context = CreateContext(requirement, user);
         await _handler.HandleAsync(context);
 
-        // Assert
         Assert.True(context.HasSucceeded);
     }
 
     [Fact]
-    public async Task HandleRequirementAsync_ShouldNotSucceed_WhenUserLacksPermission()
+    public async Task ShouldFail_WhenUserMissingRequiredPermission()
     {
-        // Arrange
-        var requirement = new PermissionRequirement(3001);
-        var claims = new[] { new Claim("permissions", "3002") };
-        ClaimsPrincipal user = new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"));
-        AuthorizationHandlerContext context = new AuthorizationHandlerContext(
-            new[] { requirement }, user, null);
+        PermissionRequirement requirement = new(3002);
+        Claim[] claims = [new(AuthConstants.ClaimPermissions, "[3001]")];
+        ClaimsPrincipal user = new(new ClaimsIdentity(claims, "TestAuth"));
 
-        // Act
+        AuthorizationHandlerContext context = CreateContext(requirement, user);
         await _handler.HandleAsync(context);
 
-        // Assert
         Assert.False(context.HasSucceeded);
     }
 
     [Fact]
-    public async Task HandleRequirementAsync_ShouldNotSucceed_WhenUserHasNoPermissionClaims()
+    public async Task ShouldFail_WhenNoPermissionsClaim()
     {
-        // Arrange
-        var requirement = new PermissionRequirement(3001);
-        ClaimsPrincipal user = new ClaimsPrincipal(new ClaimsIdentity(Array.Empty<Claim>(), "TestAuth"));
-        AuthorizationHandlerContext context = new AuthorizationHandlerContext(
-            new[] { requirement }, user, null);
+        PermissionRequirement requirement = new(3001);
+        ClaimsPrincipal user = new(new ClaimsIdentity(Array.Empty<Claim>(), "TestAuth"));
 
-        // Act
+        AuthorizationHandlerContext context = CreateContext(requirement, user);
         await _handler.HandleAsync(context);
 
-        // Assert
         Assert.False(context.HasSucceeded);
     }
 
     [Fact]
-    public async Task HandleRequirementAsync_ShouldSucceed_WhenUserHasMultiplePermissionsIncludingRequired()
+    public async Task ShouldSucceed_WhenMultiplePermissionsAndOneMatches()
     {
-        // Arrange
-        var requirement = new PermissionRequirement(3003);
-        var claims = new[]
-        {
-            new Claim("permissions", "3001"),
-            new Claim("permissions", "3003"),
-            new Claim("permissions", "3005")
-        };
-        ClaimsPrincipal user = new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"));
-        AuthorizationHandlerContext context = new AuthorizationHandlerContext(
-            new[] { requirement }, user, null);
+        PermissionRequirement requirement = new(3005);
+        Claim[] claims = [new(AuthConstants.ClaimPermissions, "[3001,3002,3003,3004,3005]")];
+        ClaimsPrincipal user = new(new ClaimsIdentity(claims, "TestAuth"));
 
-        // Act
+        AuthorizationHandlerContext context = CreateContext(requirement, user);
         await _handler.HandleAsync(context);
 
-        // Assert
         Assert.True(context.HasSucceeded);
     }
 
     [Fact]
-    public async Task HandleRequirementAsync_ShouldNotSucceed_WhenPermissionClaimIsNonNumeric()
+    public async Task ShouldSucceed_WhenApiKeyAuth()
     {
-        // Arrange
-        var requirement = new PermissionRequirement(3001);
-        var claims = new[] { new Claim("permissions", "not-a-number") };
-        ClaimsPrincipal user = new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"));
-        AuthorizationHandlerContext context = new AuthorizationHandlerContext(
-            new[] { requirement }, user, null);
+        PermissionRequirement requirement = new(3001);
+        Claim[] claims = [new(AuthConstants.ClaimAuthMethod, AuthConstants.ClaimAuthMethodApiKey)];
+        ClaimsPrincipal user = new(new ClaimsIdentity(claims, "TestAuth"));
 
-        // Act
+        AuthorizationHandlerContext context = CreateContext(requirement, user);
         await _handler.HandleAsync(context);
 
-        // Assert
+        Assert.True(context.HasSucceeded);
+    }
+
+    [Fact]
+    public async Task ShouldFail_WhenPermissionsClaimIsEmptyArray()
+    {
+        PermissionRequirement requirement = new(3001);
+        Claim[] claims = [new(AuthConstants.ClaimPermissions, "[]")];
+        ClaimsPrincipal user = new(new ClaimsIdentity(claims, "TestAuth"));
+
+        AuthorizationHandlerContext context = CreateContext(requirement, user);
+        await _handler.HandleAsync(context);
+
         Assert.False(context.HasSucceeded);
     }
 }
