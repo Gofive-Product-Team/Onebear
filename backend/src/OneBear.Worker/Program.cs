@@ -1,11 +1,48 @@
 using MassTransit;
+using OneBear.Application;
+using OneBear.Domain.Interfaces;
+using OneBear.Infrastructure;
 using OneBear.Worker.Consumers;
+using OneBear.Worker.Jobs;
+using OneBear.Worker.Services;
 using Quartz;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-// Quartz.NET
-builder.Services.AddQuartz();
+// Application + Infrastructure services (repos, cache, adapters, etc.)
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure(builder.Configuration);
+
+// Worker-specific: SignalR notifier (logging-only; in prod use Azure SignalR REST API)
+builder.Services.AddSingleton<ISignalRNotifier, WorkerSignalRNotifier>();
+
+// Quartz.NET scheduled jobs
+builder.Services.AddQuartz(q =>
+{
+    // Token refresh check — every 30 minutes
+    JobKey tokenJobKey = new("IntegrationTokenValidation");
+    q.AddJob<IntegrationTokenValidationJob>(opts => opts.WithIdentity(tokenJobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(tokenJobKey)
+        .WithIdentity("IntegrationTokenValidation-trigger")
+        .WithSimpleSchedule(s => s.WithIntervalInMinutes(30).RepeatForever()));
+
+    // Attended user cleanup — every 5 minutes
+    JobKey cleanupJobKey = new("AttendedUserCleanup");
+    q.AddJob<AttendedUserCleanupJob>(opts => opts.WithIdentity(cleanupJobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(cleanupJobKey)
+        .WithIdentity("AttendedUserCleanup-trigger")
+        .WithSimpleSchedule(s => s.WithIntervalInMinutes(5).RepeatForever()));
+
+    // Followup reminder — every 1 minute
+    JobKey followupJobKey = new("FollowupReminder");
+    q.AddJob<FollowupReminderJob>(opts => opts.WithIdentity(followupJobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(followupJobKey)
+        .WithIdentity("FollowupReminder-trigger")
+        .WithSimpleSchedule(s => s.WithIntervalInMinutes(1).RepeatForever()));
+});
 builder.Services.AddQuartzHostedService(opt => opt.WaitForJobsToComplete = true);
 
 // MassTransit + RabbitMQ

@@ -4,7 +4,12 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using OneBear.API.Auth;
 using OneBear.API.Hubs;
+using OneBear.Application.Common.DTOs;
 using OneBear.Application.Common.Interfaces;
+using OneBear.Application.Messaging;
+using OneBear.Domain.Common;
+using OneBear.Domain.Interfaces;
+using OneBear.Domain.Interfaces.Repositories;
 
 namespace OneBear.API.Tests.Hubs;
 
@@ -17,6 +22,8 @@ public class ChatHubTests
     private readonly Mock<IRoomAuthorizationService> _mockRoomAuth;
     private readonly Mock<IAttendanceService> _mockAttendance;
     private readonly Mock<ITypingTracker> _mockTypingTracker;
+    private readonly Mock<IServiceProvider> _spMock;
+    private readonly MessageOrchestrator _orchestrator;
     private readonly ChatHub _hub;
 
     private const string TestUserId = "user-123";
@@ -33,6 +40,24 @@ public class ChatHubTests
         _mockRoomAuth = new Mock<IRoomAuthorizationService>();
         _mockAttendance = new Mock<IAttendanceService>();
         _mockTypingTracker = new Mock<ITypingTracker>();
+
+        // Create a minimal MessageOrchestrator for tests
+        _spMock = new Mock<IServiceProvider>();
+        Mock<IIntegrationService> integrationMock = new();
+        Mock<IChatUserService> chatUserMock = new();
+        Mock<IRoomStateService> roomStateMock = new();
+        Mock<IChatMessageRepository> messageRepoMock = new();
+        Mock<IChatRoomRepository> roomRepoMock = new();
+        Mock<IAutoAssignmentService> autoAssignMock = new();
+        Mock<ISignalRNotifier> signalRMock = new();
+        Mock<IEventPublisher> eventPubMock = new();
+        Mock<ILogger<MessageOrchestrator>> orchLoggerMock = new();
+
+        _orchestrator = new MessageOrchestrator(
+            _spMock.Object, integrationMock.Object, chatUserMock.Object,
+            roomStateMock.Object, messageRepoMock.Object, roomRepoMock.Object,
+            autoAssignMock.Object, signalRMock.Object, eventPubMock.Object,
+            orchLoggerMock.Object);
 
         // Set up user claims
         Claim[] claims = new[]
@@ -58,7 +83,8 @@ public class ChatHubTests
             _mockLogger.Object,
             _mockRoomAuth.Object,
             _mockAttendance.Object,
-            _mockTypingTracker.Object)
+            _mockTypingTracker.Object,
+            _orchestrator)
         {
             Groups = _mockGroups.Object,
             Clients = _mockClients.Object,
@@ -328,30 +354,6 @@ public class ChatHubTests
     // ────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task SendMessage_ShouldBroadcastToRoom_WhenAuthorized()
-    {
-        // Arrange
-        SendMessagePayload payload = new SendMessagePayload
-        {
-            RoomId = "room-1",
-            Content = "Hello, World!",
-            MessageType = "Text"
-        };
-        _mockRoomAuth.Setup(r => r.CanAccessRoomAsync(TestUserId, payload.RoomId)).ReturnsAsync(true);
-
-        Mock<IClientProxy> mockClientProxy = new Mock<IClientProxy>();
-        _mockClients.Setup(c => c.Group($"room:{payload.RoomId}")).Returns(mockClientProxy.Object);
-
-        // Act
-        await _hub.SendMessage(payload);
-
-        // Assert
-        mockClientProxy.Verify(
-            c => c.SendCoreAsync("ReceiveMessage", It.Is<object?[]>(args => args.Length == 1), default),
-            Times.Once);
-    }
-
-    [Fact]
     public async Task SendMessage_ShouldThrowHubException_WhenUnauthorized()
     {
         // Arrange
@@ -367,27 +369,18 @@ public class ChatHubTests
     }
 
     [Fact]
-    public async Task SendMessage_ShouldDefaultMessageTypeToText_WhenNull()
+    public async Task SendMessage_ShouldThrowHubException_WhenOrchestratorFails()
     {
-        // Arrange
+        // Arrange — orchestrator will fail because room repo returns null
         SendMessagePayload payload = new SendMessagePayload
         {
             RoomId = "room-1",
             Content = "Hello!"
-            // MessageType is null
         };
         _mockRoomAuth.Setup(r => r.CanAccessRoomAsync(TestUserId, payload.RoomId)).ReturnsAsync(true);
 
-        Mock<IClientProxy> mockClientProxy = new Mock<IClientProxy>();
-        _mockClients.Setup(c => c.Group($"room:{payload.RoomId}")).Returns(mockClientProxy.Object);
-
-        // Act
-        await _hub.SendMessage(payload);
-
-        // Assert
-        mockClientProxy.Verify(
-            c => c.SendCoreAsync("ReceiveMessage", It.Is<object?[]>(args => args.Length == 1), default),
-            Times.Once);
+        // Act & Assert — orchestrator returns failure (room not found), hub throws HubException
+        await Assert.ThrowsAsync<HubException>(() => _hub.SendMessage(payload));
     }
 
     // ────────────────────────────────────────────────────────

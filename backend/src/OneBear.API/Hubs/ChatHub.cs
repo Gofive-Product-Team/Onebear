@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using OneBear.API.Auth;
+using OneBear.Application.Common.DTOs;
 using OneBear.Application.Common.Interfaces;
+using OneBear.Application.Messaging;
 using OneBear.Application.RealTime.Dtos;
+using OneBear.Domain.Common;
 
 namespace OneBear.API.Hubs;
 
@@ -13,17 +16,20 @@ public class ChatHub : Hub
     private readonly IRoomAuthorizationService _roomAuth;
     private readonly IAttendanceService _attendanceService;
     private readonly ITypingTracker _typingTracker;
+    private readonly MessageOrchestrator _orchestrator;
 
     public ChatHub(
         ILogger<ChatHub> logger,
         IRoomAuthorizationService roomAuth,
         IAttendanceService attendanceService,
-        ITypingTracker typingTracker)
+        ITypingTracker typingTracker,
+        MessageOrchestrator orchestrator)
     {
         _logger = logger;
         _roomAuth = roomAuth;
         _attendanceService = attendanceService;
         _typingTracker = typingTracker;
+        _orchestrator = orchestrator;
     }
 
     public override async Task OnConnectedAsync()
@@ -166,19 +172,16 @@ public class ChatHub : Hub
 
         _logger.LogInformation("SendMessage from {UserId} to room {RoomId}", userId, payload.RoomId);
 
-        // TODO: delegate to MessageOrchestrator.ProcessOutboundAsync()
-        // For now, echo back to the room as acknowledgment
-        await Clients.Group($"room:{payload.RoomId}").SendAsync("ReceiveMessage", new
+        // ProcessOutboundAsync handles: persist, send to platform, update status, broadcast via SignalR
+        Result<ChatMessageDto> result = await _orchestrator.ProcessOutboundAsync(
+            userId, companyId, payload.RoomId, payload.Content, payload.MessageType, CancellationToken.None);
+
+        if (result is Result<ChatMessageDto>.Failure failure)
         {
-            id = Guid.NewGuid().ToString(),
-            roomId = payload.RoomId,
-            content = payload.Content,
-            messageType = payload.MessageType ?? "Text",
-            sender = new { id = userId, displayName = Context.User?.GetDisplayName(), type = "Agent" },
-            deliveryStatus = "Pending",
-            platform = "internal",
-            sentAt = DateTimeOffset.UtcNow
-        });
+            _logger.LogWarning("SendMessage failed for room {RoomId}: {Error}",
+                payload.RoomId, failure.Error.Message);
+            throw new HubException(failure.Error.Message);
+        }
     }
 
     /// <summary>Typing indicator with server-side relay.</summary>

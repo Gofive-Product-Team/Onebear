@@ -3,9 +3,9 @@ namespace OneBear.Application.Messaging;
 using OneBear.Application.Common.DTOs;
 using OneBear.Domain.Entities;
 
-internal static class MessageMappingHelpers
+public static class MessageMappingHelpers
 {
-    internal static ChatMessageDto ToDto(ChatMessage msg, ChatUser? sender = null) => new()
+    public static ChatMessageDto ToDto(ChatMessage msg, ChatUser? sender = null) => new()
     {
         Id = msg.Id,
         RoomId = msg.RoomId,
@@ -18,7 +18,7 @@ internal static class MessageMappingHelpers
         Timestamp = msg.Timestamp
     };
 
-    internal static ChatRoomDto ToDto(ChatRoom room) => new()
+    public static ChatRoomDto ToDto(ChatRoom room) => new()
     {
         Id = room.Id,
         Platform = room.Platform,
