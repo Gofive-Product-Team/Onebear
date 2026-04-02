@@ -1,7 +1,10 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using OneBear.API.Auth;
 
 namespace OneBear.API.Middleware;
 
@@ -14,14 +17,12 @@ namespace OneBear.API.Middleware;
 public class DevAuthBypassMiddleware
 {
     private readonly RequestDelegate _next;
-    private readonly string _devSigningKey;
-    private readonly string _audience;
+    private readonly AuthOptions _authOptions;
 
-    public DevAuthBypassMiddleware(RequestDelegate next, IConfiguration config)
+    public DevAuthBypassMiddleware(RequestDelegate next, IOptions<AuthOptions> authOptions)
     {
         _next = next;
-        _devSigningKey = config["Authentication:DevSigningKey"] ?? "OneBear-Dev-Signing-Key-Min-32-Chars!!";
-        _audience = config["Authentication:Audience"] ?? "onebear-api";
+        _authOptions = authOptions.Value;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -44,26 +45,24 @@ public class DevAuthBypassMiddleware
 
     private string GenerateDevToken()
     {
-        SymmetricSecurityKey key = new(Encoding.UTF8.GetBytes(_devSigningKey));
+        SymmetricSecurityKey key = new(Encoding.UTF8.GetBytes(_authOptions.DevSigningKey));
         SigningCredentials credentials = new(key, SecurityAlgorithms.HmacSha256);
+
+        int[] permissions = [3001, 3002, 3003, 3004, 3005];
 
         Claim[] claims =
         [
             new(JwtRegisteredClaimNames.Sub, "dev-user-001"),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new("company_id", "dev-company-001"),
-            new("name", "Dev Bypass User"),
-            new("email", "dev@onebear.local"),
-            new("permissions", "3001"),
-            new("permissions", "3002"),
-            new("permissions", "3003"),
-            new("permissions", "3004"),
-            new("permissions", "3005"),
+            new(AuthConstants.ClaimCompanyId, "dev-company-001"),
+            new(AuthConstants.ClaimDisplayName, "Dev Bypass User"),
+            new(AuthConstants.ClaimEmail, "dev@onebear.local"),
+            new(AuthConstants.ClaimPermissions, JsonSerializer.Serialize(permissions)),
         ];
 
         JwtSecurityToken token = new(
             issuer: "onebear-dev",
-            audience: _audience,
+            audience: _authOptions.Audience,
             claims: claims,
             expires: DateTime.UtcNow.AddHours(24),
             signingCredentials: credentials);
