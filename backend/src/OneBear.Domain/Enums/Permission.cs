@@ -7,4 +7,6 @@ public static class Permission
     public const int ChatMention = 3003;
     public const int ChatAssignAllCompany = 3004;
     public const int ChatAccessAllData = 3005;
+
+    public static readonly int[] All = [ChatView, ChatResolved, ChatMention, ChatAssignAllCompany, ChatAccessAllData];
 }
