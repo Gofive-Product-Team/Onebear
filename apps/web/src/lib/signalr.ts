@@ -3,6 +3,7 @@ import type { HubConnection } from '@microsoft/signalr'
 import { useAuthStore } from '../stores/auth-store'
 
 let connection: HubConnection | null = null
+let startPromise: Promise<HubConnection> | null = null
 
 export function getSignalRConnection(): HubConnection {
 	if (connection && connection.state !== HubConnectionState.Disconnected) {
@@ -15,13 +16,11 @@ export function getSignalRConnection(): HubConnection {
 	connection = new HubConnectionBuilder()
 		.withUrl('/hubs/chat', {
 			accessTokenFactory: () => {
-				// Always get fresh token from store
 				return useAuthStore.getState().token ?? ''
 			},
 		})
 		.withAutomaticReconnect({
 			nextRetryDelayInMilliseconds: (retryContext) => {
-				// Exponential backoff: 0, 1s, 2s, 5s, 10s, 30s max
 				const delays = [0, 1000, 2000, 5000, 10000, 30000]
 				return delays[Math.min(retryContext.previousRetryCount, delays.length - 1)] ?? 30000
 			},
@@ -29,7 +28,6 @@ export function getSignalRConnection(): HubConnection {
 		.configureLogging(LogLevel.Information)
 		.build()
 
-	// Connection lifecycle logging
 	connection.onreconnecting((error) => {
 		console.warn('[SignalR] Reconnecting...', error?.message)
 	})
@@ -41,24 +39,40 @@ export function getSignalRConnection(): HubConnection {
 	connection.onclose((error) => {
 		console.warn('[SignalR] Connection closed:', error?.message)
 		connection = null
+		startPromise = null
 	})
 
 	return connection
 }
 
 export async function startSignalR(): Promise<HubConnection> {
+	// Return existing start promise to prevent double-connect
+	if (startPromise) return startPromise
+
 	const conn = getSignalRConnection()
-	if (conn.state === HubConnectionState.Disconnected) {
-		await conn.start()
-		console.info('[SignalR] Connected:', conn.connectionId)
+	if (conn.state === HubConnectionState.Connected) {
+		return conn
 	}
-	return conn
+
+	startPromise = conn.start().then(() => {
+		console.info('[SignalR] Connected:', conn.connectionId)
+		return conn
+	})
+
+	try {
+		return await startPromise
+	} catch (err) {
+		startPromise = null
+		throw err
+	}
 }
 
 export async function stopSignalR(): Promise<void> {
+	startPromise = null
 	if (connection) {
-		await connection.stop()
+		const conn = connection
 		connection = null
+		await conn.stop()
 	}
 }
 

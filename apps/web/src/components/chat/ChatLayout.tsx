@@ -19,9 +19,12 @@ export function ChatLayout({ roomId }: Props) {
 	const user = useAuthStore((s) => s.user)
 	const companyId = user?.companyId ?? ''
 
-	const { connection, isConnected } = useSignalR()
+	const { connection, isConnected, state: signalRState } = useSignalR()
 	useSignalREvents(connection)
 	useRoomConnection(connection, roomId ?? null)
+
+	// Debug: log SignalR state changes
+	console.log('[ChatLayout] SignalR state:', signalRState, 'connected:', isConnected, 'roomId:', roomId)
 
 	const { typingUsers, sendTyping } = useTyping(connection, roomId ?? null)
 	const { data: activeRoom } = useRoom(companyId, roomId ?? null)
@@ -63,6 +66,14 @@ export function ChatLayout({ roomId }: Props) {
 						{/* Chat header */}
 						<div className="shrink-0 flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
 							<div className="flex items-center gap-3">
+								{/* SignalR status */}
+								<span
+									className={cn(
+										'h-2 w-2 rounded-full shrink-0',
+										isConnected ? 'bg-green-500' : 'bg-red-500',
+									)}
+									title={`SignalR: ${signalRState}`}
+								/>
 								{/* Mobile back button */}
 								<button
 									type="button"
