@@ -25,13 +25,30 @@ public static class DependencyInjection
         {
             string connectionString = configuration.GetConnectionString("CosmosDb")
                 ?? throw new InvalidOperationException("CosmosDb connection string is required");
-            return new CosmosClient(connectionString, new CosmosClientOptions
+
+            CosmosClientOptions clientOptions = new()
             {
                 SerializerOptions = new CosmosSerializationOptions
                 {
                     PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
                 }
-            });
+            };
+
+            // Trust self-signed certificate from Cosmos DB Emulator (localhost:8081)
+            bool isEmulator = connectionString.Contains("localhost", StringComparison.OrdinalIgnoreCase)
+                           || connectionString.Contains("127.0.0.1", StringComparison.OrdinalIgnoreCase);
+            if (isEmulator)
+            {
+                clientOptions.HttpClientFactory = () => new HttpClient(
+                    new HttpClientHandler
+                    {
+                        ServerCertificateCustomValidationCallback =
+                            HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+                    });
+                clientOptions.ConnectionMode = ConnectionMode.Gateway;
+            }
+
+            return new CosmosClient(connectionString, clientOptions);
         });
 
         string databaseName = configuration.GetValue<string>("CosmosDb:DatabaseName") ?? "OneBear";
