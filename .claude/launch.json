@@ -4,8 +4,9 @@
     {
       "name": "onebear",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "-l", "8080", "-s", "."],
-      "port": 8080
+      "runtimeArgs": ["serve", "-s", "."],
+      "port": 8080,
+      "autoPort": true
     }
   ]
 }

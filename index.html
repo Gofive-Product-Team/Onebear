@@ -1085,6 +1085,299 @@ body {
 }
 .ci-done-check svg { width: 10px; height: 10px; }
 
+/* ═══════════════════════════════════════
+   SETTINGS VIEW
+   ═══════════════════════════════════════ */
+.settings-view {
+  display: none; flex: 1; height: 100vh; overflow: hidden;
+}
+body.view-settings .chat-panel,
+body.view-settings .chat-main,
+body.view-settings .right-panel { display: none; }
+body.view-settings .settings-view { display: flex; }
+
+/* Settings Sidebar */
+.st-sidebar {
+  width: 260px; background: var(--bg-1); border-right: 1px solid var(--border-subtle);
+  display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto;
+}
+.st-sidebar-hdr {
+  padding: 20px 20px 8px; font-size: 18px; font-weight: 800; color: var(--text-1);
+  letter-spacing: -0.02em;
+}
+.st-sidebar-hdr span { color: var(--primary); }
+.st-menu { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; }
+.st-menu-item {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+  border-radius: 14px; cursor: pointer; color: var(--text-2);
+  font-size: 13px; font-weight: 500; transition: all 0.18s ease;
+}
+.st-menu-item:hover { background: var(--bg-3); color: var(--text-1); transform: translateX(2px); }
+.st-menu-item.on { background: var(--primary-alpha); color: var(--primary); font-weight: 700; }
+.st-menu-item.on .st-menu-ico { color: var(--primary); }
+.st-menu-ico { width: 18px; height: 18px; flex-shrink: 0; }
+.st-menu-ico svg { width: 18px; height: 18px; }
+
+/* Settings Content */
+.st-content {
+  flex: 1; overflow-y: auto; background: var(--bg-0); padding: 0;
+}
+.st-content-inner { max-width: 780px; margin: 0 auto; padding: 28px 36px 60px; }
+.st-page-title {
+  font-size: 20px; font-weight: 800; color: var(--text-1); margin-bottom: 4px;
+  letter-spacing: -0.02em;
+}
+.st-page-desc { font-size: 12.5px; color: var(--text-3); margin-bottom: 24px; }
+
+/* Setting Card */
+.st-card {
+  background: var(--bg-1); border: 1px solid var(--border-subtle);
+  border-radius: 18px; padding: 20px 22px; margin-bottom: 16px;
+  transition: box-shadow 0.2s ease;
+}
+.st-card:hover { box-shadow: var(--shadow-sm); }
+.st-card-title {
+  font-size: 13px; font-weight: 700; color: var(--text-1); margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.st-card-title svg { width: 16px; height: 16px; color: var(--primary); }
+
+/* Form Fields */
+.st-field { margin-bottom: 14px; }
+.st-field:last-child { margin-bottom: 0; }
+.st-label {
+  font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase;
+  letter-spacing: 0.06em; margin-bottom: 6px;
+}
+.st-input {
+  width: 100%; padding: 10px 14px; background: var(--bg-2); border: 1px solid var(--border-subtle);
+  border-radius: 12px; color: var(--text-1); font-size: 13px;
+  font-family: 'Gofive','Sarabun',sans-serif; outline: none; transition: all 0.18s ease;
+  box-sizing: border-box;
+}
+.st-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-alpha); }
+.st-textarea { min-height: 80px; resize: vertical; line-height: 1.5; }
+.st-row { display: flex; gap: 14px; }
+.st-row .st-field { flex: 1; }
+
+/* Toggle Switch */
+.st-toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0; border-bottom: 1px solid var(--border-subtle);
+}
+.st-toggle-row:last-child { border-bottom: none; }
+.st-toggle-info { display: flex; flex-direction: column; gap: 2px; }
+.st-toggle-label { font-size: 13px; font-weight: 600; color: var(--text-1); }
+.st-toggle-desc { font-size: 11px; color: var(--text-3); }
+.st-switch {
+  width: 40px; height: 22px; background: var(--bg-3); border-radius: 99px;
+  position: relative; cursor: pointer; transition: background 0.2s ease;
+  flex-shrink: 0; border: 1px solid var(--border-subtle);
+}
+.st-switch.on { background: var(--primary); border-color: var(--primary); }
+.st-switch::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 16px; height: 16px; background: #fff; border-radius: 50%;
+  transition: transform 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.st-switch.on::after { transform: translateX(18px); }
+
+/* Marketplace Cards */
+.st-mp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.st-mp-card {
+  display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+  background: var(--bg-2); border: 1px solid var(--border-subtle);
+  border-radius: 14px; cursor: pointer; transition: all 0.18s ease;
+}
+.st-mp-card:hover { border-color: var(--primary); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+.st-mp-card.connected { border-color: rgba(5,150,105,0.4); }
+.st-mp-ico {
+  width: 36px; height: 36px; border-radius: 10px; display: flex;
+  align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+}
+.st-mp-info { flex: 1; }
+.st-mp-name { font-size: 13px; font-weight: 600; color: var(--text-1); }
+.st-mp-status { font-size: 10.5px; color: var(--text-3); }
+.st-mp-card.connected .st-mp-status { color: #059669; }
+.st-badge-on {
+  font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 99px;
+  background: rgba(5,150,105,0.15); color: #059669;
+}
+.st-badge-off {
+  font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 99px;
+  background: var(--bg-3); color: var(--text-3);
+}
+
+/* Tags */
+.st-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.st-tag {
+  display: flex; align-items: center; gap: 6px; padding: 6px 14px;
+  border-radius: 99px; font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: all 0.15s ease;
+}
+.st-tag:hover { transform: scale(1.04); box-shadow: var(--shadow-xs); }
+.st-tag-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.st-tag-add {
+  display: flex; align-items: center; gap: 4px; padding: 6px 14px;
+  border-radius: 99px; font-size: 12px; font-weight: 600; cursor: pointer;
+  border: 1.5px dashed var(--border-subtle); color: var(--text-3);
+  transition: all 0.18s ease; background: transparent;
+}
+.st-tag-add:hover { border-color: var(--primary); color: var(--primary); }
+.st-tag-add svg { width: 14px; height: 14px; }
+
+/* User Table */
+.st-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.st-table th {
+  text-align: left; font-size: 10.5px; font-weight: 700; color: var(--text-3);
+  text-transform: uppercase; letter-spacing: 0.06em; padding: 8px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.st-table td {
+  padding: 12px; font-size: 12.5px; color: var(--text-2);
+  border-bottom: 1px solid var(--border-subtle); vertical-align: middle;
+}
+.st-table tr:last-child td { border-bottom: none; }
+.st-table tr:hover td { background: var(--bg-2); }
+.st-user-cell { display: flex; align-items: center; gap: 10px; }
+.st-user-av {
+  width: 30px; height: 30px; border-radius: 10px; display: flex;
+  align-items: center; justify-content: center; font-size: 11px; font-weight: 700;
+  color: #fff; flex-shrink: 0;
+}
+.st-role-badge {
+  font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 99px;
+}
+
+/* Plan Card */
+.st-plan-card {
+  background: linear-gradient(135deg, var(--primary) 0%, #06b6a0 100%);
+  border-radius: 20px; padding: 24px 28px; color: #fff; position: relative; overflow: hidden;
+}
+.st-plan-card::before {
+  content: ''; position: absolute; top: -40px; right: -40px;
+  width: 120px; height: 120px; border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+}
+.st-plan-name { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+.st-plan-price { font-size: 13px; opacity: 0.85; margin-bottom: 16px; }
+.st-usage-item { margin-bottom: 10px; }
+.st-usage-label {
+  display: flex; justify-content: space-between; font-size: 11.5px;
+  margin-bottom: 4px; opacity: 0.9;
+}
+.st-usage-bar {
+  height: 6px; background: rgba(255,255,255,0.2); border-radius: 99px; overflow: hidden;
+}
+.st-usage-fill { height: 100%; background: #fff; border-radius: 99px; transition: width 0.5s ease; }
+
+/* Buttons */
+.st-btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px;
+  border-radius: 12px; font-size: 12.5px; font-weight: 600; cursor: pointer;
+  transition: all 0.18s ease; border: none;
+  font-family: 'Gofive','Sarabun',sans-serif;
+}
+.st-btn-primary {
+  background: var(--primary); color: #fff;
+}
+.st-btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: var(--shadow-primary); }
+.st-btn-ghost {
+  background: var(--bg-2); color: var(--text-2); border: 1px solid var(--border-subtle);
+}
+.st-btn-ghost:hover { border-color: var(--primary); color: var(--primary); }
+.st-btn svg { width: 14px; height: 14px; }
+.st-btn-white {
+  background: rgba(255,255,255,0.2); color: #fff; backdrop-filter: blur(8px);
+}
+.st-btn-white:hover { background: rgba(255,255,255,0.3); }
+
+/* Sub-tabs for customer management */
+.st-subtabs { display: flex; gap: 4px; margin-bottom: 18px; background: var(--bg-1); border-radius: 14px; padding: 4px; border: 1px solid var(--border-subtle); }
+.st-subtab {
+  padding: 8px 16px; border-radius: 10px; font-size: 12px; font-weight: 500;
+  color: var(--text-3); cursor: pointer; transition: all 0.18s ease; white-space: nowrap;
+}
+.st-subtab.on { background: var(--primary-alpha); color: var(--primary); font-weight: 700; }
+.st-subtab:hover:not(.on) { color: var(--text-1); }
+
+/* File attachment cards */
+.st-file-card {
+  display: flex; align-items: center; gap: 14px; padding: 14px 18px;
+  background: var(--bg-2); border: 1px solid var(--border-subtle);
+  border-radius: 14px; margin-bottom: 8px; transition: all 0.18s ease;
+}
+.st-file-card:hover { border-color: var(--primary); transform: translateX(2px); }
+.st-file-ico {
+  width: 38px; height: 38px; border-radius: 12px; background: var(--primary-alpha);
+  display: flex; align-items: center; justify-content: center; color: var(--primary); flex-shrink: 0;
+}
+.st-file-ico svg { width: 18px; height: 18px; }
+.st-file-info { flex: 1; }
+.st-file-name { font-size: 13px; font-weight: 600; color: var(--text-1); }
+.st-file-desc { font-size: 11px; color: var(--text-3); }
+.st-file-req {
+  font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 99px;
+  background: rgba(251,191,36,0.15); color: #F59E0B;
+}
+
+/* Team cards */
+.st-team-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.st-team-card {
+  padding: 16px; background: var(--bg-2); border: 1px solid var(--border-subtle);
+  border-radius: 16px; transition: all 0.18s ease;
+}
+.st-team-card:hover { border-color: var(--primary); transform: translateY(-1px); }
+.st-team-name { font-size: 14px; font-weight: 700; color: var(--text-1); margin-bottom: 4px; }
+.st-team-count { font-size: 11px; color: var(--text-3); margin-bottom: 10px; }
+.st-team-avatars { display: flex; gap: -6px; }
+.st-team-av {
+  width: 26px; height: 26px; border-radius: 50%; display: flex;
+  align-items: center; justify-content: center; font-size: 10px;
+  font-weight: 700; color: #fff; border: 2px solid var(--bg-2); margin-left: -6px;
+}
+.st-team-av:first-child { margin-left: 0; }
+
+/* Logo upload */
+.st-logo-upload {
+  width: 80px; height: 80px; border-radius: 18px; border: 2px dashed var(--border-subtle);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  color: var(--text-3); transition: all 0.18s ease; flex-shrink: 0;
+}
+.st-logo-upload:hover { border-color: var(--primary); color: var(--primary); }
+.st-logo-upload svg { width: 24px; height: 24px; }
+
+/* Editable list items */
+.st-list-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; border-radius: 12px; margin-bottom: 4px;
+  transition: all 0.15s ease;
+}
+.st-list-item:hover { background: var(--bg-2); }
+.st-list-item-name { font-size: 12.5px; color: var(--text-1); font-weight: 500; }
+.st-list-item-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s ease; }
+.st-list-item:hover .st-list-item-actions { opacity: 1; }
+.st-list-action {
+  width: 26px; height: 26px; border-radius: 8px; border: none; background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--text-3); transition: all 0.15s ease;
+}
+.st-list-action:hover { background: var(--primary-alpha); color: var(--primary); }
+.st-list-action svg { width: 14px; height: 14px; }
+
+/* Section within settings content */
+.st-section { margin-bottom: 20px; }
+.st-section-title {
+  font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase;
+  letter-spacing: 0.08em; margin-bottom: 10px;
+}
+
+/* Scrollbar for settings sidebar */
+.st-sidebar::-webkit-scrollbar { width: 4px; }
+.st-sidebar::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 99px; }
+.st-content::-webkit-scrollbar { width: 6px; }
+.st-content::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 99px; }
+
 </style>
 </head>
 <body>
@@ -1099,13 +1392,13 @@ body {
 <div class="sidebar">
   <div class="sb-logo">O</div>
   <div class="sb-nav">
-    <div class="sbi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
-    <div class="sbi on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><div class="pip"></div></div>
-    <div class="sbi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
-    <div class="sbi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
+    <div class="sbi" data-nav="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+    <div class="sbi on" data-nav="inbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><div class="pip"></div></div>
+    <div class="sbi" data-nav="contacts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+    <div class="sbi" data-nav="apps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
   </div>
   <div class="sb-gap"></div>
-  <div class="sbi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+  <div class="sbi" data-nav="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
   <div style="height:10px"></div>
   <div class="sb-user">K</div>
 </div>
@@ -1363,11 +1656,612 @@ body {
   </div>
 </div>
 
+<!-- SETTINGS VIEW -->
+<div class="settings-view">
+  <!-- Settings Sidebar -->
+  <div class="st-sidebar">
+    <div class="st-sidebar-hdr"><span>&#9881;</span> การตั้งค่า</div>
+    <div class="st-menu">
+      <div class="st-menu-item on" data-section="company">
+        <div class="st-menu-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+        ข้อมูลบริษัท
+      </div>
+      <div class="st-menu-item" data-section="tags">
+        <div class="st-menu-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div>
+        แท็กความสนใจ
+      </div>
+      <div class="st-menu-item" data-section="chatbot">
+        <div class="st-menu-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="9" cy="16" r="1"/><circle cx="15" cy="16" r="1"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
+        แช็ตบอท
+      </div>
+      <div class="st-menu-item" data-section="customers">
+        <div class="st-menu-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        การจัดการลูกค้า
+      </div>
+      <div class="st-menu-item" data-section="attachments">
+        <div class="st-menu-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg></div>
+        ไฟล์แนบลูกค้า
+      </div>
+      <div class="st-menu-item" data-section="roles">
+        <div class="st-menu-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        สิทธิ์และบทบาท
+      </div>
+      <div class="st-menu-item" data-section="plan">
+        <div class="st-menu-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 3v4M8 3v4M2 11h20"/></svg></div>
+        แผนการใช้งาน
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Content -->
+  <div class="st-content">
+    <!-- Section: Company Info -->
+    <div class="st-panel" data-panel="company">
+      <div class="st-content-inner">
+        <div class="st-page-title">ข้อมูลบริษัท</div>
+        <div class="st-page-desc">จัดการข้อมูลบริษัทและการเชื่อมต่อกับ Marketplace</div>
+
+        <div class="st-card">
+          <div class="st-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            ข้อมูลทั่วไป
+          </div>
+          <div style="display:flex;gap:20px;align-items:flex-start">
+            <div class="st-logo-upload">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </div>
+            <div style="flex:1">
+              <div class="st-row">
+                <div class="st-field">
+                  <div class="st-label">ชื่อบริษัท</div>
+                  <input class="st-input" type="text" value="Onebear Co., Ltd." />
+                </div>
+                <div class="st-field">
+                  <div class="st-label">เลขประจำตัวผู้เสียภาษี</div>
+                  <input class="st-input" type="text" value="0105563012345" />
+                </div>
+              </div>
+              <div class="st-row" style="margin-top:14px">
+                <div class="st-field">
+                  <div class="st-label">โทรศัพท์</div>
+                  <input class="st-input" type="text" value="02-123-4567" />
+                </div>
+                <div class="st-field">
+                  <div class="st-label">อีเมล</div>
+                  <input class="st-input" type="text" value="contact@onebear.co.th" />
+                </div>
+              </div>
+              <div class="st-field" style="margin-top:14px">
+                <div class="st-label">ที่อยู่</div>
+                <textarea class="st-input st-textarea">123/45 อาคาร One Tower ชั้น 15 ถ.สุขุมวิท แขวงคลองตันเหนือ เขตวัฒนา กรุงเทพฯ 10110</textarea>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:16px;display:flex;justify-content:flex-end">
+            <button class="st-btn st-btn-primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+              บันทึก
+            </button>
+          </div>
+        </div>
+
+        <div class="st-card">
+          <div class="st-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            การเชื่อมต่อ Marketplace
+          </div>
+          <div class="st-mp-grid">
+            <div class="st-mp-card connected">
+              <div class="st-mp-ico" style="background:#06C755;color:#fff;border-radius:10px">L</div>
+              <div class="st-mp-info">
+                <div class="st-mp-name">LINE Official</div>
+                <div class="st-mp-status">เชื่อมต่อแล้ว</div>
+              </div>
+              <span class="st-badge-on">ON</span>
+            </div>
+            <div class="st-mp-card connected">
+              <div class="st-mp-ico" style="background:#1877F2;color:#fff;border-radius:10px">f</div>
+              <div class="st-mp-info">
+                <div class="st-mp-name">Facebook Page</div>
+                <div class="st-mp-status">เชื่อมต่อแล้ว</div>
+              </div>
+              <span class="st-badge-on">ON</span>
+            </div>
+            <div class="st-mp-card">
+              <div class="st-mp-ico" style="background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);color:#fff;border-radius:10px">I</div>
+              <div class="st-mp-info">
+                <div class="st-mp-name">Instagram</div>
+                <div class="st-mp-status">ยังไม่เชื่อมต่อ</div>
+              </div>
+              <span class="st-badge-off">OFF</span>
+            </div>
+            <div class="st-mp-card">
+              <div class="st-mp-ico" style="background:#EE4D2D;color:#fff;border-radius:10px">S</div>
+              <div class="st-mp-info">
+                <div class="st-mp-name">Shopee</div>
+                <div class="st-mp-status">ยังไม่เชื่อมต่อ</div>
+              </div>
+              <span class="st-badge-off">OFF</span>
+            </div>
+            <div class="st-mp-card">
+              <div class="st-mp-ico" style="background:#0F146D;color:#fff;border-radius:10px">L</div>
+              <div class="st-mp-info">
+                <div class="st-mp-name">Lazada</div>
+                <div class="st-mp-status">ยังไม่เชื่อมต่อ</div>
+              </div>
+              <span class="st-badge-off">OFF</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section: Interest Tags -->
+    <div class="st-panel" data-panel="tags" style="display:none">
+      <div class="st-content-inner">
+        <div class="st-page-title">แท็กความสนใจ</div>
+        <div class="st-page-desc">จัดการแท็กสำหรับระบุความสนใจของลูกค้า</div>
+
+        <div class="st-card">
+          <div class="st-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+            แท็กความสนใจทั้งหมด
+          </div>
+          <div class="st-tags">
+            <div class="st-tag" style="background:rgba(3,157,145,0.15);color:#039D91"><div class="st-tag-dot" style="background:#039D91"></div>สินค้าใหม่</div>
+            <div class="st-tag" style="background:rgba(99,102,241,0.15);color:#6366F1"><div class="st-tag-dot" style="background:#6366F1"></div>โปรโมชั่น</div>
+            <div class="st-tag" style="background:rgba(245,158,11,0.15);color:#F59E0B"><div class="st-tag-dot" style="background:#F59E0B"></div>VIP</div>
+            <div class="st-tag" style="background:rgba(239,68,68,0.15);color:#EF4444"><div class="st-tag-dot" style="background:#EF4444"></div>ร้องเรียน</div>
+            <div class="st-tag" style="background:rgba(16,185,129,0.15);color:#10B981"><div class="st-tag-dot" style="background:#10B981"></div>สนใจซื้อ</div>
+            <div class="st-tag" style="background:rgba(236,72,153,0.15);color:#EC4899"><div class="st-tag-dot" style="background:#EC4899"></div>Follow Up</div>
+            <div class="st-tag" style="background:rgba(139,92,246,0.15);color:#8B5CF6"><div class="st-tag-dot" style="background:#8B5CF6"></div>B2B</div>
+            <button class="st-tag-add">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              เพิ่มแท็ก
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section: Chatbot -->
+    <div class="st-panel" data-panel="chatbot" style="display:none">
+      <div class="st-content-inner">
+        <div class="st-page-title">แช็ตบอท</div>
+        <div class="st-page-desc">ตั้งค่าการตอบกลับอัตโนมัติและ AI Agent</div>
+
+        <div class="st-card">
+          <div class="st-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="9" cy="16" r="1"/><circle cx="15" cy="16" r="1"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            ตั้งค่าบอท
+          </div>
+          <div class="st-field">
+            <div class="st-label">ชื่อบอท</div>
+            <input class="st-input" type="text" value="Onebear Assistant" />
+          </div>
+          <div class="st-field" style="margin-top:14px">
+            <div class="st-label">ข้อความทักทาย</div>
+            <textarea class="st-input st-textarea">สวัสดีค่ะ! ยินดีต้อนรับสู่ Onebear 🐻 มีอะไรให้ช่วยคะ?</textarea>
+          </div>
+        </div>
+
+        <div class="st-card">
+          <div class="st-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            การทำงานอัตโนมัติ
+          </div>
+          <div class="st-toggle-row">
+            <div class="st-toggle-info">
+              <div class="st-toggle-label">ตอบกลับอัตโนมัติ</div>
+              <div class="st-toggle-desc">บอทจะตอบกลับลูกค้าเมื่อไม่มีแอดมินออนไลน์</div>
+            </div>
+            <div class="st-switch on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="st-toggle-row">
+            <div class="st-toggle-info">
+              <div class="st-toggle-label">ข้อความนอกเวลาทำการ</div>
+              <div class="st-toggle-desc">ส่งข้อความแจ้งเตือนเมื่ออยู่นอกเวลาทำการ</div>
+            </div>
+            <div class="st-switch" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="st-toggle-row">
+            <div class="st-toggle-info">
+              <div class="st-toggle-label">AI แนะนำคำตอบ</div>
+              <div class="st-toggle-desc">ใช้ AI ช่วยแนะนำคำตอบให้แอดมิน</div>
+            </div>
+            <div class="st-switch on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="st-toggle-row">
+            <div class="st-toggle-info">
+              <div class="st-toggle-label">ส่งต่อไปยังแอดมินอัตโนมัติ</div>
+              <div class="st-toggle-desc">เมื่อบอทตอบไม่ได้ จะส่งต่อไปยังแอดมินทันที</div>
+            </div>
+            <div class="st-switch on" onclick="this.classList.toggle('on')"></div>
+          </div>
+        </div>
+
+        <div class="st-card">
+          <div class="st-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
+            คีย์เวิร์ดตอบกลับ
+          </div>
+          <div class="st-tags">
+            <div class="st-tag" style="background:var(--bg-2);color:var(--text-1)">ราคา</div>
+            <div class="st-tag" style="background:var(--bg-2);color:var(--text-1)">โปรโมชั่น</div>
+            <div class="st-tag" style="background:var(--bg-2);color:var(--text-1)">สินค้า</div>
+            <div class="st-tag" style="background:var(--bg-2);color:var(--text-1)">จัดส่ง</div>
+            <div class="st-tag" style="background:var(--bg-2);color:var(--text-1)">คืนสินค้า</div>
+            <button class="st-tag-add">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              เพิ่มคีย์เวิร์ด
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section: Customer Management -->
+    <div class="st-panel" data-panel="customers" style="display:none">
+      <div class="st-content-inner">
+        <div class="st-page-title">การจัดการลูกค้า</div>
+        <div class="st-page-desc">ตั้งค่าแท็กแหล่งที่มา กลุ่มลูกค้า คลาส รายได้ และฟิลด์ข้อมูลโพรไฟล์</div>
+
+        <div class="st-subtabs">
+          <div class="st-subtab on" data-ctab="source">แหล่งที่มา</div>
+          <div class="st-subtab" data-ctab="groups">กลุ่มลูกค้า</div>
+          <div class="st-subtab" data-ctab="classes">คลาส</div>
+          <div class="st-subtab" data-ctab="revenue">รายได้</div>
+          <div class="st-subtab" data-ctab="fields">ฟิลด์โพรไฟล์</div>
+        </div>
+
+        <!-- Sub: Source Tags -->
+        <div class="st-cpanel" data-cpanel="source">
+          <div class="st-card">
+            <div class="st-card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              แท็กแหล่งที่มา
+            </div>
+            <div class="st-list-item"><span class="st-list-item-name">Facebook Ads</span><div class="st-list-item-actions"><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div></div>
+            <div class="st-list-item"><span class="st-list-item-name">Google Ads</span><div class="st-list-item-actions"><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div></div>
+            <div class="st-list-item"><span class="st-list-item-name">LINE Add Friend</span><div class="st-list-item-actions"><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div></div>
+            <div class="st-list-item"><span class="st-list-item-name">Walk-in</span><div class="st-list-item-actions"><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div></div>
+            <div class="st-list-item"><span class="st-list-item-name">Referral</span><div class="st-list-item-actions"><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div></div>
+            <div style="margin-top:12px">
+              <button class="st-btn st-btn-ghost">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                เพิ่มแหล่งที่มา
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sub: Customer Groups -->
+        <div class="st-cpanel" data-cpanel="groups" style="display:none">
+          <div class="st-card">
+            <div class="st-card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              กลุ่มลูกค้า
+            </div>
+            <div class="st-list-item"><span class="st-list-item-name">ลูกค้าทั่วไป</span><div class="st-list-item-actions"><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></div>
+            <div class="st-list-item"><span class="st-list-item-name">ลูกค้า VIP</span><div class="st-list-item-actions"><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></div>
+            <div class="st-list-item"><span class="st-list-item-name">ตัวแทนจำหน่าย</span><div class="st-list-item-actions"><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></div>
+            <div class="st-list-item"><span class="st-list-item-name">พันธมิตรธุรกิจ</span><div class="st-list-item-actions"><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></div>
+            <div style="margin-top:12px"><button class="st-btn st-btn-ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> เพิ่มกลุ่ม</button></div>
+          </div>
+        </div>
+
+        <!-- Sub: Classes -->
+        <div class="st-cpanel" data-cpanel="classes" style="display:none">
+          <div class="st-card">
+            <div class="st-card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              คลาสลูกค้า
+            </div>
+            <div class="st-list-item"><span class="st-list-item-name">Bronze</span><div class="st-list-item-actions"><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></div>
+            <div class="st-list-item"><span class="st-list-item-name">Silver</span><div class="st-list-item-actions"><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></div>
+            <div class="st-list-item"><span class="st-list-item-name">Gold</span><div class="st-list-item-actions"><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></div>
+            <div class="st-list-item"><span class="st-list-item-name">Platinum</span><div class="st-list-item-actions"><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></div>
+            <div style="margin-top:12px"><button class="st-btn st-btn-ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> เพิ่มคลาส</button></div>
+          </div>
+        </div>
+
+        <!-- Sub: Revenue -->
+        <div class="st-cpanel" data-cpanel="revenue" style="display:none">
+          <div class="st-card">
+            <div class="st-card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              ช่วงรายได้
+            </div>
+            <div class="st-list-item"><span class="st-list-item-name">น้อยกว่า 10,000 บาท</span><div class="st-list-item-actions"><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></div>
+            <div class="st-list-item"><span class="st-list-item-name">10,000 - 50,000 บาท</span><div class="st-list-item-actions"><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></div>
+            <div class="st-list-item"><span class="st-list-item-name">50,000 - 100,000 บาท</span><div class="st-list-item-actions"><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></div>
+            <div class="st-list-item"><span class="st-list-item-name">มากกว่า 100,000 บาท</span><div class="st-list-item-actions"><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></div>
+            <div style="margin-top:12px"><button class="st-btn st-btn-ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> เพิ่มช่วงรายได้</button></div>
+          </div>
+        </div>
+
+        <!-- Sub: Profile Fields -->
+        <div class="st-cpanel" data-cpanel="fields" style="display:none">
+          <div class="st-card">
+            <div class="st-card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+              ฟิลด์ข้อมูลในโพรไฟล์ลูกค้า
+            </div>
+            <div class="st-list-item"><span class="st-list-item-name">ชื่อ-นามสกุล (ข้อความ)</span><div class="st-list-item-actions"><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></div>
+            <div class="st-list-item"><span class="st-list-item-name">เบอร์โทร (ตัวเลข)</span><div class="st-list-item-actions"><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></div>
+            <div class="st-list-item"><span class="st-list-item-name">อีเมล (อีเมล)</span><div class="st-list-item-actions"><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></div>
+            <div class="st-list-item"><span class="st-list-item-name">วันเกิด (วันที่)</span><div class="st-list-item-actions"><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></div>
+            <div class="st-list-item"><span class="st-list-item-name">ที่อยู่จัดส่ง (ข้อความยาว)</span><div class="st-list-item-actions"><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></div>
+            <div class="st-list-item"><span class="st-list-item-name">บริษัท (ข้อความ)</span><div class="st-list-item-actions"><button class="st-list-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></div>
+            <div style="margin-top:12px"><button class="st-btn st-btn-ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> เพิ่มฟิลด์</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section: Customer Attachments -->
+    <div class="st-panel" data-panel="attachments" style="display:none">
+      <div class="st-content-inner">
+        <div class="st-page-title">ไฟล์แนบลูกค้า</div>
+        <div class="st-page-desc">กำหนดประเภทไฟล์ที่ต้องการให้แนบในข้อมูลลูกค้า</div>
+
+        <div class="st-card">
+          <div class="st-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            ประเภทไฟล์แนบ
+          </div>
+          <div class="st-file-card">
+            <div class="st-file-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+            <div class="st-file-info">
+              <div class="st-file-name">หนังสือรับรองบริษัท</div>
+              <div class="st-file-desc">PDF, JPG, PNG &middot; ขนาดไม่เกิน 5MB</div>
+            </div>
+            <span class="st-file-req">จำเป็น</span>
+          </div>
+          <div class="st-file-card">
+            <div class="st-file-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+            <div class="st-file-info">
+              <div class="st-file-name">สำเนาบัตรประชาชน</div>
+              <div class="st-file-desc">PDF, JPG, PNG &middot; ขนาดไม่เกิน 5MB</div>
+            </div>
+            <span class="st-file-req">จำเป็น</span>
+          </div>
+          <div class="st-file-card">
+            <div class="st-file-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+            <div class="st-file-info">
+              <div class="st-file-name">ภ.พ.20 (ใบทะเบียนภาษีมูลค่าเพิ่ม)</div>
+              <div class="st-file-desc">PDF, JPG, PNG &middot; ขนาดไม่เกิน 5MB</div>
+            </div>
+            <span class="st-badge-off">ไม่บังคับ</span>
+          </div>
+          <div class="st-file-card">
+            <div class="st-file-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+            <div class="st-file-info">
+              <div class="st-file-name">หนังสือมอบอำนาจ</div>
+              <div class="st-file-desc">PDF &middot; ขนาดไม่เกิน 10MB</div>
+            </div>
+            <span class="st-badge-off">ไม่บังคับ</span>
+          </div>
+          <div style="margin-top:14px">
+            <button class="st-btn st-btn-ghost">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              เพิ่มประเภทไฟล์
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section: Roles & Permissions -->
+    <div class="st-panel" data-panel="roles" style="display:none">
+      <div class="st-content-inner">
+        <div class="st-page-title">สิทธิ์และบทบาท</div>
+        <div class="st-page-desc">จัดการผู้ใช้ กำหนดบทบาท สร้างทีม และนำเข้าข้อมูล</div>
+
+        <div class="st-card">
+          <div class="st-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            ผู้ใช้งาน
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:14px">
+            <button class="st-btn st-btn-primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              เพิ่มผู้ใช้
+            </button>
+            <button class="st-btn st-btn-ghost">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              นำเข้า Excel
+            </button>
+          </div>
+          <table class="st-table">
+            <thead>
+              <tr><th>ผู้ใช้</th><th>อีเมล</th><th>บทบาท</th><th>ทีม</th><th>สถานะ</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div class="st-user-cell"><div class="st-user-av" style="background:linear-gradient(135deg,#8B5CF6,#6366F1)">K</div><span style="font-weight:600;color:var(--text-1)">KwangKamon</span></div></td>
+                <td>kwang@onebear.co.th</td>
+                <td><span class="st-role-badge" style="background:rgba(139,92,246,0.15);color:#8B5CF6">Admin</span></td>
+                <td>Sales</td>
+                <td><span class="st-badge-on">Active</span></td>
+              </tr>
+              <tr>
+                <td><div class="st-user-cell"><div class="st-user-av" style="background:linear-gradient(135deg,#3B82F6,#2563EB)">S</div><span style="font-weight:600;color:var(--text-1)">Somchai</span></div></td>
+                <td>somchai@onebear.co.th</td>
+                <td><span class="st-role-badge" style="background:rgba(59,130,246,0.15);color:#3B82F6">Agent</span></td>
+                <td>Support</td>
+                <td><span class="st-badge-on">Active</span></td>
+              </tr>
+              <tr>
+                <td><div class="st-user-cell"><div class="st-user-av" style="background:linear-gradient(135deg,#10B981,#059669)">P</div><span style="font-weight:600;color:var(--text-1)">Ploy</span></div></td>
+                <td>ploy@onebear.co.th</td>
+                <td><span class="st-role-badge" style="background:rgba(16,185,129,0.15);color:#10B981">Agent</span></td>
+                <td>Sales</td>
+                <td><span class="st-badge-on">Active</span></td>
+              </tr>
+              <tr>
+                <td><div class="st-user-cell"><div class="st-user-av" style="background:linear-gradient(135deg,#F59E0B,#D97706)">N</div><span style="font-weight:600;color:var(--text-1)">Nattapong</span></div></td>
+                <td>nattapong@onebear.co.th</td>
+                <td><span class="st-role-badge" style="background:rgba(245,158,11,0.15);color:#F59E0B">Viewer</span></td>
+                <td>Marketing</td>
+                <td><span class="st-badge-off">Inactive</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="st-card">
+          <div class="st-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            บทบาท
+          </div>
+          <div class="st-list-item"><span class="st-list-item-name"><span class="st-role-badge" style="background:rgba(139,92,246,0.15);color:#8B5CF6;margin-right:8px">Admin</span> เข้าถึงทุกฟีเจอร์ จัดการผู้ใช้ ดูรายงาน</span></div>
+          <div class="st-list-item"><span class="st-list-item-name"><span class="st-role-badge" style="background:rgba(59,130,246,0.15);color:#3B82F6;margin-right:8px">Agent</span> ตอบแชท จัดการลูกค้า ดูรายงานทีม</span></div>
+          <div class="st-list-item"><span class="st-list-item-name"><span class="st-role-badge" style="background:rgba(245,158,11,0.15);color:#F59E0B;margin-right:8px">Viewer</span> ดูข้อมูลอย่างเดียว ไม่สามารถแก้ไข</span></div>
+          <div style="margin-top:12px"><button class="st-btn st-btn-ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> เพิ่มบทบาท</button></div>
+        </div>
+
+        <div class="st-card">
+          <div class="st-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            ทีม
+          </div>
+          <div class="st-team-grid">
+            <div class="st-team-card">
+              <div class="st-team-name">Sales</div>
+              <div class="st-team-count">2 สมาชิก</div>
+              <div class="st-team-avatars">
+                <div class="st-team-av" style="background:linear-gradient(135deg,#8B5CF6,#6366F1)">K</div>
+                <div class="st-team-av" style="background:linear-gradient(135deg,#10B981,#059669)">P</div>
+              </div>
+            </div>
+            <div class="st-team-card">
+              <div class="st-team-name">Support</div>
+              <div class="st-team-count">1 สมาชิก</div>
+              <div class="st-team-avatars">
+                <div class="st-team-av" style="background:linear-gradient(135deg,#3B82F6,#2563EB)">S</div>
+              </div>
+            </div>
+            <div class="st-team-card">
+              <div class="st-team-name">Marketing</div>
+              <div class="st-team-count">1 สมาชิก</div>
+              <div class="st-team-avatars">
+                <div class="st-team-av" style="background:linear-gradient(135deg,#F59E0B,#D97706)">N</div>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:14px"><button class="st-btn st-btn-ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> สร้างทีม</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section: Current Plan -->
+    <div class="st-panel" data-panel="plan" style="display:none">
+      <div class="st-content-inner">
+        <div class="st-page-title">แผนการใช้งาน</div>
+        <div class="st-page-desc">แผนปัจจุบันและการใช้งานของคุณ</div>
+
+        <div class="st-plan-card">
+          <div class="st-plan-name">Professional Plan</div>
+          <div class="st-plan-price">฿2,490 / เดือน &middot; ต่ออายุ 15 พ.ค. 2569</div>
+          <div class="st-usage-item">
+            <div class="st-usage-label"><span>ผู้ใช้งาน</span><span>4 / 10</span></div>
+            <div class="st-usage-bar"><div class="st-usage-fill" style="width:40%"></div></div>
+          </div>
+          <div class="st-usage-item">
+            <div class="st-usage-label"><span>แชทต่อเดือน</span><span>1,247 / 5,000</span></div>
+            <div class="st-usage-bar"><div class="st-usage-fill" style="width:25%"></div></div>
+          </div>
+          <div class="st-usage-item">
+            <div class="st-usage-label"><span>พื้นที่จัดเก็บ</span><span>2.1 GB / 10 GB</span></div>
+            <div class="st-usage-bar"><div class="st-usage-fill" style="width:21%"></div></div>
+          </div>
+          <div style="margin-top:18px">
+            <button class="st-btn st-btn-white">อัปเกรดแผน</button>
+          </div>
+        </div>
+
+        <div class="st-card" style="margin-top:16px">
+          <div class="st-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 3v4M8 3v4M2 11h20"/></svg>
+            สิ่งที่รวมในแผน
+          </div>
+          <div class="st-toggle-row">
+            <div class="st-toggle-info"><div class="st-toggle-label">ผู้ใช้งานสูงสุด 10 คน</div></div>
+            <span class="st-badge-on">รวม</span>
+          </div>
+          <div class="st-toggle-row">
+            <div class="st-toggle-info"><div class="st-toggle-label">แชท 5,000 ครั้ง/เดือน</div></div>
+            <span class="st-badge-on">รวม</span>
+          </div>
+          <div class="st-toggle-row">
+            <div class="st-toggle-info"><div class="st-toggle-label">เชื่อมต่อ 5 ช่องทาง</div></div>
+            <span class="st-badge-on">รวม</span>
+          </div>
+          <div class="st-toggle-row">
+            <div class="st-toggle-info"><div class="st-toggle-label">AI Agent</div></div>
+            <span class="st-badge-on">รวม</span>
+          </div>
+          <div class="st-toggle-row">
+            <div class="st-toggle-info"><div class="st-toggle-label">รายงานขั้นสูง</div></div>
+            <span class="st-badge-on">รวม</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 function toggleTheme() {
   const html = document.documentElement;
   html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
 }
+
+/* ═══════════════════════════════════════
+   SETTINGS NAVIGATION
+   ═══════════════════════════════════════ */
+(function() {
+  // Sidebar navigation: switch between inbox and settings views
+  document.querySelectorAll('.sbi[data-nav]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var nav = this.getAttribute('data-nav');
+      // Update active sidebar icon
+      document.querySelectorAll('.sbi').forEach(function(s) { s.classList.remove('on'); });
+      this.classList.add('on');
+      // Toggle views
+      if (nav === 'settings') {
+        document.body.classList.add('view-settings');
+      } else {
+        document.body.classList.remove('view-settings');
+      }
+    });
+  });
+
+  // Settings sidebar menu: switch sections
+  document.querySelectorAll('.st-menu-item').forEach(function(item) {
+    item.addEventListener('click', function() {
+      var section = this.getAttribute('data-section');
+      document.querySelectorAll('.st-menu-item').forEach(function(m) { m.classList.remove('on'); });
+      this.classList.add('on');
+      document.querySelectorAll('.st-panel').forEach(function(p) { p.style.display = 'none'; });
+      var target = document.querySelector('.st-panel[data-panel="' + section + '"]');
+      if (target) target.style.display = 'block';
+    });
+  });
+
+  // Customer management sub-tabs
+  document.querySelectorAll('.st-subtab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      var ctab = this.getAttribute('data-ctab');
+      document.querySelectorAll('.st-subtab').forEach(function(t) { t.classList.remove('on'); });
+      this.classList.add('on');
+      document.querySelectorAll('.st-cpanel').forEach(function(p) { p.style.display = 'none'; });
+      var target = document.querySelector('.st-cpanel[data-cpanel="' + ctab + '"]');
+      if (target) target.style.display = 'block';
+    });
+  });
+})();
 
 /* ═══════════════════════════════════════
    RESPONSE TIME ENGINE
