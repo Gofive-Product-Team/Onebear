@@ -13,6 +13,7 @@ using OneBear.API.Services;
 using OneBear.Application.Common.Interfaces;
 using OneBear.Domain.Enums;
 using OneBear.Domain.Interfaces;
+using OneBear.Application;
 using OneBear.Infrastructure;
 using OneBear.Infrastructure.Persistence.Cosmos;
 using OneBear.Infrastructure.Persistence.Cosmos.Seeding;
@@ -187,7 +188,10 @@ builder.Services.AddSingleton<IAttendanceService, AttendanceService>();
 builder.Services.AddSingleton<ITypingTracker, TypingTracker>();
 builder.Services.AddScoped<IRoomAuthorizationService, StubRoomAuthorizationService>();
 
-// Infrastructure (Cosmos DB, Redis, Repositories)
+// Application layer (services, validators, orchestrator)
+builder.Services.AddApplication();
+
+// Infrastructure (Cosmos DB, Redis, Repositories, MassTransit, Platform Adapters)
 builder.Services.AddInfrastructure(builder.Configuration);
 
 // Health checks

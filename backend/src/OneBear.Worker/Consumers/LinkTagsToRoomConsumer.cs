@@ -1,14 +1,13 @@
 namespace OneBear.Worker.Consumers;
 
 using MassTransit;
-
-public record LinkTagsToRoom(string RoomId, string CompanyId, List<string> TagIds);
+using OneBear.Application.Events;
 
 public class LinkTagsToRoomConsumer : IConsumer<LinkTagsToRoom>
 {
     public Task Consume(ConsumeContext<LinkTagsToRoom> context)
     {
-        // TODO: implement tag linking logic
+        // TODO: implement tag linking logic (Step 9 — Automation)
         return Task.CompletedTask;
     }
 }

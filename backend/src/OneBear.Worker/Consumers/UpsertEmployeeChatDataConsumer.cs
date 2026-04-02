@@ -1,14 +1,13 @@
 namespace OneBear.Worker.Consumers;
 
 using MassTransit;
-
-public record UpsertEmployeeChatData(string CompanyId, string EmployeeId, string DisplayName, string? AvatarUrl);
+using OneBear.Application.Events;
 
 public class UpsertEmployeeChatDataConsumer : IConsumer<UpsertEmployeeChatData>
 {
     public Task Consume(ConsumeContext<UpsertEmployeeChatData> context)
     {
-        // TODO: implement employee chat data upsert logic
+        // TODO: implement employee chat data upsert logic (Step 9 — Automation)
         return Task.CompletedTask;
     }
 }

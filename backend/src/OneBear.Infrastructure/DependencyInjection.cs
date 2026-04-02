@@ -3,12 +3,15 @@ namespace OneBear.Infrastructure;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using OneBear.Domain.Enums;
 using OneBear.Domain.Interfaces;
 using OneBear.Domain.Interfaces.Repositories;
 using OneBear.Infrastructure.Caching;
+using OneBear.Infrastructure.Messaging;
 using OneBear.Infrastructure.Persistence.Cosmos;
 using OneBear.Infrastructure.Persistence.Cosmos.Repositories;
 using OneBear.Infrastructure.Persistence.Cosmos.Seeding;
+using OneBear.Infrastructure.PlatformAdapters;
 using StackExchange.Redis;
 
 public static class DependencyInjection
@@ -53,6 +56,31 @@ public static class DependencyInjection
         services.AddScoped<IUserVerificationRepository, UserVerificationRepository>();
 
         services.AddTransient<CosmosSeeder>();
+
+        // Event publisher (MassTransit)
+        services.AddScoped<IEventPublisher, MassTransitEventPublisher>();
+
+        // MassTransit + RabbitMQ
+        string rabbitMqConnectionString = configuration.GetConnectionString("RabbitMq")
+            ?? "amqp://guest:guest@localhost:5672";
+        services.AddMassTransitMessaging(rabbitMqConnectionString);
+
+        // Platform adapters (keyed DI)
+        services.AddKeyedScoped<IPlatformAdapter, LineAdapter>(SocialPlatform.Line);
+        services.AddKeyedScoped<IPlatformAdapter, FacebookAdapter>(SocialPlatform.Facebook);
+        services.AddKeyedScoped<IPlatformAdapter, InstagramAdapter>(SocialPlatform.Instagram);
+        services.AddKeyedScoped<IPlatformAdapter, WhatsAppAdapter>(SocialPlatform.WhatsApp);
+        services.AddKeyedScoped<IPlatformAdapter, EmailAdapter>(SocialPlatform.Email);
+        services.AddKeyedScoped<IPlatformAdapter, TikTokAdapter>(SocialPlatform.TikTok);
+        services.AddKeyedScoped<IPlatformAdapter, LazadaAdapter>(SocialPlatform.Lazada);
+        services.AddKeyedScoped<IPlatformAdapter, ShopeeAdapter>(SocialPlatform.Shopee);
+
+        // HttpClient for LINE API
+        services.AddHttpClient("line-api", client =>
+        {
+            client.DefaultRequestHeaders.Accept.Add(
+                new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+        });
 
         return services;
     }
