@@ -13,32 +13,11 @@ public class CompanyFeatureSettings : CosmosEntity
     [JsonPropertyName("_schemaVersion")]
     public int SchemaVersion { get; set; } = 1;
 
-    [JsonPropertyName("isChatbotEnabled")]
-    public bool IsChatbotEnabled { get; set; }
+    [JsonPropertyName("features")]
+    public Dictionary<string, bool> Features { get; set; } = new();
 
-    [JsonPropertyName("isAutoAssignEnabled")]
-    public bool IsAutoAssignEnabled { get; set; }
-
-    [JsonPropertyName("isFollowupEnabled")]
-    public bool IsFollowupEnabled { get; set; }
-
-    [JsonPropertyName("isSatisfactionSurveyEnabled")]
-    public bool IsSatisfactionSurveyEnabled { get; set; }
-
-    [JsonPropertyName("maxAgents")]
-    public int MaxAgents { get; set; }
-
-    [JsonPropertyName("maxIntegrations")]
-    public int MaxIntegrations { get; set; }
-
-    [JsonPropertyName("enabledPlatforms")]
-    public List<string> EnabledPlatforms { get; set; } = new();
-
-    [JsonPropertyName("createdTimestamp")]
-    public long CreatedTimestamp { get; set; }
-
-    [JsonPropertyName("createdBy")]
-    public string? CreatedBy { get; set; }
+    [JsonPropertyName("settings")]
+    public Dictionary<string, string> Settings { get; set; } = new();
 
     [JsonPropertyName("updatedTimestamp")]
     public long? UpdatedTimestamp { get; set; }

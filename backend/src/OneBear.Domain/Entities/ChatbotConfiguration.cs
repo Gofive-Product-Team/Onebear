@@ -14,51 +14,30 @@ public class ChatbotConfiguration : CosmosEntity
     [JsonPropertyName("_schemaVersion")]
     public int SchemaVersion { get; set; } = 1;
 
-    [JsonPropertyName("integrationId")]
-    public string? IntegrationId { get; set; }
+    [JsonPropertyName("isEnabled")]
+    public bool IsEnabled { get; set; }
 
-    [JsonPropertyName("name")]
-    public string Name { get; set; } = default!;
+    [JsonPropertyName("scheduleMode")]
+    public string ScheduleMode { get; set; } = "always";
 
-    [JsonPropertyName("isActive")]
-    public bool IsActive { get; set; } = true;
+    [JsonPropertyName("daySchedules")]
+    public List<DaySchedule> DaySchedules { get; set; } = new();
 
-    [JsonPropertyName("systemPrompt")]
-    public string? SystemPrompt { get; set; }
+    [JsonPropertyName("businessOverview")]
+    public string? BusinessOverview { get; set; }
 
-    [JsonPropertyName("model")]
-    public string? Model { get; set; }
+    [JsonPropertyName("responseStyle")]
+    public string? ResponseStyle { get; set; }
 
-    [JsonPropertyName("temperature")]
-    public double Temperature { get; set; } = 0.7;
-
-    [JsonPropertyName("maxTokens")]
-    public int MaxTokens { get; set; } = 1024;
+    [JsonPropertyName("instructions")]
+    public string? Instructions { get; set; }
 
     [JsonPropertyName("knowledgeSources")]
     public List<KnowledgeSource> KnowledgeSources { get; set; } = new();
 
-    [JsonPropertyName("shortcuts")]
-    public List<Shortcut> Shortcuts { get; set; } = new();
-
-    [JsonPropertyName("shortcutCategories")]
-    public List<ShortcutCategory> ShortcutCategories { get; set; } = new();
-
-    [JsonPropertyName("businessHours")]
-    public List<DaySchedule> BusinessHours { get; set; } = new();
-
-    [JsonPropertyName("offlineMessage")]
-    public string? OfflineMessage { get; set; }
-
-    [JsonPropertyName("createdTimestamp")]
-    public long CreatedTimestamp { get; set; }
-
-    [JsonPropertyName("createdBy")]
-    public string? CreatedBy { get; set; }
+    [JsonPropertyName("updatedBy")]
+    public string? UpdatedBy { get; set; }
 
     [JsonPropertyName("updatedTimestamp")]
     public long? UpdatedTimestamp { get; set; }
-
-    [JsonPropertyName("updatedBy")]
-    public string? UpdatedBy { get; set; }
 }

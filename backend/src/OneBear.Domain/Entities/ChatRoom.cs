@@ -1,9 +1,10 @@
 namespace OneBear.Domain.Entities;
 
 using System.Text.Json.Serialization;
+using OneBear.Domain.Common;
 using OneBear.Domain.ValueObjects;
 
-public class ChatRoom : CosmosEntity
+public class ChatRoom : CosmosEntity, IAuditableEntity
 {
     [JsonPropertyName("id")]
     public string Id { get; set; } = Guid.NewGuid().ToString();

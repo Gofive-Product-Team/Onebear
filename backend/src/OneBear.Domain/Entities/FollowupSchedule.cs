@@ -22,24 +22,21 @@ public class FollowupSchedule : CosmosEntity
     [JsonPropertyName("content")]
     public string? Content { get; set; }
 
-    [JsonPropertyName("assignToUserId")]
-    public string? AssignToUserId { get; set; }
+    [JsonPropertyName("createdBy")]
+    public string CreatedBy { get; set; } = default!;
 
-    [JsonPropertyName("isCompleted")]
-    public bool IsCompleted { get; set; }
+    [JsonPropertyName("isProcessed")]
+    public bool IsProcessed { get; set; }
 
-    [JsonPropertyName("completedTimestamp")]
-    public long? CompletedTimestamp { get; set; }
+    [JsonPropertyName("processedTimestamp")]
+    public long? ProcessedTimestamp { get; set; }
 
     [JsonPropertyName("createdTimestamp")]
     public long CreatedTimestamp { get; set; }
 
-    [JsonPropertyName("createdBy")]
-    public string? CreatedBy { get; set; }
+    [JsonPropertyName("cancelledBy")]
+    public string? CancelledBy { get; set; }
 
-    [JsonPropertyName("updatedTimestamp")]
-    public long? UpdatedTimestamp { get; set; }
-
-    [JsonPropertyName("updatedBy")]
-    public string? UpdatedBy { get; set; }
+    [JsonPropertyName("cancelledTimestamp")]
+    public long? CancelledTimestamp { get; set; }
 }
