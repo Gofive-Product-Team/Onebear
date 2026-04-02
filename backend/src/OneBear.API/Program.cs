@@ -138,7 +138,7 @@ authBuilder.AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
 });
 
 // API Key authentication
-authBuilder.AddScheme<ApiKeyAuthOptions, ApiKeyAuthHandler>(
+authBuilder.AddScheme<AuthenticationSchemeOptions, ApiKeyAuthHandler>(
     AuthConstants.ApiKeyScheme, options => { });
 
 // Authorization - real permission checks
