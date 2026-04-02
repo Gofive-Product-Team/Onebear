@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { ChatRoom, PagedResponse } from '@one-bear/shared-types'
+import type { ChatRoom, PagedResponse, BadgeCount } from '@one-bear/shared-types'
 import { api } from '@/lib/api-client'
 
 export interface RoomFilters {
@@ -38,9 +38,9 @@ export function useRoom(companyId: string, roomId: string | null) {
 }
 
 export function useBadgeCount(companyId: string) {
-	return useQuery<{ unreadCount: number }>({
+	return useQuery<BadgeCount>({
 		queryKey: ['badge-count', companyId],
-		queryFn: () => api.rooms.getBadgeCount(companyId) as Promise<{ unreadCount: number }>,
+		queryFn: () => api.rooms.getBadgeCount(companyId) as Promise<BadgeCount>,
 		enabled: !!companyId,
 		refetchInterval: 30_000,
 	})

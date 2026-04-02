@@ -34,7 +34,7 @@ public class MessagesController : ControllerBase
         CancellationToken ct = default)
     {
         Result<PagedResult<ChatMessageDto>> result =
-            await _queryService.GetMessagesAsync(roomId, pageSize, continuationToken, ct);
+            await _queryService.GetMessagesAsync(companyId, roomId, pageSize, continuationToken, ct);
         return result.ToActionResult();
     }
 

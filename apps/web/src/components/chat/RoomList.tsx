@@ -42,9 +42,9 @@ export function RoomList({ activeRoomId }: Props) {
 	const rooms = useMemo(() => {
 		if (!data?.data) return []
 		return [...data.data].sort((a, b) => {
-			const aTime = a.lastMessage?.sentAt ?? a.createdAt
-			const bTime = b.lastMessage?.sentAt ?? b.createdAt
-			return new Date(bTime).getTime() - new Date(aTime).getTime()
+			const aTime = a.lastMessageTimestamp ?? a.createdTimestamp
+			const bTime = b.lastMessageTimestamp ?? b.createdTimestamp
+			return bTime - aTime
 		})
 	}, [data])
 
@@ -61,9 +61,9 @@ export function RoomList({ activeRoomId }: Props) {
 			<div className="shrink-0 px-4 pt-4 pb-2">
 				<div className="flex items-center justify-between mb-3">
 					<h2 className="text-lg font-semibold text-gray-900">Chats</h2>
-					{badgeData && badgeData.unreadCount > 0 && (
+					{badgeData && badgeData.total > 0 && (
 						<span className="inline-flex items-center justify-center h-5 min-w-5 rounded-full bg-blue-600 px-1.5 text-[10px] font-medium text-white">
-							{badgeData.unreadCount > 99 ? '99+' : badgeData.unreadCount}
+							{badgeData.total > 99 ? '99+' : badgeData.total}
 						</span>
 					)}
 				</div>

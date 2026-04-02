@@ -35,7 +35,7 @@ export function ChatSidebar({ room, connection }: Props) {
 
 	const state = room.state as ChatState
 	const stateInfo = stateLabels[state] ?? stateLabels.New
-	const customerName = room.customer?.name ?? 'Unknown Customer'
+	const customerName = room.customerName ?? 'Unknown Customer'
 	const isOpen = state === 'New' || state === 'InProgress'
 
 	return (
@@ -44,7 +44,7 @@ export function ChatSidebar({ room, connection }: Props) {
 			<div className="p-4 border-b border-gray-100">
 				<div className="flex flex-col items-center text-center">
 					<Avatar
-						src={room.customer?.avatar}
+						src={room.customerAvatar ?? undefined}
 						fallback={customerName.charAt(0)}
 						size="lg"
 						className="mb-2"
@@ -93,10 +93,10 @@ export function ChatSidebar({ room, connection }: Props) {
 			{/* Assigned agent */}
 			<div className="p-4 border-b border-gray-100">
 				<SectionTitle>Assigned To</SectionTitle>
-				{room.assignedTo ? (
+				{room.assignToUserId ? (
 					<div className="flex items-center gap-2">
-						<Avatar fallback={room.assignedTo.displayName.charAt(0)} size="sm" />
-						<span className="text-sm text-gray-700">{room.assignedTo.displayName}</span>
+						<Avatar fallback={room.assignToUserId.charAt(0).toUpperCase()} size="sm" />
+						<span className="text-sm text-gray-700">{room.assignToUserId}</span>
 					</div>
 				) : (
 					<p className="text-sm text-gray-400 italic">Unassigned</p>

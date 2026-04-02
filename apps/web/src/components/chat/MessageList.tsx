@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, useMemo } from 'react'
 import type { ChatMessage } from '@one-bear/shared-types'
 import { useMessages } from '@/api/useMessages'
+import { useAuthStore } from '@/stores/auth-store'
 import { MessageBubble } from './MessageBubble'
 import { formatDateSeparator } from '@/lib/date'
 
@@ -18,7 +19,7 @@ interface Props {
 function groupMessagesByDate(messages: ChatMessage[]): Map<string, ChatMessage[]> {
 	const groups = new Map<string, ChatMessage[]>()
 	for (const msg of messages) {
-		const dateKey = new Date(msg.sentAt).toDateString()
+		const dateKey = new Date(msg.timestamp).toDateString()
 		const existing = groups.get(dateKey)
 		if (existing) {
 			existing.push(msg)
@@ -65,6 +66,7 @@ function TypingIndicator({ users }: { users: TypingUser[] }) {
 }
 
 export function MessageList({ companyId, roomId, typingUsers }: Props) {
+	const currentUserId = useAuthStore((s) => s.user?.userId ?? '')
 	const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useMessages(companyId, roomId)
 	const scrollContainerRef = useRef<HTMLDivElement>(null)
 	const bottomRef = useRef<HTMLDivElement>(null)
@@ -122,13 +124,13 @@ export function MessageList({ companyId, roomId, typingUsers }: Props) {
 							{/* Date separator */}
 							<div className="flex items-center justify-center py-3">
 								<span className="rounded-full bg-gray-200 px-3 py-0.5 text-xs text-gray-500">
-									{formatDateSeparator(messages[0]!.sentAt)}
+									{formatDateSeparator(new Date(messages[0]!.timestamp).toISOString())}
 								</span>
 							</div>
 
 							{/* Messages for this date */}
 							{messages.map((message) => (
-								<MessageBubble key={message.id} message={message} />
+								<MessageBubble key={message.id} message={message} currentUserId={currentUserId} />
 							))}
 						</div>
 					))}

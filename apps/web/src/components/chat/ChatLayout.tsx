@@ -77,11 +77,11 @@ export function ChatLayout({ roomId }: Props) {
 								</button>
 								<div>
 									<h2 className="text-sm font-semibold text-gray-900">
-										{activeRoom?.customer?.name ?? 'Loading...'}
+										{activeRoom?.customerName ?? 'Loading...'}
 									</h2>
-									{activeRoom?.assignedTo && (
+									{activeRoom?.assignToUserId && (
 										<p className="text-xs text-gray-400">
-											Assigned to {activeRoom.assignedTo.displayName}
+											Assigned to {activeRoom.assignToUserId}
 										</p>
 									)}
 								</div>
