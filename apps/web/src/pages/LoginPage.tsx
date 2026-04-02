@@ -1,13 +1,31 @@
 import { useState } from 'react'
 import { useAuthStore } from '../stores/auth-store'
+import { Permission } from '@one-bear/shared-types'
+
+const PERMISSION_LABELS: Record<number, string> = {
+	[Permission.ChatView]: 'Chat View (3001)',
+	[Permission.ChatResolved]: 'Chat Resolve (3002)',
+	[Permission.ChatMention]: 'Chat Mention (3003)',
+	[Permission.ChatAssignAllCompany]: 'Chat Assign All (3004)',
+	[Permission.ChatAccessAllData]: 'Chat Admin (3005)',
+}
+
+const ALL_PERMISSIONS = Object.values(Permission) as number[]
 
 export function LoginPage({ onSuccess }: { onSuccess: () => void }) {
 	const login = useAuthStore((s) => s.login)
 	const [userId, setUserId] = useState('dev-user-001')
 	const [companyId, setCompanyId] = useState('dev-company-001')
 	const [displayName, setDisplayName] = useState('Dev User')
+	const [selectedPermissions, setSelectedPermissions] = useState<number[]>([...ALL_PERMISSIONS])
 	const [error, setError] = useState<string | null>(null)
 	const [loading, setLoading] = useState(false)
+
+	const togglePermission = (permId: number) => {
+		setSelectedPermissions((prev) =>
+			prev.includes(permId) ? prev.filter((p) => p !== permId) : [...prev, permId],
+		)
+	}
 
 	const handleLogin = async () => {
 		setError(null)
@@ -20,7 +38,7 @@ export function LoginPage({ onSuccess }: { onSuccess: () => void }) {
 					userId,
 					companyId,
 					displayName,
-					permissions: [3001, 3002, 3003, 3004, 3005],
+					permissions: selectedPermissions,
 				}),
 			})
 
@@ -51,7 +69,9 @@ export function LoginPage({ onSuccess }: { onSuccess: () => void }) {
 				<p className="text-sm text-gray-500 mb-6">Development Login</p>
 
 				{error && (
-					<div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4 text-sm">{error}</div>
+					<div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4 text-sm">
+						{error}
+					</div>
 				)}
 
 				<div className="space-y-4">
@@ -81,6 +101,23 @@ export function LoginPage({ onSuccess }: { onSuccess: () => void }) {
 							onChange={(e) => setDisplayName(e.target.value)}
 							className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
 						/>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-2">Permissions</label>
+						<div className="space-y-2">
+							{ALL_PERMISSIONS.map((permId) => (
+								<label key={permId} className="flex items-center gap-2 text-sm text-gray-600">
+									<input
+										type="checkbox"
+										checked={selectedPermissions.includes(permId)}
+										onChange={() => togglePermission(permId)}
+										className="rounded border-gray-300"
+									/>
+									{PERMISSION_LABELS[permId]}
+								</label>
+							))}
+						</div>
 					</div>
 
 					<button
