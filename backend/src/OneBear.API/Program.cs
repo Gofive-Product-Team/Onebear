@@ -1,6 +1,7 @@
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication;
+using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
@@ -99,10 +100,14 @@ AuthenticationBuilder authBuilder = builder.Services.AddAuthentication(options =
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 });
 
+// Disable default claim type mapping so "sub" stays as "sub" (not remapped to long URI)
+JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+
 // JWT Bearer — single AddJwtBearer call that branches on dev vs prod
 bool isDevMode = !string.IsNullOrEmpty(authOptions.DevSigningKey);
 authBuilder.AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
 {
+    options.MapInboundClaims = false;
     if (isDevMode)
     {
         // Dev mode: validate tokens signed with symmetric key
@@ -136,6 +141,12 @@ authBuilder.AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
             {
                 context.Token = accessToken;
             }
+            return Task.CompletedTask;
+        },
+        OnAuthenticationFailed = context =>
+        {
+            ILogger logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("JwtAuth");
+            logger.LogWarning("JWT auth failed: {Error}", context.Exception.Message);
             return Task.CompletedTask;
         }
     };
