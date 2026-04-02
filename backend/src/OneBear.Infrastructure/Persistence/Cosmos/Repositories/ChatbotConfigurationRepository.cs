@@ -1,5 +1,6 @@
 namespace OneBear.Infrastructure.Persistence.Cosmos.Repositories;
 
+using OneBear.Domain.Entities;
 using OneBear.Domain.Interfaces.Repositories;
 
 public class ChatbotConfigurationRepository : IChatbotConfigurationRepository
@@ -11,5 +12,9 @@ public class ChatbotConfigurationRepository : IChatbotConfigurationRepository
         _context = context;
     }
 
-    // TODO: implement repository methods
+    public Task<ChatbotConfiguration?> GetByCompanyIdAsync(string companyId, CancellationToken ct = default)
+        => throw new NotImplementedException();
+
+    public Task<ChatbotConfiguration> UpsertAsync(ChatbotConfiguration config, CancellationToken ct = default)
+        => throw new NotImplementedException();
 }
