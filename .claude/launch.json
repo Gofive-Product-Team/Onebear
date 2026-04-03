@@ -4,7 +4,7 @@
     {
       "name": "onebear-chat",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "-l", "8081", "."],
+      "runtimeArgs": ["serve", "-l", "8081", "/Users/warisara/Desktop/Onebear"],
       "port": 8081
     }
   ]
