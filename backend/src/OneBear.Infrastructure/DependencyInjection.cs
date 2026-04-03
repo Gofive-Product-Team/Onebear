@@ -114,6 +114,8 @@ public static class DependencyInjection
             client.BaseAddress = new Uri("https://partner.shopeemobile.com/api/v2/");
             ConfigureJsonClient(client);
         });
+        services.AddHttpClient("google-api", client => ConfigureJsonClient(client));
+        services.AddHttpClient("microsoft-api", client => ConfigureJsonClient(client));
 
         // OAuth
         services.Configure<OAuthOptions>(configuration.GetSection(OAuthOptions.SectionName));

@@ -3,6 +3,8 @@ namespace OneBear.Infrastructure.PlatformAdapters;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using OneBear.Application.Integrations.Config;
 using OneBear.Domain.Common;
 using OneBear.Domain.Entities;
 using OneBear.Domain.Enums;
@@ -12,11 +14,16 @@ using OneBear.Domain.ValueObjects;
 public class EmailAdapter : IPlatformAdapter
 {
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly OAuthOptions _oauthOptions;
     private readonly ILogger<EmailAdapter> _logger;
 
-    public EmailAdapter(IHttpClientFactory httpClientFactory, ILogger<EmailAdapter> logger)
+    public EmailAdapter(
+        IHttpClientFactory httpClientFactory,
+        IOptions<OAuthOptions> oauthOptions,
+        ILogger<EmailAdapter> logger)
     {
         _httpClientFactory = httpClientFactory;
+        _oauthOptions = oauthOptions.Value;
         _logger = logger;
     }
 
@@ -204,12 +211,129 @@ public class EmailAdapter : IPlatformAdapter
                 new Error("UNSUPPORTED", "Email does not support rich content.", ErrorType.Validation)));
     }
 
-    public Task<Result<TokenRefreshResult>> RefreshTokenAsync(
+    public async Task<Result<TokenRefreshResult>> RefreshTokenAsync(
         IntegrationChannel integration, CancellationToken ct)
     {
-        // Email uses API key authentication; no token refresh needed
-        return Task.FromResult<Result<TokenRefreshResult>>(
-            new Result<TokenRefreshResult>.Success(new TokenRefreshResult { Success = true }));
+        string? provider = integration.Credentials?.ChannelId;
+        string? refreshToken = integration.Credentials?.RefreshToken;
+
+        // If no refresh token, this is SMTP/API-key based — no refresh needed
+        if (string.IsNullOrEmpty(refreshToken))
+        {
+            return new Result<TokenRefreshResult>.Success(new TokenRefreshResult { Success = true });
+        }
+
+        if (string.Equals(provider, "gmail", StringComparison.OrdinalIgnoreCase))
+        {
+            return await RefreshGmailTokenAsync(integration, refreshToken, ct);
+        }
+
+        if (string.Equals(provider, "outlook", StringComparison.OrdinalIgnoreCase))
+        {
+            return await RefreshOutlookTokenAsync(integration, refreshToken, ct);
+        }
+
+        // Unknown provider with a refresh token — no-op
+        return new Result<TokenRefreshResult>.Success(new TokenRefreshResult { Success = true });
+    }
+
+    private async Task<Result<TokenRefreshResult>> RefreshGmailTokenAsync(
+        IntegrationChannel integration, string refreshToken, CancellationToken ct)
+    {
+        string clientId = integration.Credentials?.AppId ?? _oauthOptions.Google.ClientId;
+        string clientSecret = integration.Credentials?.AppSecret ?? _oauthOptions.Google.ClientSecret;
+
+        HttpClient client = _httpClientFactory.CreateClient("google-api");
+
+        FormUrlEncodedContent content = new(new Dictionary<string, string>
+        {
+            ["client_id"] = clientId,
+            ["client_secret"] = clientSecret,
+            ["refresh_token"] = refreshToken,
+            ["grant_type"] = "refresh_token",
+        });
+
+        HttpResponseMessage response = await client.PostAsync(
+            "https://oauth2.googleapis.com/token", content, ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            string error = await response.Content.ReadAsStringAsync(ct);
+            _logger.LogWarning("Gmail token refresh failed: {StatusCode} {Error}", response.StatusCode, error);
+            return new Result<TokenRefreshResult>.Success(new TokenRefreshResult
+            {
+                Success = false,
+                ErrorMessage = error,
+            });
+        }
+
+        using JsonDocument doc = await JsonDocument.ParseAsync(
+            await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
+
+        string? accessToken = doc.RootElement.TryGetProperty("access_token", out JsonElement at)
+            ? at.GetString() : null;
+        long expiresIn = doc.RootElement.TryGetProperty("expires_in", out JsonElement ei)
+            ? ei.GetInt64() : 3600;
+        long expiresAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + (expiresIn * 1000);
+
+        return new Result<TokenRefreshResult>.Success(new TokenRefreshResult
+        {
+            Success = true,
+            AccessToken = accessToken,
+            RefreshToken = refreshToken, // Gmail refresh tokens don't rotate
+            ExpiresAt = expiresAt,
+        });
+    }
+
+    private async Task<Result<TokenRefreshResult>> RefreshOutlookTokenAsync(
+        IntegrationChannel integration, string refreshToken, CancellationToken ct)
+    {
+        string clientId = integration.Credentials?.AppId ?? _oauthOptions.Microsoft.ClientId;
+        string clientSecret = integration.Credentials?.AppSecret ?? _oauthOptions.Microsoft.ClientSecret;
+
+        HttpClient client = _httpClientFactory.CreateClient("microsoft-api");
+
+        FormUrlEncodedContent content = new(new Dictionary<string, string>
+        {
+            ["client_id"] = clientId,
+            ["client_secret"] = clientSecret,
+            ["refresh_token"] = refreshToken,
+            ["grant_type"] = "refresh_token",
+            ["scope"] = _oauthOptions.Microsoft.Scopes,
+        });
+
+        HttpResponseMessage response = await client.PostAsync(
+            "https://login.microsoftonline.com/common/oauth2/v2.0/token", content, ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            string error = await response.Content.ReadAsStringAsync(ct);
+            _logger.LogWarning("Outlook token refresh failed: {StatusCode} {Error}", response.StatusCode, error);
+            return new Result<TokenRefreshResult>.Success(new TokenRefreshResult
+            {
+                Success = false,
+                ErrorMessage = error,
+            });
+        }
+
+        using JsonDocument doc = await JsonDocument.ParseAsync(
+            await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
+
+        string? accessToken = doc.RootElement.TryGetProperty("access_token", out JsonElement at)
+            ? at.GetString() : null;
+        string? newRefreshToken = doc.RootElement.TryGetProperty("refresh_token", out JsonElement rt)
+            ? rt.GetString() : null;
+        long expiresIn = doc.RootElement.TryGetProperty("expires_in", out JsonElement ei)
+            ? ei.GetInt64() : 3600;
+        long expiresAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + (expiresIn * 1000);
+
+        return new Result<TokenRefreshResult>.Success(new TokenRefreshResult
+        {
+            Success = true,
+            AccessToken = accessToken,
+            RefreshToken = newRefreshToken ?? refreshToken,
+            ExpiresAt = expiresAt,
+        });
     }
 
     public Task<Result<PlatformProfile>> GetUserProfileAsync(

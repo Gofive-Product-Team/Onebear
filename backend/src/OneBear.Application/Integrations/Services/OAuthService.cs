@@ -1,6 +1,8 @@
 namespace OneBear.Application.Integrations.Services;
 
 using System.Net.Http.Json;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
@@ -81,6 +83,62 @@ public class OAuthService
                    $"&state={Uri.EscapeDataString(state)}";
         }
 
+        if (platform.Equals(SocialPlatform.Shopee, StringComparison.OrdinalIgnoreCase))
+        {
+            string callbackUrl = $"{_oauthOptions.CallbackBaseUrl}/{SocialPlatform.Shopee.ToLower()}";
+            long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            Uri authUri = new(_oauthOptions.Shopee.AuthUrl);
+            string apiPath = authUri.AbsolutePath;
+            string sign = ComputeShopeeSign(long.Parse(_oauthOptions.Shopee.PartnerId), apiPath, timestamp, _oauthOptions.Shopee.PartnerKey);
+            return $"{_oauthOptions.Shopee.AuthUrl}" +
+                   $"?partner_id={Uri.EscapeDataString(_oauthOptions.Shopee.PartnerId)}" +
+                   $"&redirect={Uri.EscapeDataString(callbackUrl)}" +
+                   $"&state={Uri.EscapeDataString(state)}" +
+                   $"&sign={Uri.EscapeDataString(sign)}" +
+                   $"&timestamp={timestamp}";
+        }
+
+        if (platform.Equals(SocialPlatform.TikTok, StringComparison.OrdinalIgnoreCase))
+        {
+            return $"{_oauthOptions.TikTok.AuthUrl}" +
+                   $"?app_key={Uri.EscapeDataString(_oauthOptions.TikTok.AppKey)}" +
+                   $"&state={Uri.EscapeDataString(state)}";
+        }
+
+        if (platform.Equals(SocialPlatform.Lazada, StringComparison.OrdinalIgnoreCase))
+        {
+            string callbackUrl = $"{_oauthOptions.CallbackBaseUrl}/{SocialPlatform.Lazada.ToLower()}";
+            return $"{_oauthOptions.Lazada.AuthUrl}" +
+                   $"?response_type=code" +
+                   $"&redirect_uri={Uri.EscapeDataString(callbackUrl)}" +
+                   $"&client_id={Uri.EscapeDataString(_oauthOptions.Lazada.AppKey)}" +
+                   $"&state={Uri.EscapeDataString(state)}";
+        }
+
+        if (platform.Equals("gmail", StringComparison.OrdinalIgnoreCase))
+        {
+            string callbackUrl = $"{_oauthOptions.CallbackBaseUrl}/gmail";
+            return $"{_oauthOptions.Google.AuthUrl}" +
+                   $"?client_id={Uri.EscapeDataString(_oauthOptions.Google.ClientId)}" +
+                   $"&redirect_uri={Uri.EscapeDataString(callbackUrl)}" +
+                   $"&response_type=code" +
+                   $"&scope={Uri.EscapeDataString(_oauthOptions.Google.Scopes)}" +
+                   $"&state={Uri.EscapeDataString(state)}" +
+                   $"&access_type=offline" +
+                   $"&prompt=consent";
+        }
+
+        if (platform.Equals("outlook", StringComparison.OrdinalIgnoreCase))
+        {
+            string callbackUrl = $"{_oauthOptions.CallbackBaseUrl}/outlook";
+            return $"{_oauthOptions.Microsoft.AuthUrl}" +
+                   $"?client_id={Uri.EscapeDataString(_oauthOptions.Microsoft.ClientId)}" +
+                   $"&redirect_uri={Uri.EscapeDataString(callbackUrl)}" +
+                   $"&response_type=code" +
+                   $"&scope={Uri.EscapeDataString(_oauthOptions.Microsoft.Scopes)}" +
+                   $"&state={Uri.EscapeDataString(state)}";
+        }
+
         return new Result<OAuthAuthUrlResponse>.Failure(
             new Error("UNSUPPORTED_PLATFORM", $"OAuth auth URL generation is not supported for platform '{platform}'.", ErrorType.Validation))
             .ToString()!;
@@ -119,8 +177,89 @@ public class OAuthService
 
         // Exchange code for tokens
         if (platform.Equals(SocialPlatform.Line, StringComparison.OrdinalIgnoreCase))
-        {
             return await HandleLineCallbackAsync(companyId, code, userId, ct);
+
+        if (platform.Equals(SocialPlatform.Shopee, StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrEmpty(shopId))
+            {
+                return new Result<OAuthConnectResponse>.Failure(
+                    new Error("SHOPEE_MISSING_SHOP_ID", "shop_id is required for Shopee OAuth callback.", ErrorType.Validation));
+            }
+
+            try
+            {
+                PlatformCredentials credentials = await ExchangeShopeeCodeAsync(code, shopId, ct);
+                return await CreateIntegrationAsync(companyId, SocialPlatform.Shopee, credentials, userId, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error during Shopee OAuth callback for company {CompanyId}", companyId);
+                return new Result<OAuthConnectResponse>.Failure(
+                    new Error("SHOPEE_OAUTH_ERROR", "An unexpected error occurred during Shopee OAuth flow.", ErrorType.Internal));
+            }
+        }
+
+        if (platform.Equals(SocialPlatform.TikTok, StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                PlatformCredentials credentials = await ExchangeTikTokCodeAsync(code, ct);
+                return await CreateIntegrationAsync(companyId, SocialPlatform.TikTok, credentials, userId, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error during TikTok OAuth callback for company {CompanyId}", companyId);
+                return new Result<OAuthConnectResponse>.Failure(
+                    new Error("TIKTOK_OAUTH_ERROR", "An unexpected error occurred during TikTok OAuth flow.", ErrorType.Internal));
+            }
+        }
+
+        if (platform.Equals(SocialPlatform.Lazada, StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                PlatformCredentials credentials = await ExchangeLazadaCodeAsync(code, ct);
+                return await CreateIntegrationAsync(companyId, SocialPlatform.Lazada, credentials, userId, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error during Lazada OAuth callback for company {CompanyId}", companyId);
+                return new Result<OAuthConnectResponse>.Failure(
+                    new Error("LAZADA_OAUTH_ERROR", "An unexpected error occurred during Lazada OAuth flow.", ErrorType.Internal));
+            }
+        }
+
+        if (platform.Equals("gmail", StringComparison.OrdinalIgnoreCase))
+        {
+            string callbackUrl = $"{_oauthOptions.CallbackBaseUrl}/gmail";
+            try
+            {
+                PlatformCredentials credentials = await ExchangeGmailCodeAsync(code, callbackUrl, ct);
+                return await CreateIntegrationAsync(companyId, SocialPlatform.Email, credentials, userId, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error during Gmail OAuth callback for company {CompanyId}", companyId);
+                return new Result<OAuthConnectResponse>.Failure(
+                    new Error("GMAIL_OAUTH_ERROR", "An unexpected error occurred during Gmail OAuth flow.", ErrorType.Internal));
+            }
+        }
+
+        if (platform.Equals("outlook", StringComparison.OrdinalIgnoreCase))
+        {
+            string callbackUrl = $"{_oauthOptions.CallbackBaseUrl}/outlook";
+            try
+            {
+                PlatformCredentials credentials = await ExchangeOutlookCodeAsync(code, callbackUrl, ct);
+                return await CreateIntegrationAsync(companyId, SocialPlatform.Email, credentials, userId, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error during Outlook OAuth callback for company {CompanyId}", companyId);
+                return new Result<OAuthConnectResponse>.Failure(
+                    new Error("OUTLOOK_OAUTH_ERROR", "An unexpected error occurred during Outlook OAuth flow.", ErrorType.Internal));
+            }
         }
 
         return new Result<OAuthConnectResponse>.Failure(
@@ -334,6 +473,405 @@ public class OAuthService
         };
 
         return await CreateIntegrationAsync(companyId, SocialPlatform.WhatsApp, credentials, userId, ct);
+    }
+
+    // ──────────────────────────────────────────────
+    // Shopee Code Exchange
+    // ──────────────────────────────────────────────
+
+    private async Task<PlatformCredentials> ExchangeShopeeCodeAsync(string code, string shopId, CancellationToken ct)
+    {
+        HttpClient httpClient = _httpClientFactory.CreateClient("shopee-api");
+
+        long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        Uri tokenUri = new(_oauthOptions.Shopee.TokenUrl);
+        string apiPath = tokenUri.AbsolutePath;
+
+        string sign = ComputeShopeeSign(
+            long.Parse(_oauthOptions.Shopee.PartnerId), apiPath, timestamp, _oauthOptions.Shopee.PartnerKey);
+
+        string url = $"{_oauthOptions.Shopee.TokenUrl}" +
+                     $"?partner_id={Uri.EscapeDataString(_oauthOptions.Shopee.PartnerId)}" +
+                     $"&timestamp={timestamp}" +
+                     $"&sign={Uri.EscapeDataString(sign)}";
+
+        var body = new
+        {
+            code,
+            shop_id = long.Parse(shopId),
+            partner_id = long.Parse(_oauthOptions.Shopee.PartnerId),
+        };
+
+        HttpResponseMessage response = await httpClient.PostAsJsonAsync(url, body, ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            string errorContent = await response.Content.ReadAsStringAsync(ct);
+            _logger.LogError(
+                "Shopee token exchange failed: {StatusCode} - {Content}",
+                response.StatusCode, errorContent);
+            throw new InvalidOperationException($"Shopee token exchange failed: {response.StatusCode}");
+        }
+
+        using JsonDocument doc = await JsonDocument.ParseAsync(
+            await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
+
+        string? errorField = doc.RootElement.TryGetProperty("error", out JsonElement errEl)
+            ? errEl.GetString() : null;
+
+        if (!string.IsNullOrEmpty(errorField))
+        {
+            string? errorMsg = doc.RootElement.TryGetProperty("message", out JsonElement msgEl)
+                ? msgEl.GetString() : errorField;
+            throw new InvalidOperationException($"Shopee token exchange error: {errorMsg}");
+        }
+
+        string? accessToken = doc.RootElement.TryGetProperty("access_token", out JsonElement at)
+            ? at.GetString() : null;
+        string? refreshToken = doc.RootElement.TryGetProperty("refresh_token", out JsonElement rt)
+            ? rt.GetString() : null;
+        long expireIn = doc.RootElement.TryGetProperty("expire_in", out JsonElement ei)
+            ? ei.GetInt64() : 0;
+        long expiresAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + (expireIn * 1000);
+
+        return new PlatformCredentials
+        {
+            AccessToken = accessToken,
+            RefreshToken = refreshToken,
+            TokenExpiresAt = expiresAt,
+            AppId = _oauthOptions.Shopee.PartnerId,
+            AppSecret = _oauthOptions.Shopee.PartnerKey,
+            ShopId = shopId,
+            ChannelId = shopId,
+        };
+    }
+
+    // ──────────────────────────────────────────────
+    // TikTok Code Exchange
+    // ──────────────────────────────────────────────
+
+    private async Task<PlatformCredentials> ExchangeTikTokCodeAsync(string code, CancellationToken ct)
+    {
+        HttpClient httpClient = _httpClientFactory.CreateClient("tiktok-api");
+
+        var body = new
+        {
+            app_key = _oauthOptions.TikTok.AppKey,
+            app_secret = _oauthOptions.TikTok.AppSecret,
+            auth_code = code,
+            grant_type = "authorized_code",
+        };
+
+        HttpResponseMessage response = await httpClient.PostAsJsonAsync(_oauthOptions.TikTok.TokenUrl, body, ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            string errorContent = await response.Content.ReadAsStringAsync(ct);
+            _logger.LogError(
+                "TikTok token exchange failed: {StatusCode} - {Content}",
+                response.StatusCode, errorContent);
+            throw new InvalidOperationException($"TikTok token exchange failed: {response.StatusCode}");
+        }
+
+        using JsonDocument doc = await JsonDocument.ParseAsync(
+            await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
+
+        if (!doc.RootElement.TryGetProperty("data", out JsonElement data))
+            throw new InvalidOperationException("TikTok token response missing 'data' field.");
+
+        string? accessToken = data.TryGetProperty("access_token", out JsonElement at) ? at.GetString() : null;
+        string? refreshToken = data.TryGetProperty("refresh_token", out JsonElement rt) ? rt.GetString() : null;
+        long expireIn = data.TryGetProperty("access_token_expire_in", out JsonElement ei) ? ei.GetInt64() : 0;
+        long expiresAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + (expireIn * 1000);
+        string? shopCipher = data.TryGetProperty("shop_cipher", out JsonElement sc) ? sc.GetString() : null;
+
+        return new PlatformCredentials
+        {
+            AccessToken = accessToken,
+            RefreshToken = refreshToken,
+            TokenExpiresAt = expiresAt,
+            AppId = _oauthOptions.TikTok.AppKey,
+            AppSecret = _oauthOptions.TikTok.AppSecret,
+            ShopCipher = shopCipher,
+        };
+    }
+
+    // ──────────────────────────────────────────────
+    // Lazada Code Exchange
+    // ──────────────────────────────────────────────
+
+    private async Task<PlatformCredentials> ExchangeLazadaCodeAsync(string code, CancellationToken ct)
+    {
+        HttpClient httpClient = _httpClientFactory.CreateClient("lazada-api");
+
+        long timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        Dictionary<string, string> signParams = new()
+        {
+            ["app_key"] = _oauthOptions.Lazada.AppKey,
+            ["code"] = code,
+            ["timestamp"] = timestamp.ToString(),
+        };
+
+        string sign = ComputeLazadaSign("/auth/token/create", signParams, _oauthOptions.Lazada.AppSecret);
+
+        string queryString = BuildLazadaQueryString(signParams);
+        string url = $"{_oauthOptions.Lazada.TokenUrl}?{queryString}&sign={Uri.EscapeDataString(sign)}";
+
+        HttpResponseMessage response = await httpClient.PostAsync(url, null, ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            string errorContent = await response.Content.ReadAsStringAsync(ct);
+            _logger.LogError(
+                "Lazada token exchange failed: {StatusCode} - {Content}",
+                response.StatusCode, errorContent);
+            throw new InvalidOperationException($"Lazada token exchange failed: {response.StatusCode}");
+        }
+
+        using JsonDocument doc = await JsonDocument.ParseAsync(
+            await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
+
+        string? responseCode = doc.RootElement.TryGetProperty("code", out JsonElement codeEl)
+            ? codeEl.GetString() : null;
+
+        if (responseCode != "0")
+        {
+            string? errorMsg = doc.RootElement.TryGetProperty("message", out JsonElement msgEl)
+                ? msgEl.GetString() : "Unknown Lazada error";
+            throw new InvalidOperationException($"Lazada token exchange error: {errorMsg}");
+        }
+
+        string? accessToken = doc.RootElement.TryGetProperty("access_token", out JsonElement at)
+            ? at.GetString() : null;
+        string? refreshToken = doc.RootElement.TryGetProperty("refresh_token", out JsonElement rt)
+            ? rt.GetString() : null;
+        long refreshExpiresIn = doc.RootElement.TryGetProperty("refresh_expires_in", out JsonElement rei)
+            ? rei.GetInt64() : 0;
+        long expiresAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + (refreshExpiresIn * 1000);
+        string? country = doc.RootElement.TryGetProperty("country", out JsonElement ctryEl)
+            ? ctryEl.GetString() : null;
+        string? account = doc.RootElement.TryGetProperty("account", out JsonElement accEl)
+            ? accEl.GetString() : null;
+
+        return new PlatformCredentials
+        {
+            AccessToken = accessToken,
+            RefreshToken = refreshToken,
+            TokenExpiresAt = expiresAt,
+            AppId = _oauthOptions.Lazada.AppKey,
+            AppSecret = _oauthOptions.Lazada.AppSecret,
+            ShopName = account,
+        };
+    }
+
+    // ──────────────────────────────────────────────
+    // Gmail Code Exchange
+    // ──────────────────────────────────────────────
+
+    private async Task<PlatformCredentials> ExchangeGmailCodeAsync(string code, string callbackUrl, CancellationToken ct)
+    {
+        HttpClient httpClient = _httpClientFactory.CreateClient("google-api");
+
+        FormUrlEncodedContent tokenContent = new(new Dictionary<string, string>
+        {
+            ["code"] = code,
+            ["client_id"] = _oauthOptions.Google.ClientId,
+            ["client_secret"] = _oauthOptions.Google.ClientSecret,
+            ["redirect_uri"] = callbackUrl,
+            ["grant_type"] = "authorization_code",
+        });
+
+        HttpResponseMessage tokenResponse = await httpClient.PostAsync(_oauthOptions.Google.TokenUrl, tokenContent, ct);
+
+        if (!tokenResponse.IsSuccessStatusCode)
+        {
+            string errorContent = await tokenResponse.Content.ReadAsStringAsync(ct);
+            _logger.LogError(
+                "Gmail token exchange failed: {StatusCode} - {Content}",
+                tokenResponse.StatusCode, errorContent);
+            throw new InvalidOperationException($"Gmail token exchange failed: {tokenResponse.StatusCode}");
+        }
+
+        using JsonDocument tokenDoc = await JsonDocument.ParseAsync(
+            await tokenResponse.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
+
+        string? accessToken = tokenDoc.RootElement.TryGetProperty("access_token", out JsonElement at)
+            ? at.GetString() : null;
+        string? refreshToken = tokenDoc.RootElement.TryGetProperty("refresh_token", out JsonElement rt)
+            ? rt.GetString() : null;
+        long expiresIn = tokenDoc.RootElement.TryGetProperty("expires_in", out JsonElement ei)
+            ? ei.GetInt64() : 3600;
+        long expiresAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + (expiresIn * 1000);
+
+        // Fetch email address
+        string? emailAddress = null;
+        try
+        {
+            HttpClient gmailClient = _httpClientFactory.CreateClient("google-api");
+            gmailClient.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+            HttpResponseMessage profileResponse = await gmailClient.GetAsync(
+                "https://www.googleapis.com/gmail/v1/users/me/profile", ct);
+
+            if (profileResponse.IsSuccessStatusCode)
+            {
+                using JsonDocument profileDoc = await JsonDocument.ParseAsync(
+                    await profileResponse.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
+                emailAddress = profileDoc.RootElement.TryGetProperty("emailAddress", out JsonElement emailEl)
+                    ? emailEl.GetString() : null;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to fetch Gmail profile email address");
+        }
+
+        return new PlatformCredentials
+        {
+            AccessToken = accessToken,
+            RefreshToken = refreshToken,
+            TokenExpiresAt = expiresAt,
+            AppId = _oauthOptions.Google.ClientId,
+            AppSecret = _oauthOptions.Google.ClientSecret,
+            EmailAddress = emailAddress,
+            ChannelId = "gmail",
+        };
+    }
+
+    // ──────────────────────────────────────────────
+    // Outlook Code Exchange
+    // ──────────────────────────────────────────────
+
+    private async Task<PlatformCredentials> ExchangeOutlookCodeAsync(string code, string callbackUrl, CancellationToken ct)
+    {
+        HttpClient httpClient = _httpClientFactory.CreateClient("microsoft-api");
+
+        FormUrlEncodedContent tokenContent = new(new Dictionary<string, string>
+        {
+            ["code"] = code,
+            ["client_id"] = _oauthOptions.Microsoft.ClientId,
+            ["client_secret"] = _oauthOptions.Microsoft.ClientSecret,
+            ["redirect_uri"] = callbackUrl,
+            ["grant_type"] = "authorization_code",
+            ["scope"] = _oauthOptions.Microsoft.Scopes,
+        });
+
+        HttpResponseMessage tokenResponse = await httpClient.PostAsync(_oauthOptions.Microsoft.TokenUrl, tokenContent, ct);
+
+        if (!tokenResponse.IsSuccessStatusCode)
+        {
+            string errorContent = await tokenResponse.Content.ReadAsStringAsync(ct);
+            _logger.LogError(
+                "Outlook token exchange failed: {StatusCode} - {Content}",
+                tokenResponse.StatusCode, errorContent);
+            throw new InvalidOperationException($"Outlook token exchange failed: {tokenResponse.StatusCode}");
+        }
+
+        using JsonDocument tokenDoc = await JsonDocument.ParseAsync(
+            await tokenResponse.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
+
+        string? accessToken = tokenDoc.RootElement.TryGetProperty("access_token", out JsonElement at)
+            ? at.GetString() : null;
+        string? refreshToken = tokenDoc.RootElement.TryGetProperty("refresh_token", out JsonElement rt)
+            ? rt.GetString() : null;
+        long expiresIn = tokenDoc.RootElement.TryGetProperty("expires_in", out JsonElement ei)
+            ? ei.GetInt64() : 3600;
+        long expiresAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + (expiresIn * 1000);
+
+        // Fetch email address from Microsoft Graph
+        string? emailAddress = null;
+        try
+        {
+            HttpClient graphClient = _httpClientFactory.CreateClient("microsoft-api");
+            graphClient.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+            HttpResponseMessage meResponse = await graphClient.GetAsync(
+                "https://graph.microsoft.com/v1.0/me", ct);
+
+            if (meResponse.IsSuccessStatusCode)
+            {
+                using JsonDocument meDoc = await JsonDocument.ParseAsync(
+                    await meResponse.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
+                emailAddress = meDoc.RootElement.TryGetProperty("mail", out JsonElement mailEl)
+                    ? mailEl.GetString()
+                    : meDoc.RootElement.TryGetProperty("userPrincipalName", out JsonElement upnEl)
+                        ? upnEl.GetString()
+                        : null;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to fetch Outlook/Microsoft profile email address");
+        }
+
+        return new PlatformCredentials
+        {
+            AccessToken = accessToken,
+            RefreshToken = refreshToken,
+            TokenExpiresAt = expiresAt,
+            AppId = _oauthOptions.Microsoft.ClientId,
+            AppSecret = _oauthOptions.Microsoft.ClientSecret,
+            EmailAddress = emailAddress,
+            ChannelId = "outlook",
+        };
+    }
+
+    // ──────────────────────────────────────────────
+    // Signing Helpers
+    // ──────────────────────────────────────────────
+
+    /// <summary>
+    /// Computes a Shopee auth URL signature: HMAC-SHA256(partnerId + path + timestamp, partnerKey).
+    /// Returns lowercase hex string.
+    /// </summary>
+    private static string ComputeShopeeSign(long partnerId, string path, long timestamp, string partnerKey)
+    {
+        string baseString = $"{partnerId}{path}{timestamp}";
+        byte[] keyBytes = Encoding.UTF8.GetBytes(partnerKey);
+        using HMACSHA256 hmac = new(keyBytes);
+        byte[] hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(baseString));
+        return Convert.ToHexStringLower(hash);
+    }
+
+    /// <summary>
+    /// Computes a Lazada API signature: HMAC-SHA256(apiPath + sorted key+value pairs, appSecret).
+    /// Returns uppercase hex string.
+    /// </summary>
+    private static string ComputeLazadaSign(string apiPath, Dictionary<string, string> parameters, string appSecret)
+    {
+        List<string> sortedKeys = new(parameters.Keys);
+        sortedKeys.Sort(StringComparer.Ordinal);
+
+        StringBuilder sb = new();
+        sb.Append(apiPath);
+        foreach (string key in sortedKeys)
+        {
+            sb.Append(key);
+            sb.Append(parameters[key]);
+        }
+
+        byte[] keyBytes = Encoding.UTF8.GetBytes(appSecret);
+        using HMACSHA256 hmac = new(keyBytes);
+        byte[] hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(sb.ToString()));
+        return Convert.ToHexString(hash);
+    }
+
+    private static string BuildLazadaQueryString(Dictionary<string, string> parameters)
+    {
+        List<string> sortedKeys = new(parameters.Keys);
+        sortedKeys.Sort(StringComparer.Ordinal);
+
+        StringBuilder sb = new();
+        foreach (string key in sortedKeys)
+        {
+            if (sb.Length > 0) sb.Append('&');
+            sb.Append(Uri.EscapeDataString(key));
+            sb.Append('=');
+            sb.Append(Uri.EscapeDataString(parameters[key]));
+        }
+
+        return sb.ToString();
     }
 
     // ──────────────────────────────────────────────

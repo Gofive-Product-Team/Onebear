@@ -4,16 +4,20 @@ import { LineConnectForm } from './LineConnectForm'
 import { FacebookConnectForm } from './FacebookConnectForm'
 import { InstagramInfo } from './InstagramInfo'
 import { WhatsAppConnectForm } from './WhatsAppConnectForm'
+import { EmailConnectForm } from './EmailConnectForm'
+import { TikTokConnectForm } from './TikTokConnectForm'
+import { LazadaConnectForm } from './LazadaConnectForm'
+import { ShopeeConnectForm } from './ShopeeConnectForm'
 
 const PLATFORMS = [
 	{ value: 'Line', label: 'LINE', color: 'bg-green-500', enabled: true },
 	{ value: 'Facebook', label: 'Facebook', color: 'bg-blue-500', enabled: true },
 	{ value: 'Instagram', label: 'Instagram', color: 'bg-pink-500', enabled: true },
 	{ value: 'WhatsApp', label: 'WhatsApp', color: 'bg-emerald-500', enabled: true },
-	{ value: 'Email', label: 'Email', color: 'bg-gray-400', enabled: false },
-	{ value: 'TikTok', label: 'TikTok', color: 'bg-slate-700', enabled: false },
-	{ value: 'Lazada', label: 'Lazada', color: 'bg-orange-500', enabled: false },
-	{ value: 'Shopee', label: 'Shopee', color: 'bg-red-500', enabled: false },
+	{ value: 'Email', label: 'Email', color: 'bg-gray-400', enabled: true },
+	{ value: 'TikTok', label: 'TikTok', color: 'bg-slate-700', enabled: true },
+	{ value: 'Lazada', label: 'Lazada', color: 'bg-orange-500', enabled: true },
+	{ value: 'Shopee', label: 'Shopee', color: 'bg-red-500', enabled: true },
 ]
 
 interface ConnectPlatformDialogProps {
@@ -34,6 +38,14 @@ export function ConnectPlatformDialog({ onClose, onSuccess }: ConnectPlatformDia
 				return <InstagramInfo onClose={onClose} />
 			case 'WhatsApp':
 				return <WhatsAppConnectForm onSuccess={onSuccess} />
+			case 'Email':
+				return <EmailConnectForm onSuccess={onSuccess} onCancel={() => setSelectedPlatform(null)} />
+			case 'TikTok':
+				return <TikTokConnectForm onSuccess={onSuccess} onCancel={() => setSelectedPlatform(null)} />
+			case 'Lazada':
+				return <LazadaConnectForm onSuccess={onSuccess} onCancel={() => setSelectedPlatform(null)} />
+			case 'Shopee':
+				return <ShopeeConnectForm onSuccess={onSuccess} onCancel={() => setSelectedPlatform(null)} />
 			default:
 				return null
 		}
@@ -89,11 +101,6 @@ export function ConnectPlatformDialog({ onClose, onSuccess }: ConnectPlatformDia
 							>
 								<span className={cn('h-6 w-6 rounded-full', p.enabled ? p.color : 'bg-gray-300')} />
 								<span>{p.label}</span>
-								{!p.enabled && (
-									<span className="absolute -top-1.5 -right-1.5 rounded-full bg-gray-200 px-1 py-0.5 text-[9px] font-semibold text-gray-500 leading-none">
-										Phase 2
-									</span>
-								)}
 							</button>
 						))}
 					</div>
