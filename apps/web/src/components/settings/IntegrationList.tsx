@@ -4,6 +4,7 @@ import {
 	useIntegrations,
 	useConnectIntegration,
 	useDeleteIntegration,
+	useUpdateIntegration,
 	type Integration,
 } from '@/api/useIntegrations'
 import { Button } from '@/components/ui/Button'
@@ -21,34 +22,55 @@ const AVAILABLE_PLATFORMS = [
 	{ value: 'Shopee', label: 'Shopee', color: 'bg-red-500' },
 ]
 
-function ConnectModal({ onClose }: { onClose: () => void }) {
-	const [selectedPlatform, setSelectedPlatform] = useState('')
-	const [name, setName] = useState('')
-	const [token, setToken] = useState('')
-	const [secret, setSecret] = useState('')
+function ConnectModal({
+	onClose,
+	editIntegration,
+}: {
+	onClose: () => void
+	editIntegration?: Integration
+}) {
+	const isEditing = !!editIntegration
+	const [selectedPlatform, setSelectedPlatform] = useState(editIntegration?.platform ?? '')
+	const [name, setName] = useState(editIntegration?.name ?? '')
+	const [token, setToken] = useState(editIntegration?.credentials?.token ?? '')
+	const [secret, setSecret] = useState(editIntegration?.credentials?.secret ?? '')
 
 	const connectMutation = useConnectIntegration()
+	const updateMutation = useUpdateIntegration()
+
+	const isPending = isEditing ? updateMutation.isPending : connectMutation.isPending
 
 	function handleSubmit(e: React.FormEvent) {
 		e.preventDefault()
-		if (!selectedPlatform || !name) return
+		if (!name) return
 
-		connectMutation.mutate(
-			{
-				platform: selectedPlatform,
-				body: { name, token, secret },
-			},
-			{
-				onSuccess: () => onClose(),
-			},
-		)
+		if (isEditing) {
+			updateMutation.mutate(
+				{
+					integrationId: editIntegration.id,
+					body: { name, token, secret },
+				},
+				{ onSuccess: () => onClose() },
+			)
+		} else {
+			if (!selectedPlatform) return
+			connectMutation.mutate(
+				{
+					platform: selectedPlatform,
+					body: { name, token, secret },
+				},
+				{ onSuccess: () => onClose() },
+			)
+		}
 	}
 
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
 			<div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
 				<div className="mb-4 flex items-center justify-between">
-					<h3 className="text-lg font-semibold text-gray-900">Connect Platform</h3>
+					<h3 className="text-lg font-semibold text-gray-900">
+						{isEditing ? 'Edit Integration' : 'Connect Platform'}
+					</h3>
 					<button
 						onClick={onClose}
 						className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
@@ -60,27 +82,36 @@ function ConnectModal({ onClose }: { onClose: () => void }) {
 				</div>
 
 				<form onSubmit={handleSubmit} className="space-y-4">
-					<div className="flex flex-col gap-1.5">
-						<label className="text-sm font-medium text-gray-700">Platform</label>
-						<div className="grid grid-cols-4 gap-2">
-							{AVAILABLE_PLATFORMS.map((p) => (
-								<button
-									key={p.value}
-									type="button"
-									onClick={() => setSelectedPlatform(p.value)}
-									className={cn(
-										'flex flex-col items-center gap-1 rounded-md border p-2 text-xs font-medium transition-colors',
-										selectedPlatform === p.value
-											? 'border-blue-500 bg-blue-50 text-blue-700'
-											: 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50',
-									)}
-								>
-									<span className={cn('h-3 w-3 rounded-full', p.color)} />
-									{p.label}
-								</button>
-							))}
+					{!isEditing && (
+						<div className="flex flex-col gap-1.5">
+							<label className="text-sm font-medium text-gray-700">Platform</label>
+							<div className="grid grid-cols-4 gap-2">
+								{AVAILABLE_PLATFORMS.map((p) => (
+									<button
+										key={p.value}
+										type="button"
+										onClick={() => setSelectedPlatform(p.value)}
+										className={cn(
+											'flex flex-col items-center gap-1 rounded-md border p-2 text-xs font-medium transition-colors',
+											selectedPlatform === p.value
+												? 'border-blue-500 bg-blue-50 text-blue-700'
+												: 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50',
+										)}
+									>
+										<span className={cn('h-3 w-3 rounded-full', p.color)} />
+										{p.label}
+									</button>
+								))}
+							</div>
 						</div>
-					</div>
+					)}
+
+					{isEditing && (
+						<div className="flex items-center gap-2 rounded-md bg-gray-50 px-3 py-2">
+							<span className="text-xs font-medium text-gray-500">Platform:</span>
+							<Badge platform={editIntegration.platform}>{editIntegration.platform}</Badge>
+						</div>
+					)}
 
 					<Input
 						label="Integration Name"
@@ -109,8 +140,12 @@ function ConnectModal({ onClose }: { onClose: () => void }) {
 						<Button type="button" variant="outline" onClick={onClose}>
 							Cancel
 						</Button>
-						<Button type="submit" loading={connectMutation.isPending} disabled={!selectedPlatform || !name}>
-							Connect
+						<Button
+							type="submit"
+							loading={isPending}
+							disabled={!name || (!isEditing && !selectedPlatform)}
+						>
+							{isEditing ? 'Save Changes' : 'Connect'}
 						</Button>
 					</div>
 				</form>
@@ -152,6 +187,7 @@ function DeleteConfirmation({
 export function IntegrationList() {
 	const [showConnect, setShowConnect] = useState(false)
 	const [deleteTarget, setDeleteTarget] = useState<Integration | null>(null)
+	const [editTarget, setEditTarget] = useState<Integration | null>(null)
 
 	const { data: integrations, isLoading, isError } = useIntegrations()
 	const deleteMutation = useDeleteIntegration()
@@ -247,27 +283,45 @@ export function IntegrationList() {
 									</div>
 								</div>
 							</div>
-							<button
-								type="button"
-								onClick={() => setDeleteTarget(integration)}
-								className="rounded-md p-2 text-gray-400 hover:bg-red-50 hover:text-red-600"
-								title="Delete integration"
-							>
-								<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth={1.5}
-										d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-									/>
-								</svg>
-							</button>
+							<div className="flex items-center gap-1">
+								<button
+									type="button"
+									onClick={() => setEditTarget(integration)}
+									className="rounded-md p-2 text-gray-400 hover:bg-blue-50 hover:text-blue-600"
+									title="Edit integration"
+								>
+									<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth={1.5}
+											d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+										/>
+									</svg>
+								</button>
+								<button
+									type="button"
+									onClick={() => setDeleteTarget(integration)}
+									className="rounded-md p-2 text-gray-400 hover:bg-red-50 hover:text-red-600"
+									title="Delete integration"
+								>
+									<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth={1.5}
+											d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+										/>
+									</svg>
+								</button>
+							</div>
 						</div>
 					))}
 				</div>
 			)}
 
 			{showConnect && <ConnectModal onClose={() => setShowConnect(false)} />}
+			{editTarget && <ConnectModal editIntegration={editTarget} onClose={() => setEditTarget(null)} />}
 			{deleteTarget && (
 				<DeleteConfirmation
 					integration={deleteTarget}

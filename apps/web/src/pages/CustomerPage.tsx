@@ -1,7 +1,8 @@
 import { useState, useMemo, useCallback } from 'react'
 import { cn } from '@one-bear/ui'
-import type { SocialPlatform } from '@one-bear/shared-types'
 import { useCustomers, useCustomer, type Customer } from '@/api/useCustomers'
+import { CustomerEditDialog } from '@/components/customer/CustomerEditDialog'
+import { TagManager } from '@/components/customer/TagManager'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
@@ -29,6 +30,7 @@ function CustomerDetailPanel({
 	onClose: () => void
 }) {
 	const { data: customer, isLoading } = useCustomer(customerId)
+	const [showEdit, setShowEdit] = useState(false)
 
 	if (isLoading) {
 		return (
@@ -63,24 +65,43 @@ function CustomerDetailPanel({
 						)}
 					</div>
 				</div>
-				<button
-					onClick={onClose}
-					className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-				>
-					<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-						<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-					</svg>
-				</button>
+				<div className="flex items-center gap-1">
+					<button
+						onClick={() => setShowEdit(true)}
+						className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+						title="Edit customer"
+					>
+						<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								strokeWidth={2}
+								d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+							/>
+						</svg>
+					</button>
+					<button
+						onClick={onClose}
+						className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+					>
+						<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+						</svg>
+					</button>
+				</div>
 			</div>
 
 			<div className="flex flex-wrap gap-2">
 				<Badge platform={customer.platform}>{customer.platform}</Badge>
-				{customer.tags.map((tag) => (
-					<Badge key={tag} variant="secondary">
-						{tag}
-					</Badge>
-				))}
+				<TagManager customerId={customer.id} tags={customer.tags} />
 			</div>
+
+			{customer.notes && (
+				<div className="rounded-md bg-gray-50 p-3">
+					<p className="text-xs font-medium text-gray-500">Notes</p>
+					<p className="mt-1 text-sm text-gray-700">{customer.notes}</p>
+				</div>
+			)}
 
 			<div className="grid grid-cols-2 gap-4">
 				<div className="rounded-md bg-gray-50 p-3">
@@ -140,6 +161,10 @@ function CustomerDetailPanel({
 					</ScrollArea>
 				</div>
 			)}
+
+			{showEdit && (
+				<CustomerEditDialog customer={customer} onClose={() => setShowEdit(false)} />
+			)}
 		</div>
 	)
 }
@@ -156,7 +181,9 @@ export function CustomerPage() {
 		return Object.keys(p).length > 0 ? p : undefined
 	}, [search, platformFilter])
 
-	const { data: customers, isLoading, isError } = useCustomers(params)
+	const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } = useCustomers(params)
+
+	const customers = data?.pages.flatMap((p) => p.data) ?? []
 
 	const handleRowClick = useCallback((customer: Customer) => {
 		setSelectedCustomerId((prev) => (prev === customer.id ? null : customer.id))
@@ -221,7 +248,7 @@ export function CustomerPage() {
 									</tr>
 								</thead>
 								<tbody className="divide-y divide-gray-100">
-									{customers?.map((customer) => (
+									{customers.map((customer) => (
 										<tr
 											key={customer.id}
 											onClick={() => handleRowClick(customer)}
@@ -272,7 +299,7 @@ export function CustomerPage() {
 									))}
 								</tbody>
 							</table>
-							{(!customers || customers.length === 0) && (
+							{customers.length === 0 && (
 								<div className="py-12 text-center text-sm text-gray-500">
 									No customers found
 								</div>
@@ -281,7 +308,7 @@ export function CustomerPage() {
 
 						{/* Mobile cards */}
 						<div className="space-y-3 md:hidden">
-							{customers?.map((customer) => (
+							{customers.map((customer) => (
 								<button
 									key={customer.id}
 									type="button"
@@ -328,12 +355,21 @@ export function CustomerPage() {
 									)}
 								</button>
 							))}
-							{(!customers || customers.length === 0) && (
+							{customers.length === 0 && (
 								<div className="rounded-lg border border-gray-200 bg-white py-12 text-center text-sm text-gray-500">
 									No customers found
 								</div>
 							)}
 						</div>
+
+						{/* Load More */}
+						{hasNextPage && (
+							<div className="mt-4 flex justify-center">
+								<Button variant="outline" onClick={() => fetchNextPage()} loading={isFetchingNextPage}>
+									Load More
+								</Button>
+							</div>
+						)}
 					</div>
 
 					{/* Customer Detail Panel */}

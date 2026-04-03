@@ -94,6 +94,19 @@ export function useDeleteIntegration() {
 	})
 }
 
+export function useUpdateIntegration() {
+	const companyId = useCompanyId()
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: ({ integrationId, body }: { integrationId: string; body: object }) =>
+			api.integrations.update(companyId, integrationId, body),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ['integrations', companyId] })
+		},
+	})
+}
+
 export function useGreetings(integrationId: string) {
 	const companyId = useCompanyId()
 
@@ -200,6 +213,51 @@ export function useDeleteShortcut(integrationId: string) {
 	return useMutation({
 		mutationFn: (shortcutId: string) =>
 			api.integrations.deleteShortcut(companyId, integrationId, shortcutId),
+		onSuccess: () => {
+			queryClient.invalidateQueries({
+				queryKey: ['integrations', companyId, integrationId, 'shortcuts'],
+			})
+		},
+	})
+}
+
+export function useUpdateShortcut(integrationId: string) {
+	const companyId = useCompanyId()
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: ({ shortcutId, body }: { shortcutId: string; body: object }) =>
+			api.integrations.updateShortcut(companyId, integrationId, shortcutId, body),
+		onSuccess: () => {
+			queryClient.invalidateQueries({
+				queryKey: ['integrations', companyId, integrationId, 'shortcuts'],
+			})
+		},
+	})
+}
+
+export function useUpdateCategory(integrationId: string) {
+	const companyId = useCompanyId()
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: ({ categoryId, body }: { categoryId: string; body: { name: string } }) =>
+			api.integrations.updateCategory(companyId, integrationId, categoryId, body),
+		onSuccess: () => {
+			queryClient.invalidateQueries({
+				queryKey: ['integrations', companyId, integrationId, 'shortcuts'],
+			})
+		},
+	})
+}
+
+export function useDeleteCategory(integrationId: string) {
+	const companyId = useCompanyId()
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: (categoryId: string) =>
+			api.integrations.deleteCategory(companyId, integrationId, categoryId),
 		onSuccess: () => {
 			queryClient.invalidateQueries({
 				queryKey: ['integrations', companyId, integrationId, 'shortcuts'],

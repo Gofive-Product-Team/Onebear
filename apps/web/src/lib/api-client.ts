@@ -88,6 +88,11 @@ export const api = {
 			}),
 		delete: (companyId: string, integrationId: string) =>
 			fetchApi(`/companies/${companyId}/integrations/${integrationId}`, { method: 'DELETE' }),
+		update: (companyId: string, integrationId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/integrations/${integrationId}`, {
+				method: 'PUT',
+				body: JSON.stringify(body),
+			}),
 		greetings: (companyId: string, integrationId: string) =>
 			fetchApi(`/companies/${companyId}/integrations/${integrationId}/greetings`),
 		updateGreetings: (companyId: string, integrationId: string, body: object) =>
@@ -120,10 +125,26 @@ export const api = {
 			fetchApi(`/companies/${companyId}/integrations/${integrationId}/shortcuts/${shortcutId}`, {
 				method: 'DELETE',
 			}),
+		updateShortcut: (companyId: string, integrationId: string, shortcutId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/integrations/${integrationId}/shortcuts/${shortcutId}`, {
+				method: 'PUT',
+				body: JSON.stringify(body),
+			}),
+		updateCategory: (companyId: string, integrationId: string, categoryId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/integrations/${integrationId}/categories/${categoryId}`, {
+				method: 'PUT',
+				body: JSON.stringify(body),
+			}),
+		deleteCategory: (companyId: string, integrationId: string, categoryId: string) =>
+			fetchApi(`/companies/${companyId}/integrations/${integrationId}/categories/${categoryId}`, {
+				method: 'DELETE',
+			}),
 	},
 	users: {
 		me: (companyId: string) => fetchApi(`/companies/${companyId}/users/me`),
 		notifications: (companyId: string) => fetchApi(`/companies/${companyId}/users/me/notifications`),
+		updateNotifications: (companyId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/users/me/notifications`, { method: 'PUT', body: JSON.stringify(body) }),
 		list: (companyId: string) => fetchApi(`/companies/${companyId}/users`),
 	},
 	customers: {
@@ -131,6 +152,17 @@ export const api = {
 			fetchApi(`/companies/${companyId}/customers${params ? '?' + new URLSearchParams(params) : ''}`),
 		get: (companyId: string, customerId: string) =>
 			fetchApi(`/companies/${companyId}/customers/${customerId}`),
+		update: (companyId: string, customerId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/customers/${customerId}`, { method: 'PUT', body: JSON.stringify(body) }),
+		addTag: (companyId: string, customerId: string, tag: string) =>
+			fetchApi(`/companies/${companyId}/customers/${customerId}/tags`, {
+				method: 'POST',
+				body: JSON.stringify({ tag }),
+			}),
+		removeTag: (companyId: string, customerId: string, tag: string) =>
+			fetchApi(`/companies/${companyId}/customers/${customerId}/tags/${encodeURIComponent(tag)}`, {
+				method: 'DELETE',
+			}),
 	},
 	companies: {
 		featureSettings: (companyId: string) => fetchApi(`/companies/${companyId}/feature-settings`),
