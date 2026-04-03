@@ -302,6 +302,14 @@ public class LineAdapter : IPlatformAdapter
         HttpClient client = _httpClientFactory.CreateClient("line-api");
         client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", integration.Credentials?.AccessToken);
+
+        // Module Auth requires X-Line-Bot-Id to identify which bot to act as
+        // Without this header, LINE rejects with "Access to this API is not available"
+        if (!string.IsNullOrEmpty(integration.Credentials?.PageId))
+        {
+            client.DefaultRequestHeaders.TryAddWithoutValidation("X-Line-Bot-Id", integration.Credentials.PageId);
+        }
+
         return client;
     }
 }
