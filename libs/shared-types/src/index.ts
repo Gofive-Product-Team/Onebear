@@ -11,17 +11,50 @@ export interface ChatRoom {
 	lastMessageTimestamp: number | null // Unix ms
 }
 
+export type MessageType =
+	| 'Text'
+	| 'Image'
+	| 'Video'
+	| 'Audio'
+	| 'File'
+	| 'Sticker'
+	| 'Location'
+	| 'System'
+	| 'TemplateMessage'
+	| 'Carousel'
+	| 'ReactionAdded'
+	| 'ReactionRemoved'
+	| 'Note'
+	| 'Email'
+	| 'Story'
+	| 'Order'
+	| 'Product'
+	| 'Flex'
+	| 'Comment'
+
+export interface Attachment {
+	id: string
+	fileName: string
+	fileSize: number
+	mimeType: string
+	url: string
+	thumbnailUrl?: string
+}
+
 // Matches backend ChatMessageDto
 export interface ChatMessage {
 	id: string
 	roomId: string
 	content: string | null
-	type: string // "Text", "Image", "File", "System", etc. (PascalCase from backend)
+	type: MessageType | string // "Text", "Image", "File", "System", etc. (PascalCase from backend)
 	platform: string
 	deliveryStatus: string // "Pending", "Sent", "Delivered", "Failed"
 	senderName: string | null
 	senderType: string | null // "Agent", "Customer", "System", null
 	timestamp: number // Unix ms
+	metadata?: Record<string, unknown>
+	attachments?: Attachment[]
+	replyTo?: string
 }
 
 export interface PagedResponse<T> {

@@ -1,5 +1,6 @@
 import { cn } from '@one-bear/ui'
 import type { ChatMessage } from '@one-bear/shared-types'
+import { MessageRenderer } from './renderers/MessageRenderer'
 
 interface Props {
 	message: ChatMessage
@@ -56,9 +57,7 @@ export function MessageBubble({ message, currentUserId, onRetry }: Props) {
 	if (isSystem && msgType === 'system') {
 		return (
 			<div className="flex justify-center py-1">
-				<span className="inline-block rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-500">
-					{message.content ?? 'System message'}
-				</span>
+				<MessageRenderer message={message} />
 			</div>
 		)
 	}
@@ -85,29 +84,7 @@ export function MessageBubble({ message, currentUserId, onRetry }: Props) {
 						isFailed && 'ring-2 ring-red-300 bg-red-50 text-red-800',
 					)}
 				>
-					{msgType === 'image' ? (
-						message.content ? (
-							<img
-								src={message.content}
-								alt="Shared image"
-								className="max-w-[240px] rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-								loading="lazy"
-							/>
-						) : (
-							<span className="text-gray-400 italic">📷 Image</span>
-						)
-					) : msgType === 'file' ? (
-						<a
-							href={message.content ?? '#'}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="inline-flex items-center gap-2 text-sm underline"
-						>
-							📎 {message.content?.split('/').pop() ?? 'File'}
-						</a>
-					) : (
-						<p className="whitespace-pre-wrap">{message.content ?? ''}</p>
-					)}
+					<MessageRenderer message={message} />
 				</div>
 
 				{/* Timestamp + delivery status */}
