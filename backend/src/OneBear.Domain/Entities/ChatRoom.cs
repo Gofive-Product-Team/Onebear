@@ -4,16 +4,10 @@ using System.Text.Json.Serialization;
 using OneBear.Domain.Common;
 using OneBear.Domain.ValueObjects;
 
-public class ChatRoom : CosmosEntity, IAuditableEntity
+public class ChatRoom : MongoEntity, IAuditableEntity
 {
-    [JsonPropertyName("id")]
-    public string Id { get; set; } = Guid.NewGuid().ToString();
-
     [JsonPropertyName("companyId")]
     public string CompanyId { get; set; } = default!;
-
-    [JsonPropertyName("_schemaVersion")]
-    public int SchemaVersion { get; set; } = 1;
 
     [JsonPropertyName("userId")]
     public string UserId { get; set; } = default!;

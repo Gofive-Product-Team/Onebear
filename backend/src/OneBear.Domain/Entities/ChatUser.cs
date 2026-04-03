@@ -3,16 +3,10 @@ namespace OneBear.Domain.Entities;
 using System.Text.Json.Serialization;
 using OneBear.Domain.Common;
 
-public class ChatUser : CosmosEntity, IAuditableEntity
+public class ChatUser : MongoEntity, IAuditableEntity
 {
-    [JsonPropertyName("id")]
-    public string Id { get; set; } = default!;
-
     [JsonPropertyName("companyId")]
     public string CompanyId { get; set; } = default!;
-
-    [JsonPropertyName("_schemaVersion")]
-    public int SchemaVersion { get; set; } = 1;
 
     [JsonPropertyName("externalId")]
     public string ExternalId { get; set; } = default!;

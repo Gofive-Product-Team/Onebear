@@ -2,16 +2,10 @@ namespace OneBear.Domain.Entities;
 
 using System.Text.Json.Serialization;
 
-public class CompanyFeatureSettings : CosmosEntity
+public class CompanyFeatureSettings : MongoEntity
 {
-    [JsonPropertyName("id")]
-    public string Id { get; set; } = Guid.NewGuid().ToString();
-
     [JsonPropertyName("companyId")]
     public string CompanyId { get; set; } = default!;
-
-    [JsonPropertyName("_schemaVersion")]
-    public int SchemaVersion { get; set; } = 1;
 
     [JsonPropertyName("features")]
     public Dictionary<string, bool> Features { get; set; } = new();

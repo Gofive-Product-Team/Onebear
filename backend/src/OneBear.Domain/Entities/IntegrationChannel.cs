@@ -4,16 +4,10 @@ using System.Text.Json.Serialization;
 using OneBear.Domain.Common;
 using OneBear.Domain.ValueObjects;
 
-public class IntegrationChannel : CosmosEntity, IAuditableEntity
+public class IntegrationChannel : MongoEntity, IAuditableEntity
 {
-    [JsonPropertyName("id")]
-    public string Id { get; set; } = Guid.NewGuid().ToString();
-
     [JsonPropertyName("companyId")]
     public string CompanyId { get; set; } = default!;
-
-    [JsonPropertyName("_schemaVersion")]
-    public int SchemaVersion { get; set; } = 1;
 
     [JsonPropertyName("platform")]
     public string Platform { get; set; } = default!;

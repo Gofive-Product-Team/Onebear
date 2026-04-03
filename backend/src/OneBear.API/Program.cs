@@ -16,8 +16,8 @@ using OneBear.Domain.Enums;
 using OneBear.Domain.Interfaces;
 using OneBear.Application;
 using OneBear.Infrastructure;
-using OneBear.Infrastructure.Persistence.Cosmos;
-using OneBear.Infrastructure.Persistence.Cosmos.Seeding;
+using OneBear.Infrastructure.Persistence.Mongo;
+using OneBear.Infrastructure.Persistence.Mongo.Seeding;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -203,7 +203,7 @@ builder.Services.AddScoped<IRoomAuthorizationService, RoomAuthorizationService>(
 // Application layer (services, validators, orchestrator)
 builder.Services.AddApplication();
 
-// Infrastructure (Cosmos DB, Redis, Repositories, MassTransit, Platform Adapters)
+// Infrastructure (MongoDB, Redis, Repositories, MassTransit, Platform Adapters)
 builder.Services.AddInfrastructure(builder.Configuration);
 
 // Health checks
@@ -282,15 +282,13 @@ if (app.Environment.IsDevelopment())
     try
     {
         using IServiceScope scope = app.Services.CreateScope();
-        CosmosDbContext cosmosDb = scope.ServiceProvider.GetRequiredService<CosmosDbContext>();
-        await cosmosDb.EnsureDatabaseCreatedAsync();
-
-        CosmosSeeder seeder = scope.ServiceProvider.GetRequiredService<CosmosSeeder>();
+        MongoSeeder seeder = scope.ServiceProvider.GetRequiredService<MongoSeeder>();
+        await seeder.EnsureIndexesAsync();
         await seeder.SeedDevelopmentDataAsync();
     }
     catch (Exception ex)
     {
-        app.Logger.LogWarning(ex, "Cosmos DB not available — skipping database seeding. App will run but database operations will fail.");
+        app.Logger.LogWarning(ex, "MongoDB not available — skipping database seeding. App will run but database operations will fail.");
     }
 }
 

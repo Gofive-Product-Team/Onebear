@@ -1,18 +1,19 @@
 services:
   # ─── Infrastructure ─────────────────────────────────
 
-  cosmosdb:
-    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview
-    container_name: onebear-cosmosdb
+  mongodb:
+    image: mongo:7
+    container_name: onebear-mongodb
     ports:
-      - "8081:8081"
-      - "1234:1234"
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsk https://localhost:8081/ || exit 1"]
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
-      retries: 30
-      start_period: 60s
+      retries: 10
+      start_period: 30s
 
   redis:
     image: redis:7-alpine
@@ -66,7 +67,8 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__CosmosDb=AccountEndpoint=https://cosmosdb:8081;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==
+      - ConnectionStrings__MongoDb=mongodb://mongodb:27017
+      - MongoDb__DatabaseName=OneBear
       - ConnectionStrings__Redis=redis:6379
       - ConnectionStrings__RabbitMq=amqp://guest:guest@rabbitmq:5672
       - Azure__BlobStorage__ConnectionString=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1
@@ -76,6 +78,8 @@ services:
       - Cors__AllowedOrigins__1=http://localhost:5174
       - ApiKeys__Primary=dev-webhook-key-change-in-production
     depends_on:
+      mongodb:
+        condition: service_healthy
       redis:
         condition: service_healthy
       rabbitmq:
@@ -89,10 +93,13 @@ services:
     container_name: onebear-worker
     environment:
       - DOTNET_ENVIRONMENT=Development
-      - ConnectionStrings__CosmosDb=AccountEndpoint=https://cosmosdb:8081;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==
+      - ConnectionStrings__MongoDb=mongodb://mongodb:27017
+      - MongoDb__DatabaseName=OneBear
       - ConnectionStrings__Redis=redis:6379
       - ConnectionStrings__RabbitMq=amqp://guest:guest@rabbitmq:5672
     depends_on:
+      mongodb:
+        condition: service_healthy
       redis:
         condition: service_healthy
       rabbitmq:
@@ -100,7 +107,7 @@ services:
     profiles: ["app"]
 
 volumes:
-  cosmosdb-data:
+  mongodb-data:
   redis-data:
   rabbitmq-data:
   azurite-data:

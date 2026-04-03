@@ -2,16 +2,10 @@ namespace OneBear.Domain.Entities;
 
 using System.Text.Json.Serialization;
 
-public class Attachment : CosmosEntity
+public class Attachment : MongoEntity
 {
-    [JsonPropertyName("id")]
-    public string Id { get; set; } = Guid.NewGuid().ToString();
-
     [JsonPropertyName("roomId")]
     public string RoomId { get; set; } = default!;
-
-    [JsonPropertyName("_schemaVersion")]
-    public int SchemaVersion { get; set; } = 1;
 
     [JsonPropertyName("messageId")]
     public string MessageId { get; set; } = default!;

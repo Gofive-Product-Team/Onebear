@@ -1,16 +1,16 @@
 namespace OneBear.Infrastructure;
 
-using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Driver;
 using OneBear.Domain.Enums;
 using OneBear.Domain.Interfaces;
 using OneBear.Domain.Interfaces.Repositories;
 using OneBear.Infrastructure.Caching;
 using OneBear.Infrastructure.Messaging;
-using OneBear.Infrastructure.Persistence.Cosmos;
-using OneBear.Infrastructure.Persistence.Cosmos.Repositories;
-using OneBear.Infrastructure.Persistence.Cosmos.Seeding;
+using OneBear.Infrastructure.Persistence.Mongo;
+using OneBear.Infrastructure.Persistence.Mongo.Repositories;
+using OneBear.Infrastructure.Persistence.Mongo.Seeding;
 using Azure.Storage.Blobs;
 using OneBear.Infrastructure.PlatformAdapters;
 using OneBear.Infrastructure.Storage;
@@ -20,39 +20,16 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        // Cosmos DB
-        services.AddSingleton(sp =>
+        // MongoDB
+        services.AddSingleton<IMongoClient>(sp =>
         {
-            string connectionString = configuration.GetConnectionString("CosmosDb")
-                ?? throw new InvalidOperationException("CosmosDb connection string is required");
-
-            CosmosClientOptions clientOptions = new()
-            {
-                SerializerOptions = new CosmosSerializationOptions
-                {
-                    PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
-                }
-            };
-
-            // Trust self-signed certificate from Cosmos DB Emulator (localhost:8081)
-            bool isEmulator = connectionString.Contains("localhost", StringComparison.OrdinalIgnoreCase)
-                           || connectionString.Contains("127.0.0.1", StringComparison.OrdinalIgnoreCase);
-            if (isEmulator)
-            {
-                clientOptions.HttpClientFactory = () => new HttpClient(
-                    new HttpClientHandler
-                    {
-                        ServerCertificateCustomValidationCallback =
-                            HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-                    });
-                clientOptions.ConnectionMode = ConnectionMode.Gateway;
-            }
-
-            return new CosmosClient(connectionString, clientOptions);
+            string connectionString = configuration.GetConnectionString("MongoDb")
+                ?? throw new InvalidOperationException("MongoDb connection string is required");
+            return new MongoClient(connectionString);
         });
 
-        string databaseName = configuration.GetValue<string>("CosmosDb:DatabaseName") ?? "OneBear";
-        services.AddSingleton(sp => new CosmosDbContext(sp.GetRequiredService<CosmosClient>(), databaseName));
+        string databaseName = configuration.GetValue<string>("MongoDb:DatabaseName") ?? "OneBear";
+        services.AddSingleton(sp => new MongoDbContext(sp.GetRequiredService<IMongoClient>(), databaseName));
 
         // Redis
         services.AddSingleton<IConnectionMultiplexer>(sp =>
@@ -74,7 +51,7 @@ public static class DependencyInjection
         services.AddScoped<ICompanyFeatureSettingsRepository, CompanyFeatureSettingsRepository>();
         services.AddScoped<IUserVerificationRepository, UserVerificationRepository>();
 
-        services.AddTransient<CosmosSeeder>();
+        services.AddTransient<MongoSeeder>();
 
         // Azure Blob Storage
         string? blobConnectionString = configuration.GetConnectionString("BlobStorage");

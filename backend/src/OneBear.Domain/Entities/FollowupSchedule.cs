@@ -2,16 +2,10 @@ namespace OneBear.Domain.Entities;
 
 using System.Text.Json.Serialization;
 
-public class FollowupSchedule : CosmosEntity
+public class FollowupSchedule : MongoEntity
 {
-    [JsonPropertyName("id")]
-    public string Id { get; set; } = Guid.NewGuid().ToString();
-
     [JsonPropertyName("companyId")]
     public string CompanyId { get; set; } = default!;
-
-    [JsonPropertyName("_schemaVersion")]
-    public int SchemaVersion { get; set; } = 1;
 
     [JsonPropertyName("roomId")]
     public string RoomId { get; set; } = default!;
