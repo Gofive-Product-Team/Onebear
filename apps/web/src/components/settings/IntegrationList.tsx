@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { ConnectPlatformDialog } from './integration/ConnectPlatformDialog'
+import { IntegrationDetailPanel } from './integration/IntegrationDetailPanel'
 
 const AVAILABLE_PLATFORMS = [
 	{ value: 'Line', label: 'LINE', color: 'bg-green-500' },
@@ -189,6 +190,7 @@ export function IntegrationList() {
 	const [showConnect, setShowConnect] = useState(false)
 	const [deleteTarget, setDeleteTarget] = useState<Integration | null>(null)
 	const [editTarget, setEditTarget] = useState<Integration | null>(null)
+	const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null)
 
 	const { data: integrations, isLoading, isError } = useIntegrations()
 	const deleteMutation = useDeleteIntegration()
@@ -254,7 +256,8 @@ export function IntegrationList() {
 					{(Array.isArray(integrations) ? integrations : []).map((integration) => (
 						<div
 							key={integration.id}
-							className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+							className="flex cursor-pointer items-center justify-between rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:border-blue-300"
+							onClick={() => setSelectedIntegration(integration)}
 						>
 							<div className="flex items-center gap-4">
 								<div
@@ -334,6 +337,12 @@ export function IntegrationList() {
 				</div>
 			)}
 
+			{selectedIntegration && (
+				<IntegrationDetailPanel
+					integration={selectedIntegration}
+					onClose={() => setSelectedIntegration(null)}
+				/>
+			)}
 			{showConnect && (
 				<ConnectPlatformDialog onClose={() => setShowConnect(false)} onSuccess={() => setShowConnect(false)} />
 			)}
