@@ -242,7 +242,8 @@ public class LineAdapter : IPlatformAdapter
     {
         HttpClient client = CreateAuthedClient(integration);
 
-        HttpResponseMessage response = await client.GetAsync($"{LineApiBase}/profile/{externalUserId}", ct);
+        string normalizedId = NormalizeLineUserId(externalUserId);
+        HttpResponseMessage response = await client.GetAsync($"{LineApiBase}/profile/{normalizedId}", ct);
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogWarning("LINE GetUserProfile failed: {StatusCode}", response.StatusCode);
@@ -281,7 +282,9 @@ public class LineAdapter : IPlatformAdapter
         string recipientId, object message, string operation, IntegrationChannel integration, CancellationToken ct)
     {
         HttpClient client = CreateAuthedClient(integration);
-        var body = new { to = recipientId, messages = new[] { message } };
+        // Normalize userId in case DB has old LU... format from before the fix
+        string normalizedId = NormalizeLineUserId(recipientId);
+        var body = new { to = normalizedId, messages = new[] { message } };
         HttpResponseMessage response = await client.PostAsJsonAsync($"{LineApiBase}/message/push", body, ct);
 
         if (!response.IsSuccessStatusCode)
