@@ -53,7 +53,12 @@ async function fetchApi<T>(path: string, options?: RequestInit, retryCount = 0):
 
 	const text = await response.text()
 	if (!text) return {} as T
-	return JSON.parse(text) as T
+	const parsed = JSON.parse(text)
+	// Auto-unwrap API response wrapper { data: [...] } or { data: [...], success: bool }
+	if (parsed && typeof parsed === 'object' && 'data' in parsed && Array.isArray(parsed.data)) {
+		return parsed.data as T
+	}
+	return parsed as T
 }
 
 export const api = {
@@ -185,5 +190,15 @@ export const api = {
 			fetchApi(`/companies/${companyId}/chatbot/knowledge-sources/${sourceId}`, {
 				method: 'DELETE',
 			}),
+	},
+	oauth: {
+		getAuthUrl: (companyId: string, platform: string) =>
+			fetchApi(`/companies/${companyId}/oauth/${platform}/auth-url`),
+		callback: (companyId: string, platform: string, body: object) =>
+			fetchApi(`/companies/${companyId}/oauth/${platform}/callback`, { method: 'POST', body: JSON.stringify(body) }),
+		facebookToken: (companyId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/oauth/facebook/token`, { method: 'POST', body: JSON.stringify(body) }),
+		whatsappToken: (companyId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/oauth/whatsapp/token`, { method: 'POST', body: JSON.stringify(body) }),
 	},
 }

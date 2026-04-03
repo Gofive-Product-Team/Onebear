@@ -3,6 +3,8 @@ namespace OneBear.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
+using OneBear.Application.Integrations.Config;
+using OneBear.Application.Integrations.Services;
 using OneBear.Domain.Enums;
 using OneBear.Domain.Interfaces;
 using OneBear.Domain.Interfaces.Repositories;
@@ -112,6 +114,10 @@ public static class DependencyInjection
             client.BaseAddress = new Uri("https://partner.shopeemobile.com/api/v2/");
             ConfigureJsonClient(client);
         });
+
+        // OAuth
+        services.Configure<OAuthOptions>(configuration.GetSection(OAuthOptions.SectionName));
+        services.AddScoped<OAuthService>();
 
         return services;
     }

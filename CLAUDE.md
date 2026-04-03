@@ -580,6 +580,35 @@ See `docs/architecture/08-dependencies.md` for full map. Key integrations:
 | Exceptionless + Sentry (fragmented) | OpenTelemetry + Azure Monitor (unified) |
 | Azure Functions (timer triggers) | .NET Worker Service + Quartz.NET |
 
+### Platform Integration Architecture
+
+One Bear handles all platform OAuth internally (no GoFive Core dependency).
+
+**OAuth Controller** (`OAuthController.cs`): Generates auth URLs, handles callbacks, exchanges tokens.
+
+**OAuth Service** (`OAuthService.cs`): Business logic for OAuth flows, state validation via Redis.
+
+**Platform Connect Flow:**
+
+| Platform | OAuth Type | Connect Method |
+|----------|-----------|----------------|
+| LINE | Module Auth (server redirect) | OAuth redirect OR manual token input |
+| Facebook | FB JS SDK (client-side popup) | `FB.login()` → exchange for page token |
+| Instagram | Auto from Facebook | Auto-created when Facebook connected |
+| WhatsApp | FB JS SDK embedded signup | `FB.login()` → extract phone number |
+| Shopee | Open Platform (server redirect) | OAuth redirect → callback with shop_id |
+| TikTok | TikTok Shop (server redirect) | OAuth redirect → callback |
+| Lazada | Open Platform (server redirect) | OAuth redirect → callback |
+| Email | Google/Microsoft OAuth (server redirect) | OAuth redirect OR manual SMTP |
+
+**Token Refresh** (`IntegrationTokenValidationJob`): Quartz.NET job checks expiring tokens every 15 minutes. Per-adapter refresh logic: Shopee (4h cycle), TikTok, Lazada (30d cycle), Gmail (1h), Outlook (1h). LINE/Facebook/WhatsApp use long-lived tokens.
+
+**OAuth State**: Stored in Redis with 10-minute TTL (key: `oauth:state:{stateToken}`).
+
+**OAuth Config**: Platform app credentials in appsettings.json `OAuth` section, sourced from Azure Key Vault in production.
+
+**Credentials Security**: `PlatformCredentialSummaryDto` never exposes secrets — only identifiers (channelId, pageName, shopId) and token status.
+
 ### MongoDB Collections & Key Indexes
 
 | Collection | Primary Query Field | Key Indexes |

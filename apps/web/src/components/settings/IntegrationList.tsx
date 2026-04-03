@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
+import { ConnectPlatformDialog } from './integration/ConnectPlatformDialog'
 
 const AVAILABLE_PLATFORMS = [
 	{ value: 'Line', label: 'LINE', color: 'bg-green-500' },
@@ -32,8 +33,8 @@ function ConnectModal({
 	const isEditing = !!editIntegration
 	const [selectedPlatform, setSelectedPlatform] = useState(editIntegration?.platform ?? '')
 	const [name, setName] = useState(editIntegration?.name ?? '')
-	const [token, setToken] = useState(editIntegration?.credentials?.token ?? '')
-	const [secret, setSecret] = useState(editIntegration?.credentials?.secret ?? '')
+	const [token, setToken] = useState('')
+	const [secret, setSecret] = useState('')
 
 	const connectMutation = useConnectIntegration()
 	const updateMutation = useUpdateIntegration()
@@ -225,7 +226,7 @@ export function IntegrationList() {
 				<Button onClick={() => setShowConnect(true)}>Connect Platform</Button>
 			</div>
 
-			{(!integrations || integrations.length === 0) ? (
+			{(!Array.isArray(integrations) || integrations.length === 0) ? (
 				<div className="rounded-lg border border-dashed border-gray-300 bg-white p-12 text-center">
 					<svg
 						className="mx-auto h-12 w-12 text-gray-300"
@@ -250,7 +251,7 @@ export function IntegrationList() {
 				</div>
 			) : (
 				<div className="space-y-3">
-					{integrations.map((integration) => (
+					{(Array.isArray(integrations) ? integrations : []).map((integration) => (
 						<div
 							key={integration.id}
 							className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
@@ -272,7 +273,7 @@ export function IntegrationList() {
 									{integration.platform.slice(0, 2).toUpperCase()}
 								</div>
 								<div>
-									<p className="font-medium text-gray-900">{integration.name}</p>
+									<p className="font-medium text-gray-900">{integration.name ?? integration.platform}</p>
 									<div className="mt-0.5 flex items-center gap-2">
 										<Badge platform={integration.platform}>{integration.platform}</Badge>
 										<Badge
@@ -280,6 +281,19 @@ export function IntegrationList() {
 										>
 											{integration.status}
 										</Badge>
+										{integration.credentials?.tokenStatus && (
+											<Badge
+												variant={
+													integration.credentials.tokenStatus === 'valid'
+														? 'success'
+														: integration.credentials.tokenStatus === 'expiring_soon'
+															? 'warning'
+															: 'destructive'
+												}
+											>
+												{integration.credentials.tokenStatus}
+											</Badge>
+										)}
 									</div>
 								</div>
 							</div>
@@ -320,7 +334,9 @@ export function IntegrationList() {
 				</div>
 			)}
 
-			{showConnect && <ConnectModal onClose={() => setShowConnect(false)} />}
+			{showConnect && (
+				<ConnectPlatformDialog onClose={() => setShowConnect(false)} onSuccess={() => setShowConnect(false)} />
+			)}
 			{editTarget && <ConnectModal editIntegration={editTarget} onClose={() => setEditTarget(null)} />}
 			{deleteTarget && (
 				<DeleteConfirmation

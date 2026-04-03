@@ -2,13 +2,31 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api-client'
 import { useAuthStore } from '@/stores/auth-store'
 
+export interface IntegrationCredentialSummary {
+	channelId: string | null
+	pageName: string | null
+	pageId: string | null
+	phoneNumber: string | null
+	shopId: string | null
+	shopName: string | null
+	emailAddress: string | null
+	hasAccessToken: boolean
+	hasRefreshToken: boolean
+	tokenExpiresAt: number | null
+	tokenStatus: string | null
+}
+
 export interface Integration {
 	id: string
 	platform: string
-	name: string
-	status: 'active' | 'inactive'
-	connectedAt: string
-	credentials?: Record<string, string>
+	name: string | null
+	status: string
+	isActive: boolean
+	hasChatFeature: boolean
+	webhookUrl: string | null
+	credentials: IntegrationCredentialSummary | null
+	createdTimestamp: number
+	updatedTimestamp: number | null
 }
 
 export interface GreetingMessage {

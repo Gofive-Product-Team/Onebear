@@ -2,8 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OneBear.API.Auth;
-using OneBear.Application.Common;
 using OneBear.Application.Common.DTOs;
+using OneBear.Application.Integrations.Mappings;
 using OneBear.Domain.Entities;
 using OneBear.Domain.Interfaces.Repositories;
 using OneBear.Domain.ValueObjects;
@@ -32,13 +32,7 @@ public class IntegrationsController : ControllerBase
     public async Task<IActionResult> ListIntegrations(string companyId, CancellationToken ct)
     {
         List<IntegrationChannel> integrations = await _integrationRepo.GetByCompanyIdAsync(companyId, ct);
-        List<IntegrationChannelDto> dtos = integrations.Select(i => new IntegrationChannelDto
-        {
-            Id = i.Id,
-            Platform = i.Platform,
-            IsActive = i.IsActive,
-            CreatedTimestamp = i.CreatedTimestamp
-        }).ToList();
+        List<IntegrationChannelDto> dtos = integrations.Select(IntegrationMapper.ToDto).ToList();
         return Ok(new { data = dtos });
     }
 
@@ -51,33 +45,40 @@ public class IntegrationsController : ControllerBase
     {
         string userId = User.GetUserId();
         long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        string id = Guid.NewGuid().ToString();
+        string webhookUrl = $"/api/v1/webhooks/{platform.ToLower()}/{companyId}/{id}";
 
         IntegrationChannel channel = new()
         {
-            Id = Guid.NewGuid().ToString(),
+            Id = id,
             CompanyId = companyId,
             Platform = platform.ToLowerInvariant(),
+            Name = request.Name,
             IsActive = true,
             HasChatFeature = true,
+            WebhookUrl = webhookUrl,
             Credentials = new PlatformCredentials
             {
                 ChannelId = request.ChannelId,
                 ChannelSecret = request.ChannelSecret,
-                AccessToken = request.ChannelAccessToken,
-                RefreshToken = request.RefreshToken
+                AccessToken = request.ChannelAccessToken ?? request.AccessToken,
+                RefreshToken = request.RefreshToken,
+                AppSecret = request.AppSecret,
+                PhoneNumberId = request.PhoneNumberId,
+                BusinessAccountId = request.BusinessAccountId,
+                EmailAddress = request.EmailAddress,
+                EmailPassword = request.EmailPassword,
+                SmtpHost = request.SmtpHost,
+                SmtpPort = request.SmtpPort,
+                ImapHost = request.ImapHost,
+                ImapPort = request.ImapPort,
             },
             CreatedBy = userId,
             CreatedTimestamp = now
         };
 
         IntegrationChannel created = await _integrationRepo.CreateAsync(channel, ct);
-        return StatusCode(201, new IntegrationChannelDto
-        {
-            Id = created.Id,
-            Platform = created.Platform,
-            IsActive = created.IsActive,
-            CreatedTimestamp = created.CreatedTimestamp
-        });
+        return StatusCode(201, IntegrationMapper.ToDto(created));
     }
 
     /// <summary>Disconnect (delete) an integration.</summary>
@@ -278,10 +279,22 @@ public class IntegrationsController : ControllerBase
 // Request DTOs
 public record ConnectPlatformRequest
 {
+    public string? Name { get; init; }
     public string? ChannelId { get; init; }
     public string? ChannelSecret { get; init; }
     public string? ChannelAccessToken { get; init; }
     public string? RefreshToken { get; init; }
+    public string? PageAccessToken { get; init; }
+    public string? AppSecret { get; init; }
+    public string? PhoneNumberId { get; init; }
+    public string? BusinessAccountId { get; init; }
+    public string? AccessToken { get; init; }
+    public string? EmailAddress { get; init; }
+    public string? EmailPassword { get; init; }
+    public string? SmtpHost { get; init; }
+    public int? SmtpPort { get; init; }
+    public string? ImapHost { get; init; }
+    public int? ImapPort { get; init; }
 }
 
 public record UpdateGreetingMessagesRequest

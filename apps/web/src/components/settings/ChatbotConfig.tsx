@@ -252,7 +252,7 @@ export function ChatbotConfig() {
 		if (config) {
 			setEnabled(config.enabled)
 			setScheduleMode(config.scheduleMode)
-			setSchedule(config.schedule.length > 0 ? config.schedule : DEFAULT_SCHEDULE)
+			setSchedule(config.schedule?.length > 0 ? config.schedule : DEFAULT_SCHEDULE)
 			setBusinessOverview(config.businessOverview)
 			setResponseStyle(config.responseStyle)
 			setInstructions(config.instructions)

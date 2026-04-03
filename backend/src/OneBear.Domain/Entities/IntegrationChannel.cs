@@ -9,6 +9,12 @@ public class IntegrationChannel : MongoEntity, IAuditableEntity
     [JsonPropertyName("companyId")]
     public string CompanyId { get; set; } = default!;
 
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("webhookUrl")]
+    public string? WebhookUrl { get; set; }
+
     [JsonPropertyName("platform")]
     public string Platform { get; set; } = default!;
 

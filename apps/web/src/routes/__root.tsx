@@ -13,6 +13,7 @@ import { CustomerPage } from '../pages/CustomerPage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { PaymentPage } from '../pages/PaymentPage'
 import { SatisfactionPage } from '../pages/SatisfactionPage'
+import { OAuthCallbackPage } from '../pages/OAuthCallbackPage'
 
 // SignalR context — connection lives at root level, survives route changes
 interface SignalRContextValue {
@@ -160,6 +161,12 @@ const satisfactionRoute = createRoute({
 	component: SatisfactionPage,
 })
 
+const oauthCallbackRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: '/oauth/callback',
+	component: OAuthCallbackPage,
+})
+
 // Build route tree
 export const routeTree = rootRoute.addChildren([
 	indexRoute,
@@ -176,4 +183,5 @@ export const routeTree = rootRoute.addChildren([
 	settingsChatbotRoute,
 	paymentRoute,
 	satisfactionRoute,
+	oauthCallbackRoute,
 ])
