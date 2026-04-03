@@ -83,9 +83,8 @@ public class LineAdapter : IPlatformAdapter
 
         JsonElement evt = events[0];
         string eventType = evt.GetProperty("type").GetString() ?? "";
-        string rawUserId = evt.GetProperty("source").GetProperty("userId").GetString() ?? "";
-        // LINE Module Auth userId format: LU{userId}-{botId} → normalize to standard U{userId}
-        string externalUserId = NormalizeLineUserId(rawUserId);
+        // LINE Module Auth userId format: LU{hash}-{botId} — store as-is (SalesBear does the same)
+        string externalUserId = evt.GetProperty("source").GetProperty("userId").GetString() ?? "";
         long timestamp = evt.GetProperty("timestamp").GetInt64();
         string? replyToken = evt.TryGetProperty("replyToken", out JsonElement rt) ? rt.GetString() : null;
 
@@ -242,8 +241,7 @@ public class LineAdapter : IPlatformAdapter
     {
         HttpClient client = CreateAuthedClient(integration);
 
-        string normalizedId = NormalizeLineUserId(externalUserId);
-        HttpResponseMessage response = await client.GetAsync($"{LineApiBase}/profile/{normalizedId}", ct);
+        HttpResponseMessage response = await client.GetAsync($"{LineApiBase}/profile/{externalUserId}", ct);
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogWarning("LINE GetUserProfile failed: {StatusCode}", response.StatusCode);
@@ -282,9 +280,9 @@ public class LineAdapter : IPlatformAdapter
         string recipientId, object message, string operation, IntegrationChannel integration, CancellationToken ct)
     {
         HttpClient client = CreateAuthedClient(integration);
-        // Normalize userId in case DB has old LU... format from before the fix
-        string normalizedId = NormalizeLineUserId(recipientId);
-        var body = new { to = normalizedId, messages = new[] { message } };
+        // LINE Module Auth uses LU... format userId — send as-is with X-Line-Bot-Id header
+        _logger.LogInformation("LINE PushMessage: to={To}", recipientId);
+        var body = new { to = recipientId, messages = new[] { message } };
         HttpResponseMessage response = await client.PostAsJsonAsync($"{LineApiBase}/message/push", body, ct);
 
         if (!response.IsSuccessStatusCode)
