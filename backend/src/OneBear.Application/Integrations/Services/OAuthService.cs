@@ -80,6 +80,7 @@ public class OAuthService
                    $"?response_type=code" +
                    $"&client_id={Uri.EscapeDataString(_oauthOptions.Line.ClientId)}" +
                    $"&redirect_uri={Uri.EscapeDataString(callbackUrl)}" +
+                   $"&scope={Uri.EscapeDataString("message:mark_as_read message:receive message:send profile:read")}" +
                    $"&state={Uri.EscapeDataString(state)}";
         }
 
