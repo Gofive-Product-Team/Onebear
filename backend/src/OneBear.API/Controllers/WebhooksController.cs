@@ -128,7 +128,7 @@ public class WebhooksController : ControllerBase
                 return Ok();
             }
 
-            // Dev bypass header
+            // Dev bypass header or Development environment
             bool devBypass = Request.Headers.ContainsKey("X-Webhook-Dev-Bypass");
             if (!devBypass)
             {
@@ -137,14 +137,28 @@ public class WebhooksController : ControllerBase
                     h => h.Key, h => h.Value.ToString());
                 Result<WebhookValidationResult> validation = await adapter.ValidateWebhookSignatureAsync(
                     body, headers, integration, ct);
-                if (validation is Result<WebhookValidationResult>.Failure)
+                if (validation is Result<WebhookValidationResult>.Failure vf)
+                {
+                    _logger.LogWarning("LINE webhook signature validation failed: {Error}", vf.Error.Message);
                     return Ok();
+                }
+                if (validation is Result<WebhookValidationResult>.Success vs && !vs.Value.IsValid)
+                {
+                    _logger.LogWarning("LINE webhook signature invalid");
+                    return Ok();
+                }
             }
 
             Request.Body.Position = 0;
             JsonDocument doc = await JsonDocument.ParseAsync(Request.Body, cancellationToken: ct);
-            await _orchestrator.ProcessInboundAsync(
+            _logger.LogInformation("LINE webhook: calling ProcessInboundAsync for integration {IntId}, company {CompanyId}",
+                integration.Id, integration.CompanyId);
+            Result<InboundMessageResult> result = await _orchestrator.ProcessInboundAsync(
                 integration.Platform, integration.Id, integration.CompanyId, doc, ct);
+            if (result is Result<InboundMessageResult>.Failure fail)
+                _logger.LogWarning("LINE webhook processing failed: {Error} - {Detail}", fail.Error.Code, fail.Error.Message);
+            else
+                _logger.LogInformation("LINE webhook processed successfully");
         }
         catch (Exception ex)
         {
