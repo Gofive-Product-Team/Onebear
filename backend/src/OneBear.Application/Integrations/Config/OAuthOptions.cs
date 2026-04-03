@@ -17,7 +17,7 @@ public class OAuthOptions
 public class LineOAuthOptions
 {
     public string ModuleAuthUrl { get; set; } = "https://manager.line.biz/module/auth/v1/authorize";
-    public string TokenUrl { get; set; } = "https://api.line.me/oauth2/v2.1/token";
+    public string TokenUrl { get; set; } = "https://api.line.me/module/auth/v1/token";
     public string ClientId { get; set; } = default!;
 }
 
