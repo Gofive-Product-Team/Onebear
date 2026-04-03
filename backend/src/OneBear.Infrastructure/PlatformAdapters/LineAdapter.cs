@@ -28,6 +28,23 @@ public class LineAdapter : IPlatformAdapter
 
     public string Platform => SocialPlatform.Line;
 
+    /// <summary>
+    /// LINE Module Auth userIds have format: LU{userId}-{botId}
+    /// Standard LINE userId format: U{32hex} (33 chars)
+    /// This normalizes Module Auth format to standard format for Messaging API.
+    /// </summary>
+    private static string NormalizeLineUserId(string rawUserId)
+    {
+        // Format: LUd77640fd8188319489643a1e14b539a5-U482b7aafb78f58424e726240c525311d
+        // Extract: Ud77640fd8188319489643a1e14b539a5
+        if (rawUserId.StartsWith("LU") && rawUserId.Contains('-'))
+        {
+            string userPart = rawUserId.Split('-')[0]; // LUd77640fd...
+            return userPart[1..]; // Remove 'L' prefix → Ud77640fd...
+        }
+        return rawUserId; // Already standard format
+    }
+
     public Task<Result<WebhookValidationResult>> ValidateWebhookSignatureAsync(
         byte[] body, IDictionary<string, string> headers, IntegrationChannel integration, CancellationToken ct)
     {
@@ -66,7 +83,9 @@ public class LineAdapter : IPlatformAdapter
 
         JsonElement evt = events[0];
         string eventType = evt.GetProperty("type").GetString() ?? "";
-        string externalUserId = evt.GetProperty("source").GetProperty("userId").GetString() ?? "";
+        string rawUserId = evt.GetProperty("source").GetProperty("userId").GetString() ?? "";
+        // LINE Module Auth userId format: LU{userId}-{botId} → normalize to standard U{userId}
+        string externalUserId = NormalizeLineUserId(rawUserId);
         long timestamp = evt.GetProperty("timestamp").GetInt64();
         string? replyToken = evt.TryGetProperty("replyToken", out JsonElement rt) ? rt.GetString() : null;
 
