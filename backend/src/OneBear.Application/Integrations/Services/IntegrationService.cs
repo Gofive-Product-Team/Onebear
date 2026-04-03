@@ -73,4 +73,21 @@ public class IntegrationService : IIntegrationService
 
         return new Result<IntegrationChannel>.Success(channel);
     }
+
+    public async Task<IntegrationChannel?> GetByBotIdAsync(string platform, string botId, CancellationToken ct)
+    {
+        // Cache by bot_id for fast webhook lookup
+        string cacheKey = $"int:bot:{platform}:{botId}";
+
+        IntegrationChannel? cached = await _cache.GetAsync<IntegrationChannel>(cacheKey, ct);
+        if (cached is not null)
+            return cached;
+
+        // Lookup integration where Credentials.PageId == botId (bot_id stored in PageId)
+        IntegrationChannel? channel = await _repo.GetByBotIdAsync(platform, botId, ct);
+        if (channel is not null)
+            await _cache.SetAsync(cacheKey, channel, CacheTtl, ct);
+
+        return channel;
+    }
 }

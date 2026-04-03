@@ -91,6 +91,70 @@ public class WebhooksController : ControllerBase
     // Platform webhooks (anonymous)
     // ──────────────────────────────────────────────
 
+    // Fixed LINE webhook URL (no companyId/integrationId in path)
+    // LINE sends `destination` (bot_id) in payload — use it to lookup the integration
+    [HttpPost("api/v1/webhooks/line")]
+    public async Task<IActionResult> LineWebhookFixed(CancellationToken ct)
+    {
+        Request.EnableBuffering();
+        byte[] body;
+        using (MemoryStream ms = new())
+        {
+            await Request.Body.CopyToAsync(ms, ct);
+            body = ms.ToArray();
+        }
+        Request.Body.Position = 0;
+
+        // Parse destination (bot_id) from LINE webhook payload
+        try
+        {
+            JsonDocument payload = await JsonDocument.ParseAsync(Request.Body, cancellationToken: ct);
+            string? destination = payload.RootElement.TryGetProperty("destination", out JsonElement destEl)
+                ? destEl.GetString() : null;
+
+            if (string.IsNullOrEmpty(destination))
+            {
+                _logger.LogWarning("LINE webhook missing 'destination' field");
+                return Ok();
+            }
+
+            // Lookup integration by bot_id (stored in PageId field)
+            IntegrationChannel? integration = await _integrationService.GetByBotIdAsync(
+                SocialPlatform.Line, destination, ct);
+
+            if (integration is null || !integration.IsActive)
+            {
+                _logger.LogWarning("No active LINE integration found for destination {Destination}", destination);
+                return Ok();
+            }
+
+            // Dev bypass header
+            bool devBypass = Request.Headers.ContainsKey("X-Webhook-Dev-Bypass");
+            if (!devBypass)
+            {
+                IPlatformAdapter adapter = _sp.GetRequiredKeyedService<IPlatformAdapter>(integration.Platform);
+                IDictionary<string, string> headers = Request.Headers.ToDictionary(
+                    h => h.Key, h => h.Value.ToString());
+                Result<WebhookValidationResult> validation = await adapter.ValidateWebhookSignatureAsync(
+                    body, headers, integration, ct);
+                if (validation is Result<WebhookValidationResult>.Failure)
+                    return Ok();
+            }
+
+            Request.Body.Position = 0;
+            JsonDocument doc = await JsonDocument.ParseAsync(Request.Body, cancellationToken: ct);
+            await _orchestrator.ProcessInboundAsync(
+                integration.Platform, integration.Id, integration.CompanyId, doc, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing LINE webhook");
+        }
+
+        return Ok();
+    }
+
+    // Legacy LINE webhook with companyId/integrationId (keep for backward compat)
     [HttpPost("api/v1/webhooks/line/{companyId}/{integrationId}")]
     public Task<IActionResult> LineWebhook(string companyId, string integrationId, CancellationToken ct)
         => HandlePlatformWebhookAsync(SocialPlatform.Line, companyId, integrationId, ct);

@@ -52,4 +52,14 @@ public class IntegrationChannelRepository : MongoRepositoryBase<IntegrationChann
 
         return await _collection.Find(filter).Limit(100).ToListAsync(ct);
     }
+
+    public async Task<IntegrationChannel?> GetByBotIdAsync(string platform, string botId, CancellationToken ct = default)
+    {
+        // LINE bot_id is stored in credentials.pageId
+        FilterDefinition<IntegrationChannel> filter = Builders<IntegrationChannel>.Filter.And(
+            Builders<IntegrationChannel>.Filter.Eq(c => c.Platform, platform),
+            Builders<IntegrationChannel>.Filter.Eq(c => c.IsActive, true),
+            Builders<IntegrationChannel>.Filter.Eq("credentials.pageId", botId));
+        return await _collection.Find(filter).FirstOrDefaultAsync(ct);
+    }
 }

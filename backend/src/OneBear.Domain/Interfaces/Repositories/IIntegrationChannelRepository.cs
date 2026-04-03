@@ -11,4 +11,5 @@ public interface IIntegrationChannelRepository
     Task<IntegrationChannel> UpdateAsync(IntegrationChannel channel, CancellationToken ct = default);
     Task DeleteAsync(string id, string companyId, CancellationToken ct = default);
     Task<List<IntegrationChannel>> GetAllWithExpiringTokensAsync(long expiryThresholdTimestamp, CancellationToken ct = default);
+    Task<IntegrationChannel?> GetByBotIdAsync(string platform, string botId, CancellationToken ct = default);
 }
