@@ -276,44 +276,104 @@ public class OAuthService
 
             string callbackUrl = $"{_oauthOptions.CallbackBaseUrl}/{SocialPlatform.Line.ToLower()}";
 
-            FormUrlEncodedContent tokenRequestContent = new(new Dictionary<string, string>
+            // Step 1: Exchange authorization code for bot_id via LINE Module Auth
+            // Endpoint: https://manager.line.biz/module/auth/v1/token
+            // Returns: { bot_id, scopes } — NOT access_token
+            FormUrlEncodedContent moduleAuthContent = new(new Dictionary<string, string>
             {
                 ["grant_type"] = "authorization_code",
                 ["code"] = code,
                 ["redirect_uri"] = callbackUrl,
                 ["client_id"] = _oauthOptions.Line.ClientId,
+                ["client_secret"] = _oauthOptions.Line.ClientSecret,
             });
 
-            HttpResponseMessage tokenResponse = await httpClient.PostAsync(
-                _oauthOptions.Line.TokenUrl, tokenRequestContent, ct);
+            HttpResponseMessage moduleResponse = await httpClient.PostAsync(
+                _oauthOptions.Line.TokenUrl, moduleAuthContent, ct);
 
-            if (!tokenResponse.IsSuccessStatusCode)
+            if (!moduleResponse.IsSuccessStatusCode)
             {
-                string errorContent = await tokenResponse.Content.ReadAsStringAsync(ct);
+                string errorContent = await moduleResponse.Content.ReadAsStringAsync(ct);
                 _logger.LogError(
-                    "LINE token exchange failed: {StatusCode} - {Content}",
-                    tokenResponse.StatusCode, errorContent);
+                    "LINE Module Auth token exchange failed: {StatusCode} - {Content}",
+                    moduleResponse.StatusCode, errorContent);
                 return new Result<OAuthConnectResponse>.Failure(
-                    new Error("LINE_TOKEN_EXCHANGE_FAILED", "Failed to exchange LINE authorization code for tokens.", ErrorType.PlatformError));
+                    new Error("LINE_TOKEN_EXCHANGE_FAILED",
+                        $"Failed to exchange LINE authorization code. LINE responded: {errorContent}",
+                        ErrorType.PlatformError));
             }
 
-            LineTokenResponse? tokenResult = await tokenResponse.Content.ReadFromJsonAsync<LineTokenResponse>(ct);
+            JsonDocument moduleResult = await JsonDocument.ParseAsync(
+                await moduleResponse.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
 
-            if (tokenResult is null || string.IsNullOrEmpty(tokenResult.AccessToken))
+            string? botId = moduleResult.RootElement.TryGetProperty("bot_id", out JsonElement botIdEl)
+                ? botIdEl.GetString() : null;
+
+            if (string.IsNullOrEmpty(botId))
             {
                 return new Result<OAuthConnectResponse>.Failure(
-                    new Error("LINE_TOKEN_INVALID", "LINE token response is invalid or missing access token.", ErrorType.PlatformError));
+                    new Error("LINE_BOT_ID_MISSING", "LINE Module Auth did not return a bot_id.", ErrorType.PlatformError));
             }
 
-            long? expiresAt = tokenResult.ExpiresIn.HasValue
-                ? DateTimeOffset.UtcNow.AddSeconds(tokenResult.ExpiresIn.Value).ToUnixTimeMilliseconds()
-                : null;
+            _logger.LogInformation("LINE Module Auth successful: bot_id={BotId}", botId);
+
+            // Step 2: Get a channel access token via client_credentials
+            // Endpoint: https://api.line.me/v2/oauth/accessToken
+            FormUrlEncodedContent accessTokenContent = new(new Dictionary<string, string>
+            {
+                ["grant_type"] = "client_credentials",
+                ["client_id"] = _oauthOptions.Line.ClientId,
+                ["client_secret"] = _oauthOptions.Line.ClientSecret,
+            });
+
+            HttpResponseMessage accessTokenResponse = await httpClient.PostAsync(
+                _oauthOptions.Line.AccessTokenUrl, accessTokenContent, ct);
+
+            string? accessToken = null;
+            if (accessTokenResponse.IsSuccessStatusCode)
+            {
+                JsonDocument tokenDoc = await JsonDocument.ParseAsync(
+                    await accessTokenResponse.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
+                accessToken = tokenDoc.RootElement.TryGetProperty("access_token", out JsonElement atEl)
+                    ? atEl.GetString() : null;
+            }
+            else
+            {
+                _logger.LogWarning("Failed to get LINE channel access token via client_credentials: {Status}",
+                    accessTokenResponse.StatusCode);
+            }
+
+            // Step 3: Get bot info (optional — enrich with display name)
+            string? botDisplayName = null;
+            if (!string.IsNullOrEmpty(accessToken))
+            {
+                try
+                {
+                    HttpRequestMessage botInfoRequest = new(HttpMethod.Get, _oauthOptions.Line.BotInfoUrl);
+                    botInfoRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+                    HttpResponseMessage botInfoResponse = await httpClient.SendAsync(botInfoRequest, ct);
+
+                    if (botInfoResponse.IsSuccessStatusCode)
+                    {
+                        JsonDocument botInfoDoc = await JsonDocument.ParseAsync(
+                            await botInfoResponse.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
+                        botDisplayName = botInfoDoc.RootElement.TryGetProperty("displayName", out JsonElement dnEl)
+                            ? dnEl.GetString() : null;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to fetch LINE bot info for bot {BotId}", botId);
+                }
+            }
 
             PlatformCredentials credentials = new()
             {
-                AccessToken = tokenResult.AccessToken,
-                RefreshToken = tokenResult.RefreshToken,
-                TokenExpiresAt = expiresAt,
+                ChannelId = _oauthOptions.Line.ClientId,
+                ChannelSecret = _oauthOptions.Line.ClientSecret,
+                AccessToken = accessToken,
+                PageId = botId, // Store bot_id in PageId field
+                PageName = botDisplayName ?? $"LINE Bot ({botId[..8]}...)",
             };
 
             return await CreateIntegrationAsync(companyId, SocialPlatform.Line, credentials, userId, ct);

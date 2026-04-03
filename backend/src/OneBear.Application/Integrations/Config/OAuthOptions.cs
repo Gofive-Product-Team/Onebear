@@ -17,8 +17,11 @@ public class OAuthOptions
 public class LineOAuthOptions
 {
     public string ModuleAuthUrl { get; set; } = "https://manager.line.biz/module/auth/v1/authorize";
-    public string TokenUrl { get; set; } = "https://api.line.me/module/auth/v1/token";
+    public string TokenUrl { get; set; } = "https://manager.line.biz/module/auth/v1/token";
+    public string AccessTokenUrl { get; set; } = "https://api.line.me/v2/oauth/accessToken";
+    public string BotInfoUrl { get; set; } = "https://api.line.me/v2/bot/info";
     public string ClientId { get; set; } = default!;
+    public string ClientSecret { get; set; } = default!;
 }
 
 public class FacebookOAuthOptions
