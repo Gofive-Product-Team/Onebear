@@ -1,86 +1,88 @@
-import { useState, useRef, useCallback, useEffect, type KeyboardEvent, type ChangeEvent } from 'react'
+// NOTE: Parent must pass platform prop (e.g., from current room data)
+import { useState, useRef, useCallback, useEffect } from 'react'
+import { useEditor, EditorContent } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
+import Link from '@tiptap/extension-link'
+import Placeholder from '@tiptap/extension-placeholder'
 import { cn } from '@one-bear/ui'
 import { useSendMessage } from '@/api/useMessages'
 import { Button } from '@/components/ui/Button'
+import { ComposerToolbar } from './composer/ComposerToolbar'
+import { AttachmentPreview } from './composer/AttachmentPreview'
 
 interface Props {
 	companyId: string
 	roomId: string
+	platform: string
 	sendTyping: (isTyping: boolean) => void
 }
 
-const MAX_ROWS = 4
-const LINE_HEIGHT = 20
+export function Composer({ companyId, roomId, platform, sendTyping }: Props) {
+	const isRichMode = platform === 'Email'
 
-export function Composer({ companyId, roomId, sendTyping }: Props) {
-	const [content, setContent] = useState('')
-	const textareaRef = useRef<HTMLTextAreaElement>(null)
+	const [attachments, setAttachments] = useState<File[]>([])
+	const fileInputRef = useRef<HTMLInputElement>(null)
 	const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 	const isTypingRef = useRef(false)
 
 	const { mutate: send, isPending } = useSendMessage(companyId, roomId)
 
-	const canSend = content.trim().length > 0 && !isPending
-
-	// Auto-resize textarea
-	const adjustHeight = useCallback(() => {
-		const textarea = textareaRef.current
-		if (!textarea) return
-		textarea.style.height = 'auto'
-		const maxHeight = LINE_HEIGHT * MAX_ROWS + 16 // padding
-		textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`
-	}, [])
-
-	const handleSend = useCallback(() => {
-		const trimmed = content.trim()
-		if (!trimmed || isPending) return
-
-		send(
-			{ content: trimmed, messageType: 'text' },
-			{
-				onSuccess: () => {
-					setContent('')
-					// Reset textarea height
-					if (textareaRef.current) {
-						textareaRef.current.style.height = 'auto'
-					}
-					// Stop typing indicator
-					if (isTypingRef.current) {
-						sendTyping(false)
-						isTypingRef.current = false
-					}
-				},
+	const editor = useEditor({
+		extensions: [
+			StarterKit.configure({
+				heading: false,
+				blockquote: false,
+				codeBlock: false,
+				code: false,
+				horizontalRule: false,
+				bulletList: false,
+				orderedList: false,
+				bold: isRichMode ? {} : false,
+				italic: isRichMode ? {} : false,
+			}),
+			...(isRichMode
+				? [
+						Link.configure({
+							openOnClick: false,
+							HTMLAttributes: { class: 'text-blue-600 underline' },
+						}),
+					]
+				: []),
+			Placeholder.configure({
+				placeholder: 'Type a message...',
+			}),
+		],
+		editorProps: {
+			attributes: {
+				class: cn(
+					'flex-1 min-h-[36px] max-h-[80px] overflow-y-auto px-3 py-2 text-sm',
+					'focus:outline-none',
+					'[&_p]:m-0',
+				),
 			},
-		)
-	}, [content, isPending, send, sendTyping])
-
-	const handleKeyDown = useCallback(
-		(e: KeyboardEvent<HTMLTextAreaElement>) => {
-			if (e.key === 'Enter' && !e.shiftKey) {
-				e.preventDefault()
-				handleSend()
-			}
+			handleKeyDown: (_view, event) => {
+				if (event.key === 'Enter' && !event.shiftKey) {
+					event.preventDefault()
+					handleSend()
+					return true
+				}
+				return false
+			},
 		},
-		[handleSend],
-	)
-
-	const handleChange = useCallback(
-		(e: ChangeEvent<HTMLTextAreaElement>) => {
-			setContent(e.target.value)
+		onUpdate: ({ editor: ed }) => {
+			const text = ed.getText()
 
 			// Typing indicator management
-			if (!isTypingRef.current && e.target.value.length > 0) {
+			if (!isTypingRef.current && text.length > 0) {
 				isTypingRef.current = true
 				sendTyping(true)
 			}
 
-			// Clear previous timeout
 			if (typingTimeoutRef.current) {
 				clearTimeout(typingTimeoutRef.current)
 			}
 
-			// Stop typing after 2 seconds of inactivity
-			if (e.target.value.length > 0) {
+			if (text.length > 0) {
 				typingTimeoutRef.current = setTimeout(() => {
 					if (isTypingRef.current) {
 						sendTyping(false)
@@ -88,20 +90,57 @@ export function Composer({ companyId, roomId, sendTyping }: Props) {
 					}
 				}, 2000)
 			} else {
-				// Content was cleared
 				if (isTypingRef.current) {
 					sendTyping(false)
 					isTypingRef.current = false
 				}
 			}
 		},
-		[sendTyping],
+	})
+
+	const handleSend = useCallback(() => {
+		if (!editor) return
+		const text = editor.getText().trim()
+		if (!text || isPending) return
+
+		const content = isRichMode ? editor.getHTML() : editor.getText()
+
+		send(
+			{ content, messageType: 'text' },
+			{
+				onSuccess: () => {
+					editor.commands.clearContent(true)
+					if (isTypingRef.current) {
+						sendTyping(false)
+						isTypingRef.current = false
+					}
+					setAttachments([])
+				},
+			},
+		)
+	}, [editor, isPending, isRichMode, send, sendTyping])
+
+	const handleEmojiSelect = useCallback(
+		(emoji: string) => {
+			editor?.chain().focus().insertContent(emoji).run()
+		},
+		[editor],
 	)
 
-	// Adjust height when content changes
-	useEffect(() => {
-		adjustHeight()
-	}, [content, adjustHeight])
+	const handleAttachClick = useCallback(() => {
+		fileInputRef.current?.click()
+	}, [])
+
+	const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+		const files = Array.from(e.target.files ?? [])
+		setAttachments((prev) => [...prev, ...files])
+		// Reset input so same file can be selected again
+		if (fileInputRef.current) fileInputRef.current.value = ''
+	}, [])
+
+	const handleRemoveAttachment = useCallback((index: number) => {
+		setAttachments((prev) => prev.filter((_, i) => i !== index))
+	}, [])
 
 	// Cleanup typing timeout on unmount
 	useEffect(() => {
@@ -117,43 +156,40 @@ export function Composer({ companyId, roomId, sendTyping }: Props) {
 
 	// Reset content when room changes
 	useEffect(() => {
-		setContent('')
-		if (textareaRef.current) {
-			textareaRef.current.style.height = 'auto'
-		}
-	}, [roomId])
+		editor?.commands.clearContent(true)
+		setAttachments([])
+	}, [roomId, editor])
+
+	const canSend = (editor?.getText().trim().length ?? 0) > 0 && !isPending
 
 	return (
-		<div className="shrink-0 border-t border-gray-200 bg-white px-4 py-3">
-			<div className="flex items-end gap-2">
-				<textarea
-					ref={textareaRef}
-					value={content}
-					onChange={handleChange}
-					onKeyDown={handleKeyDown}
-					placeholder="Type a message..."
-					rows={1}
+		<div className="shrink-0 border-t border-gray-200 bg-white">
+			{/* Toolbar */}
+			<ComposerToolbar
+				editor={editor}
+				isRichMode={isRichMode}
+				onEmojiSelect={handleEmojiSelect}
+				onAttachClick={handleAttachClick}
+			/>
+
+			{/* Attachment previews */}
+			<AttachmentPreview files={attachments} onRemove={handleRemoveAttachment} />
+
+			{/* Editor row */}
+			<div className="flex items-end gap-2 px-4 pb-3">
+				<div
 					className={cn(
-						'flex-1 resize-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm',
-						'placeholder:text-gray-400',
-						'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1',
-						'disabled:cursor-not-allowed disabled:opacity-50',
+						'flex-1 rounded-lg border border-gray-300 bg-white',
+						'focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-1',
+						isPending && 'cursor-not-allowed opacity-50',
 					)}
-					style={{ lineHeight: `${LINE_HEIGHT}px` }}
-					disabled={isPending}
-				/>
-				<Button
-					onClick={handleSend}
-					disabled={!canSend}
-					size="md"
-					className="shrink-0"
 				>
+					<EditorContent editor={editor} />
+				</div>
+
+				<Button onClick={handleSend} disabled={!canSend} size="md" className="shrink-0">
 					{isPending ? (
-						<svg
-							className="h-4 w-4 animate-spin"
-							viewBox="0 0 24 24"
-							fill="none"
-						>
+						<svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
 							<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
 							<path
 								className="opacity-75"
@@ -169,6 +205,15 @@ export function Composer({ companyId, roomId, sendTyping }: Props) {
 					<span className="sr-only">Send</span>
 				</Button>
 			</div>
+
+			{/* Hidden file input */}
+			<input
+				ref={fileInputRef}
+				type="file"
+				multiple
+				className="hidden"
+				onChange={handleFileChange}
+			/>
 		</div>
 	)
 }

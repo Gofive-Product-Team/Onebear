@@ -116,7 +116,7 @@ export function ChatLayout({ roomId }: Props) {
 
 						{/* Messages + Composer */}
 						<MessageList companyId={companyId} roomId={roomId} typingUsers={typingUsers} />
-						<Composer companyId={companyId} roomId={roomId} sendTyping={sendTyping} />
+						<Composer companyId={companyId} roomId={roomId} platform={activeRoom?.platform ?? ''} sendTyping={sendTyping} />
 					</>
 				) : (
 					/* No room selected state */
