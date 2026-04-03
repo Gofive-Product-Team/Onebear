@@ -59,7 +59,7 @@ public class WebhooksController : ControllerBase
         if (!devBypass)
         {
             IDictionary<string, string> headers = Request.Headers
-                .ToDictionary(h => h.Key, h => h.Value.ToString());
+                .ToDictionary(h => h.Key, h => h.Value.ToString(), StringComparer.OrdinalIgnoreCase);
 
             IPlatformAdapter adapter = _sp.GetRequiredKeyedService<IPlatformAdapter>(platform);
             Result<WebhookValidationResult> signatureResult =
@@ -134,7 +134,7 @@ public class WebhooksController : ControllerBase
             {
                 IPlatformAdapter adapter = _sp.GetRequiredKeyedService<IPlatformAdapter>(integration.Platform);
                 IDictionary<string, string> headers = Request.Headers.ToDictionary(
-                    h => h.Key, h => h.Value.ToString());
+                    h => h.Key, h => h.Value.ToString(), StringComparer.OrdinalIgnoreCase);
                 Result<WebhookValidationResult> validation = await adapter.ValidateWebhookSignatureAsync(
                     body, headers, integration, ct);
                 if (validation is Result<WebhookValidationResult>.Failure vf)
