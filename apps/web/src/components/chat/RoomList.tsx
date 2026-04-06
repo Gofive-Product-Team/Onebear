@@ -56,13 +56,13 @@ export function RoomList({ activeRoomId }: Props) {
 	)
 
 	return (
-		<div className="flex flex-col h-full bg-white border-r border-gray-200">
+		<div className="flex flex-col h-full bg-bg-page border-r border-border">
 			{/* Header with badge count */}
 			<div className="shrink-0 px-4 pt-4 pb-2">
 				<div className="flex items-center justify-between mb-3">
-					<h2 className="text-lg font-semibold text-gray-900">Chats</h2>
+					<h2 className="text-[1.1rem] font-[800] tracking-[-0.5px] text-t1">Chats</h2>
 					{badgeData && badgeData.total > 0 && (
-						<span className="inline-flex items-center justify-center h-5 min-w-5 rounded-full bg-blue-600 px-1.5 text-[10px] font-medium text-white">
+						<span className="inline-flex items-center justify-center h-5 min-w-5 rounded-full bg-primary px-1.5 text-[10px] font-medium text-white">
 							{badgeData.total > 99 ? '99+' : badgeData.total}
 						</span>
 					)}
@@ -76,7 +76,7 @@ export function RoomList({ activeRoomId }: Props) {
 			</div>
 
 			{/* Filter tabs */}
-			<div className="shrink-0 flex border-b border-gray-200">
+			<div className="shrink-0 flex border-b border-border">
 				{tabs.map((tab) => (
 					<button
 						key={tab.key}
@@ -84,10 +84,10 @@ export function RoomList({ activeRoomId }: Props) {
 						onClick={() => setActiveTab(tab.key)}
 						className={cn(
 							'flex-1 px-2 py-2 text-xs font-medium transition-colors',
-							'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500',
+							'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary',
 							activeTab === tab.key
-								? 'text-blue-600 border-b-2 border-blue-600'
-								: 'text-gray-500 hover:text-gray-700',
+								? 'text-primary border-b-2 border-primary font-bold'
+								: 'text-t3 hover:text-t2',
 						)}
 					>
 						{tab.label}
@@ -101,10 +101,10 @@ export function RoomList({ activeRoomId }: Props) {
 					<div className="flex flex-col gap-1 p-2">
 						{Array.from({ length: 8 }).map((_, i) => (
 							<div key={i} className="flex items-start gap-3 px-4 py-3 animate-pulse">
-								<div className="h-10 w-10 rounded-full bg-gray-200 shrink-0" />
+								<div className="h-10 w-10 rounded-full bg-bg-input shrink-0" />
 								<div className="flex-1 space-y-2">
-									<div className="h-3.5 w-3/4 rounded bg-gray-200" />
-									<div className="h-3 w-1/2 rounded bg-gray-200" />
+									<div className="h-3.5 w-3/4 rounded bg-bg-input" />
+									<div className="h-3 w-1/2 rounded bg-bg-input" />
 								</div>
 							</div>
 						))}
@@ -113,14 +113,14 @@ export function RoomList({ activeRoomId }: Props) {
 
 				{isError && (
 					<div className="p-6 text-center">
-						<p className="text-sm text-red-600">Failed to load conversations.</p>
-						<p className="text-xs text-gray-400 mt-1">Please try again later.</p>
+						<p className="text-sm text-error">Failed to load conversations.</p>
+						<p className="text-xs text-t3 mt-1">Please try again later.</p>
 					</div>
 				)}
 
 				{!isLoading && !isError && rooms.length === 0 && (
 					<div className="p-6 text-center">
-						<p className="text-sm text-gray-500">No conversations found.</p>
+						<p className="text-sm text-t3">No conversations found.</p>
 					</div>
 				)}
 
