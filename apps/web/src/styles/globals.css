@@ -1,1 +1,172 @@
 @import "tailwindcss";
+
+/* ── FONT FACES ─────────────────────────────────── */
+@font-face { font-family: 'Gofive'; src: url('/fonts/Gofive-Text.otf') format('opentype'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Gofive'; src: url('/fonts/Gofive-Medium.otf') format('opentype'); font-weight: 500; font-display: swap; }
+@font-face { font-family: 'Gofive'; src: url('/fonts/Gofive-Semi Bold.otf') format('opentype'); font-weight: 600; font-display: swap; }
+@font-face { font-family: 'Gofive'; src: url('/fonts/Gofive-Bold.otf') format('opentype'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Sarabun'; src: url('/fonts/Sarabun-Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+
+/* ── TAILWIND v4 THEME ──────────────────────────── */
+@theme {
+  --font-family-sans: 'Gofive', 'Sarabun', system-ui, sans-serif;
+
+  --color-bg-app: var(--ob-bg-app);
+  --color-bg-page: var(--ob-bg-page);
+  --color-bg-card: var(--ob-bg-card);
+  --color-bg-input: var(--ob-bg-input);
+  --color-bg-hover: var(--ob-bg-hover);
+  --color-bg-active: var(--ob-bg-active);
+
+  --color-t1: var(--ob-t1);
+  --color-t2: var(--ob-t2);
+  --color-t3: var(--ob-t3);
+
+  --color-border: var(--ob-border);
+  --color-border-input: var(--ob-border-input);
+
+  --color-primary: #039D91;
+  --color-primary-light: #04D4C6;
+  --color-primary-alpha: var(--ob-primary-alpha);
+  --color-primary-glow: var(--ob-primary-glow);
+
+  --color-success: var(--ob-success);
+  --color-success-bg: var(--ob-success-bg);
+  --color-warning: var(--ob-warning);
+  --color-warning-bg: var(--ob-warning-bg);
+  --color-error: var(--ob-error);
+  --color-error-bg: var(--ob-error-bg);
+  --color-info: var(--ob-info);
+  --color-info-bg: var(--ob-info-bg);
+
+  --color-scrollbar: var(--ob-scrollbar);
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+
+  --shadow-sm: var(--ob-shadow-sm);
+  --shadow-md: var(--ob-shadow-md);
+
+  --animate-pulse-dot: pulse-dot 2.5s ease-in-out infinite;
+  --animate-typing: typing 1.2s infinite;
+  --animate-fade-in: fadeIn 0.2s ease-out;
+  --animate-slide-in: slideIn 0.25s ease-out;
+}
+
+/* ── DARK THEME (default) ───────────────────────── */
+[data-theme="dark"] {
+  --ob-bg-app: #0A0A10;
+  --ob-bg-page: #12121A;
+  --ob-bg-card: #18181F;
+  --ob-bg-input: #1E1E2C;
+  --ob-bg-hover: rgba(255, 255, 255, 0.04);
+  --ob-bg-active: rgba(3, 157, 145, 0.1);
+
+  --ob-t1: #F2F2FA;
+  --ob-t2: #9898BC;
+  --ob-t3: #7272A0;
+
+  --ob-border: rgba(255, 255, 255, 0.06);
+  --ob-border-input: rgba(255, 255, 255, 0.09);
+
+  --ob-primary-alpha: rgba(3, 157, 145, 0.14);
+  --ob-primary-glow: rgba(3, 157, 145, 0.38);
+
+  --ob-success: #34D399;
+  --ob-success-bg: rgba(52, 211, 153, 0.12);
+  --ob-warning: #FBBF24;
+  --ob-warning-bg: rgba(251, 191, 36, 0.12);
+  --ob-error: #F87171;
+  --ob-error-bg: rgba(248, 113, 113, 0.12);
+  --ob-info: #60A5FA;
+  --ob-info-bg: rgba(96, 165, 250, 0.12);
+
+  --ob-shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.4);
+  --ob-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --ob-scrollbar: rgba(255, 255, 255, 0.08);
+}
+
+/* ── LIGHT THEME ────────────────────────────────── */
+[data-theme="light"] {
+  --ob-bg-app: #EEF0F5;
+  --ob-bg-page: #FFFFFF;
+  --ob-bg-card: #FFFFFF;
+  --ob-bg-input: #F0F1F5;
+  --ob-bg-hover: rgba(0, 0, 0, 0.03);
+  --ob-bg-active: rgba(3, 157, 145, 0.07);
+
+  --ob-t1: #0D0D1A;
+  --ob-t2: #44485A;
+  --ob-t3: #626878;
+
+  --ob-border: rgba(0, 0, 0, 0.07);
+  --ob-border-input: rgba(0, 0, 0, 0.09);
+
+  --ob-primary-alpha: rgba(3, 157, 145, 0.10);
+  --ob-primary-glow: rgba(3, 157, 145, 0.22);
+
+  --ob-success: #10B981;
+  --ob-success-bg: #D1FAE5;
+  --ob-warning: #F59E0B;
+  --ob-warning-bg: #FEF3C7;
+  --ob-error: #EF4444;
+  --ob-error-bg: #FEE2E2;
+  --ob-info: #3B82F6;
+  --ob-info-bg: #DBEAFE;
+
+  --ob-shadow-sm: 0 1px 4px rgba(15, 23, 42, 0.07);
+  --ob-shadow-md: 0 4px 12px rgba(15, 23, 42, 0.1);
+  --ob-scrollbar: rgba(0, 0, 0, 0.1);
+}
+
+/* ── KEYFRAMES ──────────────────────────────────── */
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 var(--color-primary-glow); }
+  50% { box-shadow: 0 0 0 4px rgba(3, 157, 145, 0); }
+}
+
+@keyframes typing {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-5px); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ── BASE STYLES ────────────────────────────────── */
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-family-sans);
+  background: var(--color-bg-app);
+  color: var(--color-t1);
+  font-size: 14px;
+  transition: background 0.35s, color 0.35s;
+}
+
+/* ── SCROLLBAR ──────────────────────────────────── */
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: 2px; }
+
+/* ── TIPTAP EDITOR PLACEHOLDER ──────────────────── */
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--color-t3);
+  pointer-events: none;
+  height: 0;
+}
