@@ -42,7 +42,7 @@ export function ChatLayout({ roomId }: Props) {
 			{/* Room list panel - always visible on desktop, conditional on mobile */}
 			<div
 				className={cn(
-					'w-80 shrink-0 border-r border-gray-200',
+					'w-[300px] shrink-0 border-r border-border',
 					'hidden md:flex md:flex-col',
 					effectiveMobileView === 'list' && 'flex flex-col md:flex md:flex-col',
 					effectiveMobileView === 'chat' && 'hidden md:flex md:flex-col',
@@ -62,7 +62,7 @@ export function ChatLayout({ roomId }: Props) {
 				{roomId ? (
 					<>
 						{/* Chat header */}
-						<div className="shrink-0 flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
+						<div className="shrink-0 flex items-center justify-between border-b border-border bg-bg-card px-4 py-3">
 							<div className="flex items-center gap-3">
 								{/* SignalR status */}
 								<span
@@ -76,7 +76,7 @@ export function ChatLayout({ roomId }: Props) {
 								<button
 									type="button"
 									onClick={() => setMobileView('list')}
-									className="md:hidden text-gray-500 hover:text-gray-700"
+									className="md:hidden text-t3 hover:text-t1"
 								>
 									<svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
 										<path
@@ -87,11 +87,11 @@ export function ChatLayout({ roomId }: Props) {
 									</svg>
 								</button>
 								<div>
-									<h2 className="text-sm font-semibold text-gray-900">
+									<h2 className="text-sm font-semibold text-t1">
 										{activeRoom?.customerName ?? 'Loading...'}
 									</h2>
 									{activeRoom?.assignToUserId && (
-										<p className="text-xs text-gray-400">
+										<p className="text-xs text-t3">
 											Assigned to {activeRoom.assignToUserId}
 										</p>
 									)}
@@ -102,8 +102,8 @@ export function ChatLayout({ roomId }: Props) {
 								onClick={toggleSidebar}
 								className={cn(
 									'hidden md:inline-flex items-center justify-center h-8 w-8 rounded-md transition-colors',
-									'text-gray-500 hover:text-gray-700 hover:bg-gray-100',
-									sidebarOpen && 'bg-gray-100 text-gray-700',
+									'text-t3 hover:text-t1 hover:bg-bg-hover',
+									sidebarOpen && 'bg-bg-hover text-t1',
 								)}
 								title={sidebarOpen ? 'Hide details' : 'Show details'}
 							>
@@ -120,15 +120,15 @@ export function ChatLayout({ roomId }: Props) {
 					</>
 				) : (
 					/* No room selected state */
-					<div className="hidden md:flex flex-1 items-center justify-center bg-gray-50">
+					<div className="hidden md:flex flex-1 items-center justify-center bg-bg-card">
 						<div className="text-center">
-							<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
-								<svg className="h-8 w-8 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+							<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-bg-input">
+								<svg className="h-8 w-8 text-t3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
 									<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" />
 								</svg>
 							</div>
-							<h3 className="text-lg font-medium text-gray-900">Select a conversation</h3>
-							<p className="mt-1 text-sm text-gray-500">
+							<h3 className="text-lg font-medium text-t1">Select a conversation</h3>
+							<p className="mt-1 text-sm text-t2">
 								Choose a room from the list to start chatting.
 							</p>
 						</div>
@@ -138,7 +138,7 @@ export function ChatLayout({ roomId }: Props) {
 
 			{/* Right sidebar - details panel */}
 			{roomId && activeRoom && sidebarOpen && (
-				<div className="hidden md:block w-[300px] shrink-0">
+				<div className="hidden md:block w-[320px] shrink-0">
 					<ChatSidebar room={activeRoom} connection={connection} />
 				</div>
 			)}
