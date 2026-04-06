@@ -12,7 +12,7 @@ function DeliveryStatusIcon({ status }: { status: string }) {
 	switch (status) {
 		case 'Sent':
 			return (
-				<svg className="h-3.5 w-3.5 text-gray-400" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+				<svg className="h-3.5 w-3.5 text-t3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
 					<path d="M4 8.5L7 11.5L12 5" />
 				</svg>
 			)
@@ -20,14 +20,14 @@ function DeliveryStatusIcon({ status }: { status: string }) {
 		case 'Completed':
 		case 'Read':
 			return (
-				<svg className="h-3.5 w-3.5 text-blue-500" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+				<svg className="h-3.5 w-3.5 text-primary" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
 					<path d="M2 8.5L5 11.5L10 5" />
 					<path d="M6 8.5L9 11.5L14 5" />
 				</svg>
 			)
 		case 'Failed':
 			return (
-				<svg className="h-3.5 w-3.5 text-red-500" viewBox="0 0 16 16" fill="currentColor">
+				<svg className="h-3.5 w-3.5 text-error" viewBox="0 0 16 16" fill="currentColor">
 					<circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" strokeWidth="1.5" />
 					<text x="8" y="12" fontSize="10" textAnchor="middle" fill="currentColor">!</text>
 				</svg>
@@ -71,7 +71,7 @@ export function MessageBubble({ message, currentUserId, onRetry }: Props) {
 			<div className={cn('max-w-[70%] flex flex-col', isFromAgent ? 'items-end' : 'items-start')}>
 				{/* Sender name for customer messages */}
 				{!isFromAgent && message.senderName && (
-					<span className="text-xs text-gray-400 mb-0.5 px-1">{message.senderName}</span>
+					<span className="text-xs text-t3 mb-0.5 px-1">{message.senderName}</span>
 				)}
 
 				{/* Message content */}
@@ -79,9 +79,9 @@ export function MessageBubble({ message, currentUserId, onRetry }: Props) {
 					className={cn(
 						'rounded-2xl px-3.5 py-2 text-sm break-words',
 						isFromAgent
-							? 'bg-blue-600 text-white rounded-br-md'
-							: 'bg-white text-gray-900 border border-gray-200 rounded-bl-md',
-						isFailed && 'ring-2 ring-red-300 bg-red-50 text-red-800',
+							? 'bg-primary text-white rounded-[16px_16px_4px_16px]'
+							: 'bg-bg-input text-t1 rounded-[16px_16px_16px_4px]',
+						isFailed && 'ring-2 ring-error/30 bg-error-bg text-error',
 					)}
 				>
 					<MessageRenderer message={message} />
@@ -89,7 +89,7 @@ export function MessageBubble({ message, currentUserId, onRetry }: Props) {
 
 				{/* Timestamp + delivery status */}
 				<div className="flex items-center gap-1 mt-0.5 px-1">
-					<span className="text-[10px] text-gray-400">{formatTime(message.timestamp)}</span>
+					<span className="text-[10px] text-t3">{formatTime(message.timestamp)}</span>
 					{isFromAgent && <DeliveryStatusIcon status={message.deliveryStatus} />}
 				</div>
 
@@ -98,7 +98,7 @@ export function MessageBubble({ message, currentUserId, onRetry }: Props) {
 					<button
 						type="button"
 						onClick={() => onRetry(message.id)}
-						className="text-xs text-red-600 hover:text-red-700 mt-0.5 px-1 font-medium"
+						className="text-xs text-error hover:text-error/80 mt-0.5 px-1 font-medium"
 					>
 						Retry
 					</button>

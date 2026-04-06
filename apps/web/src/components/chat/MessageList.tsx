@@ -36,7 +36,7 @@ function MessageSkeleton() {
 			{Array.from({ length: 6 }).map((_, i) => (
 				<div key={i} className={`flex ${i % 2 === 0 ? 'justify-start' : 'justify-end'}`}>
 					<div
-						className={`rounded-2xl ${i % 2 === 0 ? 'bg-gray-200' : 'bg-blue-200'}`}
+						className={`rounded-2xl ${i % 2 === 0 ? 'bg-bg-input' : 'bg-primary-alpha'}`}
 						style={{ width: `${120 + Math.random() * 140}px`, height: '36px' }}
 					/>
 				</div>
@@ -56,11 +56,11 @@ function TypingIndicator({ users }: { users: TypingUser[] }) {
 	return (
 		<div className="flex items-center gap-2 px-4 py-2">
 			<div className="flex gap-1">
-				<span className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0ms]" />
-				<span className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:150ms]" />
-				<span className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:300ms]" />
+				<span className="h-[5px] w-[5px] rounded-full bg-primary animate-bounce [animation-delay:0ms]" />
+				<span className="h-[5px] w-[5px] rounded-full bg-primary animate-bounce [animation-delay:150ms]" />
+				<span className="h-[5px] w-[5px] rounded-full bg-primary animate-bounce [animation-delay:300ms]" />
 			</div>
-			<span className="text-xs text-gray-400">{text}</span>
+			<span className="text-xs text-t3">{text}</span>
 		</div>
 	)
 }
@@ -103,11 +103,11 @@ export function MessageList({ companyId, roomId, typingUsers }: Props) {
 	}, [isFetchingNextPage, hasNextPage, fetchNextPage])
 
 	return (
-		<div ref={scrollContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto bg-gray-50">
+		<div ref={scrollContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto bg-bg-card">
 			{/* Loading older messages indicator */}
 			{isFetchingNextPage && (
 				<div className="flex justify-center py-3">
-					<span className="text-xs text-gray-400">Loading older messages...</span>
+					<span className="text-xs text-t3">Loading older messages...</span>
 				</div>
 			)}
 
@@ -115,17 +115,19 @@ export function MessageList({ companyId, roomId, typingUsers }: Props) {
 				<MessageSkeleton />
 			) : allMessages.length === 0 ? (
 				<div className="flex items-center justify-center h-full">
-					<p className="text-sm text-gray-400">No messages yet. Start the conversation!</p>
+					<p className="text-sm text-t3">No messages yet. Start the conversation!</p>
 				</div>
 			) : (
 				<div className="flex flex-col gap-1 px-4 py-3">
 					{Array.from(dateGroups.entries()).map(([dateKey, messages]) => (
 						<div key={dateKey}>
 							{/* Date separator */}
-							<div className="flex items-center justify-center py-3">
-								<span className="rounded-full bg-gray-200 px-3 py-0.5 text-xs text-gray-500">
+							<div className="flex items-center justify-center py-3 gap-2.5">
+								<span className="flex-1 h-px bg-border" />
+								<span className="text-[0.6875rem] text-t3">
 									{formatDateSeparator(new Date(messages[0]!.timestamp).toISOString())}
 								</span>
+								<span className="flex-1 h-px bg-border" />
 							</div>
 
 							{/* Messages for this date */}
