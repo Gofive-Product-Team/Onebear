@@ -6,7 +6,6 @@ import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
 import { cn } from '@one-bear/ui'
 import { useSendMessage } from '@/api/useMessages'
-import { Button } from '@/components/ui/Button'
 import { ComposerToolbar } from './composer/ComposerToolbar'
 import { AttachmentPreview } from './composer/AttachmentPreview'
 
@@ -44,7 +43,7 @@ export function Composer({ companyId, roomId, platform, sendTyping }: Props) {
 				? [
 						Link.configure({
 							openOnClick: false,
-							HTMLAttributes: { class: 'text-blue-600 underline' },
+							HTMLAttributes: { class: 'text-primary underline' },
 						}),
 					]
 				: []),
@@ -55,7 +54,7 @@ export function Composer({ companyId, roomId, platform, sendTyping }: Props) {
 		editorProps: {
 			attributes: {
 				class: cn(
-					'flex-1 min-h-[36px] max-h-[80px] overflow-y-auto px-3 py-2 text-sm',
+					'flex-1 min-h-[36px] max-h-[80px] overflow-y-auto px-3 py-2 text-sm text-t1',
 					'focus:outline-none',
 					'[&_p]:m-0',
 				),
@@ -163,7 +162,7 @@ export function Composer({ companyId, roomId, platform, sendTyping }: Props) {
 	const canSend = (editor?.getText().trim().length ?? 0) > 0 && !isPending
 
 	return (
-		<div className="shrink-0 border-t border-gray-200 bg-white">
+		<div className="shrink-0 border-t border-border bg-bg-card">
 			{/* Toolbar */}
 			<ComposerToolbar
 				editor={editor}
@@ -179,31 +178,32 @@ export function Composer({ companyId, roomId, platform, sendTyping }: Props) {
 			<div className="flex items-end gap-2 px-4 pb-3">
 				<div
 					className={cn(
-						'flex-1 rounded-lg border border-gray-300 bg-white',
-						'focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-1',
+						'flex-1 rounded-lg border border-border-input bg-bg-input',
+						'focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-1',
 						isPending && 'cursor-not-allowed opacity-50',
 					)}
 				>
 					<EditorContent editor={editor} />
 				</div>
 
-				<Button onClick={handleSend} disabled={!canSend} size="md" className="shrink-0">
+				<button
+					type="button"
+					onClick={handleSend}
+					disabled={!canSend}
+					className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary-light to-primary flex items-center justify-center shrink-0 shadow-[0_2px_10px_var(--color-primary-alpha)] transition-all duration-250 hover:-translate-y-px hover:shadow-[0_4px_18px_var(--color-primary-glow)] disabled:opacity-50 disabled:cursor-not-allowed"
+				>
 					{isPending ? (
-						<svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+						<svg className="w-[18px] h-[18px] text-white animate-spin" viewBox="0 0 24 24" fill="none">
 							<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-							<path
-								className="opacity-75"
-								fill="currentColor"
-								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-							/>
+							<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
 						</svg>
 					) : (
-						<svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor">
-							<path d="M1.5 1.5l13 6.5-13 6.5V9l8-1-8-1V1.5z" />
+						<svg className="w-[18px] h-[18px] text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+							<line x1="22" y1="2" x2="11" y2="13" />
+							<polygon points="22 2 15 22 11 13 2 9 22 2" />
 						</svg>
 					)}
-					<span className="sr-only">Send</span>
-				</Button>
+				</button>
 			</div>
 
 			{/* Hidden file input */}
