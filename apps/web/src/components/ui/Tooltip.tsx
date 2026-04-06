@@ -36,7 +36,7 @@ export function Tooltip({ content, side = 'top', children, className }: Props) {
 				<div
 					role="tooltip"
 					className={cn(
-						'absolute z-50 max-w-xs rounded-md bg-gray-900 px-2.5 py-1.5 text-xs text-white shadow-md',
+						'absolute z-50 max-w-xs rounded-md bg-bg-card border border-border px-2.5 py-1.5 text-xs text-t1 shadow-md',
 						'pointer-events-none animate-in fade-in-0',
 						sideStyles[side],
 						className,

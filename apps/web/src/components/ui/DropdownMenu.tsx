@@ -99,7 +99,7 @@ export function DropdownMenuContent({ align = 'end', children, className, ...pro
 		<div
 			role="menu"
 			className={cn(
-				'absolute z-50 mt-1 min-w-[8rem] overflow-hidden rounded-md border border-gray-200 bg-white p-1 shadow-lg',
+				'absolute z-50 mt-1 min-w-[8rem] overflow-hidden rounded-md border border-border bg-bg-card p-1 shadow-md',
 				'animate-in fade-in-0 zoom-in-95',
 				align === 'start' && 'left-0',
 				align === 'center' && 'left-1/2 -translate-x-1/2',
@@ -129,8 +129,8 @@ export function DropdownMenuItem({ children, destructive = false, className, onC
 				'flex w-full items-center rounded-sm px-2 py-1.5 text-sm transition-colors',
 				'focus-visible:outline-none',
 				destructive
-					? 'text-red-600 hover:bg-red-50 focus:bg-red-50'
-					: 'text-gray-700 hover:bg-gray-100 focus:bg-gray-100',
+					? 'text-error hover:bg-error-bg focus:bg-error-bg'
+					: 'text-t1 hover:bg-bg-hover focus:bg-bg-hover',
 				className,
 			)}
 			onClick={(e) => {
@@ -147,7 +147,7 @@ export function DropdownMenuItem({ children, destructive = false, className, onC
 interface DropdownMenuSeparatorProps extends HTMLAttributes<HTMLDivElement> {}
 
 export function DropdownMenuSeparator({ className, ...props }: DropdownMenuSeparatorProps) {
-	return <div role="separator" className={cn('-mx-1 my-1 h-px bg-gray-200', className)} {...props} />
+	return <div role="separator" className={cn('-mx-1 my-1 h-px bg-border', className)} {...props} />
 }
 
 interface DropdownMenuLabelProps extends HTMLAttributes<HTMLDivElement> {
@@ -156,7 +156,7 @@ interface DropdownMenuLabelProps extends HTMLAttributes<HTMLDivElement> {
 
 export function DropdownMenuLabel({ children, className, ...props }: DropdownMenuLabelProps) {
 	return (
-		<div className={cn('px-2 py-1.5 text-xs font-semibold text-gray-500', className)} {...props}>
+		<div className={cn('px-2 py-1.5 text-xs font-semibold text-t3', className)} {...props}>
 			{children}
 		</div>
 	)

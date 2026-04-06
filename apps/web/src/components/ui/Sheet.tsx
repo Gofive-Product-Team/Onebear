@@ -34,7 +34,7 @@ export function Sheet({ open, onOpenChange, side = 'right', children }: Props) {
 			<div className="fixed inset-0 bg-black/50" onClick={() => onOpenChange(false)} />
 			<div
 				className={cn(
-					'fixed inset-y-0 z-50 flex w-[280px] flex-col bg-white shadow-xl transition-transform duration-300',
+					'fixed inset-y-0 z-50 flex w-[280px] flex-col bg-bg-page shadow-xl transition-transform duration-300',
 					side === 'right' && 'right-0 animate-in slide-in-from-right',
 					side === 'left' && 'left-0 animate-in slide-in-from-left',
 				)}
@@ -51,7 +51,7 @@ interface SheetHeaderProps extends HTMLAttributes<HTMLDivElement> {
 
 export function SheetHeader({ children, className, ...props }: SheetHeaderProps) {
 	return (
-		<div className={cn('flex items-center justify-between border-b border-gray-200 px-4 py-3', className)} {...props}>
+		<div className={cn('flex items-center justify-between border-b border-border px-4 py-3', className)} {...props}>
 			{children}
 		</div>
 	)
@@ -63,7 +63,7 @@ interface SheetTitleProps extends HTMLAttributes<HTMLHeadingElement> {
 
 export function SheetTitle({ children, className, ...props }: SheetTitleProps) {
 	return (
-		<h2 className={cn('text-lg font-semibold text-gray-900', className)} {...props}>
+		<h2 className={cn('text-lg font-semibold text-t1', className)} {...props}>
 			{children}
 		</h2>
 	)
@@ -91,8 +91,8 @@ export function SheetClose({ onClose, className, ...props }: SheetCloseProps) {
 			type="button"
 			onClick={onClose}
 			className={cn(
-				'rounded-sm p-1 text-gray-400 transition-colors hover:text-gray-600',
-				'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500',
+				'rounded-sm p-1 text-t3 transition-colors hover:text-t2',
+				'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
 				className,
 			)}
 			aria-label="Close"

@@ -30,10 +30,10 @@ export function Dialog({ open, onOpenChange, children }: Props) {
 
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center">
-			<div className="fixed inset-0 bg-black/50 animate-in fade-in-0" onClick={() => onOpenChange(false)} />
+			<div className="fixed inset-0 bg-black/50 backdrop-blur-[4px] animate-in fade-in-0" onClick={() => onOpenChange(false)} />
 			<div
 				className={cn(
-					'relative z-50 w-full max-w-lg rounded-lg bg-white p-6 shadow-lg',
+					'relative z-50 w-full max-w-lg rounded-2xl bg-bg-card p-6 shadow-md',
 					'animate-in fade-in-0 zoom-in-95',
 				)}
 				role="dialog"
@@ -63,7 +63,7 @@ interface DialogTitleProps extends HTMLAttributes<HTMLHeadingElement> {
 
 export function DialogTitle({ children, className, ...props }: DialogTitleProps) {
 	return (
-		<h2 className={cn('text-lg font-semibold text-gray-900', className)} {...props}>
+		<h2 className={cn('text-lg font-semibold text-t1', className)} {...props}>
 			{children}
 		</h2>
 	)
@@ -75,7 +75,7 @@ interface DialogDescriptionProps extends HTMLAttributes<HTMLParagraphElement> {
 
 export function DialogDescription({ children, className, ...props }: DialogDescriptionProps) {
 	return (
-		<p className={cn('text-sm text-gray-500', className)} {...props}>
+		<p className={cn('text-sm text-t2', className)} {...props}>
 			{children}
 		</p>
 	)
@@ -115,8 +115,8 @@ export function DialogClose({ onClose, className, ...props }: DialogCloseProps) 
 			type="button"
 			onClick={onClose}
 			className={cn(
-				'absolute right-4 top-4 rounded-sm p-1 text-gray-400 transition-colors hover:text-gray-600',
-				'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500',
+				'absolute right-4 top-4 rounded-sm p-1 text-t3 transition-colors hover:text-t2',
+				'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
 				className,
 			)}
 			aria-label="Close"
