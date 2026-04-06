@@ -22,7 +22,7 @@ const stateLabels: Record<ChatState, { label: string; color: string }> = {
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-	return <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{children}</h3>
+	return <h3 className="text-xs font-semibold text-t3 uppercase tracking-[0.06em] mb-2">{children}</h3>
 }
 
 export function ChatSidebar({ room, connection }: Props) {
@@ -39,9 +39,9 @@ export function ChatSidebar({ room, connection }: Props) {
 	const isOpen = state === 'New' || state === 'InProgress'
 
 	return (
-		<div className="flex flex-col h-full bg-white border-l border-gray-200 overflow-y-auto">
+		<div className="flex flex-col h-full bg-bg-page border-l border-border animate-slide-in overflow-y-auto">
 			{/* Customer info */}
-			<div className="p-4 border-b border-gray-100">
+			<div className="px-[18px] py-5 border-b border-border">
 				<div className="flex flex-col items-center text-center">
 					<Avatar
 						src={room.customerAvatar ?? undefined}
@@ -49,7 +49,7 @@ export function ChatSidebar({ room, connection }: Props) {
 						size="lg"
 						className="mb-2"
 					/>
-					<h2 className="text-sm font-semibold text-gray-900">{customerName}</h2>
+					<h2 className="text-sm font-semibold text-t1">{customerName}</h2>
 					<div className="flex items-center gap-1.5 mt-1">
 						<PlatformIcon platform={room.platform} size="sm" />
 						<Badge platform={room.platform} className="text-[10px]">
@@ -60,11 +60,11 @@ export function ChatSidebar({ room, connection }: Props) {
 			</div>
 
 			{/* Room state + actions */}
-			<div className="p-4 border-b border-gray-100">
+			<div className="p-4 border-b border-border">
 				<SectionTitle>Status</SectionTitle>
 				<div className="flex items-center gap-2 mb-3">
 					<span className={cn('h-2.5 w-2.5 rounded-full', stateInfo.color)} />
-					<span className="text-sm font-medium text-gray-700">{stateInfo.label}</span>
+					<span className="text-sm font-medium text-t2">{stateInfo.label}</span>
 				</div>
 				{isOpen && (
 					<div className="flex gap-2">
@@ -91,54 +91,54 @@ export function ChatSidebar({ room, connection }: Props) {
 			</div>
 
 			{/* Assigned agent */}
-			<div className="p-4 border-b border-gray-100">
+			<div className="p-4 border-b border-border">
 				<SectionTitle>Assigned To</SectionTitle>
 				{room.assignToUserId ? (
 					<div className="flex items-center gap-2">
 						<Avatar fallback={room.assignToUserId.charAt(0).toUpperCase()} size="sm" />
-						<span className="text-sm text-gray-700">{room.assignToUserId}</span>
+						<span className="text-sm text-t2">{room.assignToUserId}</span>
 					</div>
 				) : (
-					<p className="text-sm text-gray-400 italic">Unassigned</p>
+					<p className="text-sm text-t3 italic">Unassigned</p>
 				)}
 				{/* Reassign dropdown placeholder */}
 				<button
 					type="button"
-					className="mt-2 text-xs text-blue-600 hover:text-blue-700 font-medium"
+					className="mt-2 text-xs text-primary hover:text-primary-light font-medium"
 				>
 					Reassign
 				</button>
 			</div>
 
 			{/* Participants / Attending */}
-			<div className="p-4 border-b border-gray-100">
+			<div className="p-4 border-b border-border">
 				<SectionTitle>Currently Viewing</SectionTitle>
 				{attendingUsers.length > 0 ? (
 					<div className="flex flex-col gap-2">
 						{attendingUsers.map((u) => (
 							<div key={u.userId} className="flex items-center gap-2">
 								<span className="h-2 w-2 rounded-full bg-green-500" />
-								<span className="text-sm text-gray-700">{u.displayName}</span>
+								<span className="text-sm text-t2">{u.displayName}</span>
 							</div>
 						))}
 					</div>
 				) : (
-					<p className="text-sm text-gray-400 italic">No one else is viewing</p>
+					<p className="text-sm text-t3 italic">No one else is viewing</p>
 				)}
 			</div>
 
 			{/* Tags placeholder */}
-			<div className="p-4 border-b border-gray-100">
+			<div className="p-4 border-b border-border">
 				<SectionTitle>Tags</SectionTitle>
-				<p className="text-sm text-gray-400 italic">No tags</p>
+				<p className="text-sm text-t3 italic">No tags</p>
 			</div>
 
 			{/* Follow-up placeholder */}
-			<div className="p-4 border-b border-gray-100">
+			<div className="p-4 border-b border-border">
 				<SectionTitle>Follow-up</SectionTitle>
 				<button
 					type="button"
-					className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+					className="text-xs text-primary hover:text-primary-light font-medium"
 				>
 					Set follow-up reminder
 				</button>
@@ -151,9 +151,9 @@ export function ChatSidebar({ room, connection }: Props) {
 					placeholder="Add a note..."
 					rows={3}
 					className={cn(
-						'w-full resize-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm',
-						'placeholder:text-gray-400',
-						'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1',
+						'w-full resize-none rounded-lg border border-border-input bg-bg-input px-3 py-2 text-sm',
+						'placeholder:text-t3',
+						'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',
 					)}
 				/>
 			</div>
