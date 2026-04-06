@@ -1,20 +1,24 @@
 import { useEffect } from 'react'
-import { useNavigate } from '@tanstack/react-router'
+import { useNavigate, useParams } from '@tanstack/react-router'
 import { useOAuthCallback } from '@/api/useOAuth'
 
 export function OAuthCallbackPage() {
 	const navigate = useNavigate()
 	const callbackMutation = useOAuthCallback()
+	const { platform } = useParams({ strict: false }) as { platform?: string }
 
 	useEffect(() => {
 		const params = new URLSearchParams(window.location.search)
-		const platform = params.get('platform') ?? ''
+		// Platform from path param (e.g., /oauth/callback/line) or query param fallback
+		const platformName = platform ?? params.get('platform') ?? ''
 		const code = params.get('code') ?? ''
 		const state = params.get('state') ?? ''
 		const shopId = params.get('shop_id') ?? undefined
 
+		if (!platformName || !code || !state) return
+
 		callbackMutation.mutate(
-			{ platform, code, state, ...(shopId ? { shopId } : {}) },
+			{ platform: platformName, code, state, ...(shopId ? { shopId } : {}) },
 			{
 				onSuccess: () => {
 					navigate({ to: '/settings' })
@@ -22,7 +26,7 @@ export function OAuthCallbackPage() {
 			},
 		)
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [])
+	}, [platform])
 
 	if (callbackMutation.isError) {
 		const error = callbackMutation.error

@@ -52,8 +52,8 @@ export function SettingsPage() {
 	return (
 		<div className="mx-auto max-w-7xl space-y-6">
 			<div>
-				<h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-				<p className="mt-1 text-sm text-gray-500">
+				<h1 className="text-2xl font-bold text-t1">Settings</h1>
+				<p className="mt-1 text-sm text-t2">
 					Configure integrations, messaging rules, and AI chatbot
 				</p>
 			</div>
@@ -71,8 +71,8 @@ export function SettingsPage() {
 								className={cn(
 									'flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
 									activeSection === section.id
-										? 'bg-blue-50 text-blue-700'
-										: 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
+										? 'bg-primary-alpha text-primary-light'
+										: 'text-t2 hover:bg-bg-hover hover:text-t1',
 								)}
 							>
 								<svg

@@ -57,9 +57,9 @@ const rootRoute = createRootRoute({
 function TodoPage({ name }: { name: string }) {
 	return (
 		<div className="max-w-2xl mx-auto mt-12 text-center">
-			<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-				<h1 className="text-2xl font-bold text-gray-900 mb-2">TODO: {name}</h1>
-				<p className="text-gray-500">This page is a placeholder. Feature implementation pending.</p>
+			<div className="bg-bg-card rounded-2xl shadow-md border border-border p-8">
+				<h1 className="text-2xl font-bold text-t1 mb-2">TODO: {name}</h1>
+				<p className="text-t2">This page is a placeholder. Feature implementation pending.</p>
 			</div>
 		</div>
 	)
@@ -71,9 +71,9 @@ const indexRoute = createRoute({
 	path: '/',
 	component: () => (
 		<div className="max-w-2xl mx-auto mt-12 text-center">
-			<h1 className="text-4xl font-bold text-gray-900 mb-4">One Bear Platform</h1>
-			<p className="text-lg text-gray-600 mb-2">Multi-platform social messaging SaaS</p>
-			<p className="text-sm text-gray-400">Scaffold v1.0.0 — All features are TODO</p>
+			<h1 className="text-4xl font-bold text-t1 mb-4">One Bear Platform</h1>
+			<p className="text-lg text-t2 mb-2">Multi-platform social messaging SaaS</p>
+			<p className="text-sm text-t3">Scaffold v1.0.0</p>
 		</div>
 	),
 })
@@ -163,7 +163,7 @@ const satisfactionRoute = createRoute({
 
 const oauthCallbackRoute = createRoute({
 	getParentRoute: () => rootRoute,
-	path: '/oauth/callback',
+	path: '/oauth/callback/$platform',
 	component: OAuthCallbackPage,
 })
 

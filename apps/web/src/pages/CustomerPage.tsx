@@ -35,14 +35,14 @@ function CustomerDetailPanel({
 	if (isLoading) {
 		return (
 			<div className="flex h-64 items-center justify-center">
-				<div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+				<div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
 			</div>
 		)
 	}
 
 	if (!customer) {
 		return (
-			<div className="p-6 text-center text-sm text-gray-500">Customer not found</div>
+			<div className="p-6 text-center text-sm text-t2">Customer not found</div>
 		)
 	}
 
@@ -56,19 +56,19 @@ function CustomerDetailPanel({
 						size="lg"
 					/>
 					<div>
-						<h3 className="text-lg font-semibold text-gray-900">{customer.name}</h3>
+						<h3 className="text-lg font-semibold text-t1">{customer.name}</h3>
 						{customer.email && (
-							<p className="text-sm text-gray-500">{customer.email}</p>
+							<p className="text-sm text-t2">{customer.email}</p>
 						)}
 						{customer.phone && (
-							<p className="text-sm text-gray-500">{customer.phone}</p>
+							<p className="text-sm text-t2">{customer.phone}</p>
 						)}
 					</div>
 				</div>
 				<div className="flex items-center gap-1">
 					<button
 						onClick={() => setShowEdit(true)}
-						className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+						className="rounded-md p-1 text-t3 hover:bg-bg-hover hover:text-t2"
 						title="Edit customer"
 					>
 						<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -82,7 +82,7 @@ function CustomerDetailPanel({
 					</button>
 					<button
 						onClick={onClose}
-						className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+						className="rounded-md p-1 text-t3 hover:bg-bg-hover hover:text-t2"
 					>
 						<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -97,20 +97,20 @@ function CustomerDetailPanel({
 			</div>
 
 			{customer.notes && (
-				<div className="rounded-md bg-gray-50 p-3">
-					<p className="text-xs font-medium text-gray-500">Notes</p>
-					<p className="mt-1 text-sm text-gray-700">{customer.notes}</p>
+				<div className="rounded-md bg-bg-page p-3">
+					<p className="text-xs font-medium text-t2">Notes</p>
+					<p className="mt-1 text-sm text-t2">{customer.notes}</p>
 				</div>
 			)}
 
 			<div className="grid grid-cols-2 gap-4">
-				<div className="rounded-md bg-gray-50 p-3">
-					<p className="text-xs font-medium text-gray-500">Total Rooms</p>
-					<p className="text-lg font-semibold text-gray-900">{customer.totalRooms}</p>
+				<div className="rounded-md bg-bg-page p-3">
+					<p className="text-xs font-medium text-t2">Total Rooms</p>
+					<p className="text-lg font-semibold text-t1">{customer.totalRooms}</p>
 				</div>
-				<div className="rounded-md bg-gray-50 p-3">
-					<p className="text-xs font-medium text-gray-500">Last Contact</p>
-					<p className="text-lg font-semibold text-gray-900">
+				<div className="rounded-md bg-bg-page p-3">
+					<p className="text-xs font-medium text-t2">Last Contact</p>
+					<p className="text-lg font-semibold text-t1">
 						{customer.lastContactAt
 							? formatRelativeTime(customer.lastContactAt)
 							: 'Never'}
@@ -120,13 +120,13 @@ function CustomerDetailPanel({
 
 			{customer.rooms && customer.rooms.length > 0 && (
 				<div>
-					<h4 className="mb-3 text-sm font-semibold text-gray-900">Chat History</h4>
+					<h4 className="mb-3 text-sm font-semibold text-t1">Chat History</h4>
 					<ScrollArea className="max-h-64">
 						<div className="space-y-2">
 							{customer.rooms.map((room) => (
 								<div
 									key={room.id}
-									className="flex items-center justify-between rounded-md border border-gray-200 p-3"
+									className="flex items-center justify-between rounded-md border border-border p-3"
 								>
 									<div className="min-w-0 flex-1">
 										<div className="flex items-center gap-2">
@@ -137,22 +137,22 @@ function CustomerDetailPanel({
 												className={cn(
 													'inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-medium',
 													room.state === 'Resolved'
-														? 'bg-green-100 text-green-700'
+														? 'bg-success-bg text-success'
 														: room.state === 'Closed'
-															? 'bg-gray-100 text-gray-700'
-															: 'bg-blue-100 text-blue-700',
+															? 'bg-bg-input text-t2'
+															: 'bg-primary-alpha text-primary',
 												)}
 											>
 												{room.state}
 											</span>
 										</div>
 										{room.lastMessage && (
-											<p className="mt-1 truncate text-xs text-gray-500">
+											<p className="mt-1 truncate text-xs text-t2">
 												{room.lastMessage}
 											</p>
 										)}
 									</div>
-									<span className="shrink-0 text-xs text-gray-400">
+									<span className="shrink-0 text-xs text-t3">
 										{formatRelativeTime(room.createdAt)}
 									</span>
 								</div>
@@ -192,8 +192,8 @@ export function CustomerPage() {
 	return (
 		<div className="mx-auto max-w-7xl space-y-6">
 			<div>
-				<h1 className="text-2xl font-bold text-gray-900">Customers</h1>
-				<p className="mt-1 text-sm text-gray-500">Manage and view customer information</p>
+				<h1 className="text-2xl font-bold text-t1">Customers</h1>
+				<p className="mt-1 text-sm text-t2">Manage and view customer information</p>
 			</div>
 
 			{/* Filters */}
@@ -208,7 +208,7 @@ export function CustomerPage() {
 				<select
 					value={platformFilter}
 					onChange={(e) => setPlatformFilter(e.target.value)}
-					className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
+					className="h-9 rounded-md border border-border-input bg-bg-input px-3 text-sm text-t1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
 				>
 					{PLATFORMS.map((p) => (
 						<option key={p.value} value={p.value}>
@@ -219,14 +219,14 @@ export function CustomerPage() {
 			</div>
 
 			{isError && (
-				<div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+				<div className="rounded-md border border-error bg-error-bg p-4 text-sm text-error">
 					Failed to load customers. Please try again.
 				</div>
 			)}
 
 			{isLoading && (
 				<div className="flex h-64 items-center justify-center">
-					<div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+					<div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
 				</div>
 			)}
 
@@ -235,26 +235,26 @@ export function CustomerPage() {
 					{/* Desktop Table / Mobile Cards */}
 					<div className="flex-1">
 						{/* Desktop table */}
-						<div className="hidden overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm md:block">
+						<div className="hidden overflow-hidden rounded-lg border border-border bg-bg-card shadow-sm md:block">
 							<table className="w-full text-sm">
 								<thead>
-									<tr className="border-b border-gray-200 bg-gray-50">
-										<th className="px-4 py-3 text-left font-medium text-gray-500">Customer</th>
-										<th className="px-4 py-3 text-left font-medium text-gray-500">Contact</th>
-										<th className="px-4 py-3 text-left font-medium text-gray-500">Platform</th>
-										<th className="px-4 py-3 text-right font-medium text-gray-500">Rooms</th>
-										<th className="px-4 py-3 text-left font-medium text-gray-500">Last Contact</th>
-										<th className="px-4 py-3 text-left font-medium text-gray-500">Tags</th>
+									<tr className="border-b border-border bg-bg-page">
+										<th className="px-4 py-3 text-left font-medium text-t2">Customer</th>
+										<th className="px-4 py-3 text-left font-medium text-t2">Contact</th>
+										<th className="px-4 py-3 text-left font-medium text-t2">Platform</th>
+										<th className="px-4 py-3 text-right font-medium text-t2">Rooms</th>
+										<th className="px-4 py-3 text-left font-medium text-t2">Last Contact</th>
+										<th className="px-4 py-3 text-left font-medium text-t2">Tags</th>
 									</tr>
 								</thead>
-								<tbody className="divide-y divide-gray-100">
+								<tbody className="divide-y divide-border">
 									{customers.map((customer) => (
 										<tr
 											key={customer.id}
 											onClick={() => handleRowClick(customer)}
 											className={cn(
-												'cursor-pointer transition-colors hover:bg-gray-50',
-												selectedCustomerId === customer.id && 'bg-blue-50 hover:bg-blue-50',
+												'cursor-pointer transition-colors hover:bg-bg-hover',
+												selectedCustomerId === customer.id && 'bg-primary-alpha hover:bg-primary-alpha',
 											)}
 										>
 											<td className="px-4 py-3">
@@ -264,19 +264,19 @@ export function CustomerPage() {
 														fallback={customer.name.slice(0, 2)}
 														size="sm"
 													/>
-													<span className="font-medium text-gray-900">{customer.name}</span>
+													<span className="font-medium text-t1">{customer.name}</span>
 												</div>
 											</td>
-											<td className="px-4 py-3 text-gray-600">
+											<td className="px-4 py-3 text-t2">
 												{customer.email ?? customer.phone ?? '-'}
 											</td>
 											<td className="px-4 py-3">
 												<Badge platform={customer.platform}>{customer.platform}</Badge>
 											</td>
-											<td className="px-4 py-3 text-right text-gray-600">
+											<td className="px-4 py-3 text-right text-t2">
 												{customer.totalRooms}
 											</td>
-											<td className="px-4 py-3 text-gray-500">
+											<td className="px-4 py-3 text-t2">
 												{customer.lastContactAt
 													? formatRelativeTime(customer.lastContactAt)
 													: '-'}
@@ -289,7 +289,7 @@ export function CustomerPage() {
 														</Badge>
 													))}
 													{customer.tags.length > 2 && (
-														<span className="text-xs text-gray-400">
+														<span className="text-xs text-t3">
 															+{customer.tags.length - 2}
 														</span>
 													)}
@@ -300,7 +300,7 @@ export function CustomerPage() {
 								</tbody>
 							</table>
 							{customers.length === 0 && (
-								<div className="py-12 text-center text-sm text-gray-500">
+								<div className="py-12 text-center text-sm text-t2">
 									No customers found
 								</div>
 							)}
@@ -314,10 +314,10 @@ export function CustomerPage() {
 									type="button"
 									onClick={() => handleRowClick(customer)}
 									className={cn(
-										'w-full rounded-lg border bg-white p-4 text-left shadow-sm transition-colors',
+										'w-full rounded-lg border bg-bg-card p-4 text-left shadow-sm transition-colors',
 										selectedCustomerId === customer.id
-											? 'border-blue-300 bg-blue-50'
-											: 'border-gray-200 hover:bg-gray-50',
+											? 'border-primary bg-primary-alpha'
+											: 'border-border hover:bg-bg-hover',
 									)}
 								>
 									<div className="flex items-center gap-3">
@@ -327,8 +327,8 @@ export function CustomerPage() {
 											size="md"
 										/>
 										<div className="min-w-0 flex-1">
-											<p className="font-medium text-gray-900">{customer.name}</p>
-											<p className="truncate text-xs text-gray-500">
+											<p className="font-medium text-t1">{customer.name}</p>
+											<p className="truncate text-xs text-t2">
 												{customer.email ?? customer.phone ?? '-'}
 											</p>
 										</div>
@@ -336,7 +336,7 @@ export function CustomerPage() {
 											{customer.platform}
 										</Badge>
 									</div>
-									<div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+									<div className="mt-3 flex items-center justify-between text-xs text-t2">
 										<span>{customer.totalRooms} rooms</span>
 										<span>
 											{customer.lastContactAt
@@ -356,7 +356,7 @@ export function CustomerPage() {
 								</button>
 							))}
 							{customers.length === 0 && (
-								<div className="rounded-lg border border-gray-200 bg-white py-12 text-center text-sm text-gray-500">
+								<div className="rounded-lg border border-border bg-bg-card py-12 text-center text-sm text-t2">
 									No customers found
 								</div>
 							)}
@@ -374,7 +374,7 @@ export function CustomerPage() {
 
 					{/* Customer Detail Panel */}
 					{selectedCustomerId && (
-						<div className="w-full shrink-0 rounded-lg border border-gray-200 bg-white p-6 shadow-sm lg:w-96">
+						<div className="w-full shrink-0 rounded-lg border border-border bg-bg-card p-6 shadow-sm lg:w-96">
 							<CustomerDetailPanel
 								customerId={selectedCustomerId}
 								onClose={() => setSelectedCustomerId(null)}

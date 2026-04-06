@@ -72,11 +72,11 @@ const billingHistory = [
 function UsageBar({ current, limit }: { current: number; limit: number }) {
 	const percentage = Math.min((current / limit) * 100, 100)
 	return (
-		<div className="h-2 w-full rounded-full bg-gray-100">
+		<div className="h-2 w-full rounded-full bg-bg-input">
 			<div
 				className={cn(
 					'h-2 rounded-full transition-all',
-					percentage > 90 ? 'bg-red-500' : percentage > 70 ? 'bg-yellow-500' : 'bg-blue-500',
+					percentage > 90 ? 'bg-error' : percentage > 70 ? 'bg-warning' : 'bg-primary',
 				)}
 				style={{ width: `${percentage}%` }}
 			/>
@@ -88,19 +88,19 @@ export function PaymentPage() {
 	return (
 		<div className="mx-auto max-w-7xl space-y-6">
 			<div>
-				<h1 className="text-2xl font-bold text-gray-900">Payment & Subscription</h1>
-				<p className="mt-1 text-sm text-gray-500">Manage your plan, usage, and billing</p>
+				<h1 className="text-2xl font-bold text-t1">Payment & Subscription</h1>
+				<p className="mt-1 text-sm text-t2">Manage your plan, usage, and billing</p>
 			</div>
 
 			{/* Current Plan */}
-			<div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+			<div className="rounded-lg border border-border bg-bg-card p-6 shadow-sm">
 				<div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
 					<div>
 						<div className="flex items-center gap-2">
-							<h2 className="text-lg font-semibold text-gray-900">Current Plan</h2>
+							<h2 className="text-lg font-semibold text-t1">Current Plan</h2>
 							<Badge variant="default">{currentPlan.name}</Badge>
 						</div>
-						<p className="mt-1 text-sm text-gray-500">
+						<p className="mt-1 text-sm text-t2">
 							Next billing date: {new Date(currentPlan.nextBillingDate).toLocaleDateString('en-US', {
 								month: 'long',
 								day: 'numeric',
@@ -109,9 +109,9 @@ export function PaymentPage() {
 						</p>
 					</div>
 					<div className="text-right">
-						<p className="text-3xl font-bold text-gray-900">
+						<p className="text-3xl font-bold text-t1">
 							{currentPlan.price.toLocaleString()}
-							<span className="ml-1 text-sm font-normal text-gray-500">
+							<span className="ml-1 text-sm font-normal text-t2">
 								{currentPlan.currency}/{currentPlan.billingCycle === 'monthly' ? 'mo' : 'yr'}
 							</span>
 						</p>
@@ -120,15 +120,15 @@ export function PaymentPage() {
 			</div>
 
 			{/* Usage Stats */}
-			<div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-				<h2 className="text-lg font-semibold text-gray-900">Usage</h2>
-				<p className="mt-1 text-sm text-gray-500">Current billing period usage</p>
+			<div className="rounded-lg border border-border bg-bg-card p-6 shadow-sm">
+				<h2 className="text-lg font-semibold text-t1">Usage</h2>
+				<p className="mt-1 text-sm text-t2">Current billing period usage</p>
 				<div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-3">
 					{usage.map((item) => (
 						<div key={item.label} className="space-y-2">
 							<div className="flex items-center justify-between">
-								<span className="text-sm font-medium text-gray-700">{item.label}</span>
-								<span className="text-xs text-gray-500">
+								<span className="text-sm font-medium text-t2">{item.label}</span>
+								<span className="text-xs text-t2">
 									{typeof item.current === 'number' && item.current > 999
 										? item.current.toLocaleString()
 										: item.current}{' '}
@@ -146,8 +146,8 @@ export function PaymentPage() {
 
 			{/* Plan Comparison */}
 			<div>
-				<h2 className="text-lg font-semibold text-gray-900">Plans</h2>
-				<p className="mt-1 text-sm text-gray-500">Compare plans and upgrade</p>
+				<h2 className="text-lg font-semibold text-t1">Plans</h2>
+				<p className="mt-1 text-sm text-t2">Compare plans and upgrade</p>
 				<div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
 					{plans.map((plan) => (
 						<div
@@ -155,24 +155,24 @@ export function PaymentPage() {
 							className={cn(
 								'rounded-lg border p-6',
 								plan.current
-									? 'border-blue-500 bg-blue-50/30 shadow-md'
-									: 'border-gray-200 bg-white shadow-sm',
+									? 'border-primary bg-primary-alpha/30 shadow-md'
+									: 'border-border bg-bg-card shadow-sm',
 							)}
 						>
 							<div className="mb-4">
 								<div className="flex items-center gap-2">
-									<h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
+									<h3 className="text-lg font-semibold text-t1">{plan.name}</h3>
 									{plan.current && (
 										<Badge variant="default" className="text-[10px]">
 											Current
 										</Badge>
 									)}
 								</div>
-								<p className="mt-2 text-3xl font-bold text-gray-900">
+								<p className="mt-2 text-3xl font-bold text-t1">
 									{plan.price !== null ? (
 										<>
 											{plan.price.toLocaleString()}
-											<span className="ml-1 text-sm font-normal text-gray-500">THB/mo</span>
+											<span className="ml-1 text-sm font-normal text-t2">THB/mo</span>
 										</>
 									) : (
 										<span className="text-lg font-semibold">Contact Sales</span>
@@ -181,9 +181,9 @@ export function PaymentPage() {
 							</div>
 							<ul className="mb-6 space-y-2">
 								{plan.features.map((feature) => (
-									<li key={feature} className="flex items-center gap-2 text-sm text-gray-600">
+									<li key={feature} className="flex items-center gap-2 text-sm text-t2">
 										<svg
-											className="h-4 w-4 shrink-0 text-green-500"
+											className="h-4 w-4 shrink-0 text-success"
 											fill="none"
 											viewBox="0 0 24 24"
 											stroke="currentColor"
@@ -218,31 +218,31 @@ export function PaymentPage() {
 			</div>
 
 			{/* Billing History */}
-			<div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-				<h2 className="text-lg font-semibold text-gray-900">Billing History</h2>
-				<p className="mt-1 text-sm text-gray-500">Past invoices and payments</p>
+			<div className="rounded-lg border border-border bg-bg-card p-6 shadow-sm">
+				<h2 className="text-lg font-semibold text-t1">Billing History</h2>
+				<p className="mt-1 text-sm text-t2">Past invoices and payments</p>
 				<div className="mt-4 overflow-x-auto">
 					<table className="w-full text-sm">
 						<thead>
-							<tr className="border-b border-gray-200">
-								<th className="pb-3 text-left font-medium text-gray-500">Date</th>
-								<th className="pb-3 text-left font-medium text-gray-500">Invoice</th>
-								<th className="pb-3 text-right font-medium text-gray-500">Amount</th>
-								<th className="pb-3 text-right font-medium text-gray-500">Status</th>
+							<tr className="border-b border-border">
+								<th className="pb-3 text-left font-medium text-t2">Date</th>
+								<th className="pb-3 text-left font-medium text-t2">Invoice</th>
+								<th className="pb-3 text-right font-medium text-t2">Amount</th>
+								<th className="pb-3 text-right font-medium text-t2">Status</th>
 							</tr>
 						</thead>
-						<tbody className="divide-y divide-gray-100">
+						<tbody className="divide-y divide-border">
 							{billingHistory.map((entry) => (
 								<tr key={entry.invoice}>
-									<td className="py-3 text-gray-600">
+									<td className="py-3 text-t2">
 										{new Date(entry.date).toLocaleDateString('en-US', {
 											month: 'short',
 											day: 'numeric',
 											year: 'numeric',
 										})}
 									</td>
-									<td className="py-3 font-medium text-gray-900">{entry.invoice}</td>
-									<td className="py-3 text-right text-gray-600">
+									<td className="py-3 font-medium text-t1">{entry.invoice}</td>
+									<td className="py-3 text-right text-t2">
 										{entry.amount.toLocaleString()} THB
 									</td>
 									<td className="py-3 text-right">

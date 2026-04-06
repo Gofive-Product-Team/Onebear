@@ -24,7 +24,7 @@ function StarDisplay({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'l
 				<svg
 					key={i}
 					className={cn(
-						i < rating ? 'text-yellow-400' : 'text-gray-300',
+						i < rating ? 'text-yellow-400' : 'text-t3',
 						size === 'lg' ? 'h-6 w-6' : 'h-4 w-4',
 					)}
 					fill="currentColor"
@@ -41,13 +41,13 @@ function RatingDistributionBar({ count, total }: { count: number; total: number 
 	const percentage = total > 0 ? (count / total) * 100 : 0
 	return (
 		<div className="flex items-center gap-2">
-			<div className="h-2 flex-1 rounded-full bg-gray-100">
+			<div className="h-2 flex-1 rounded-full bg-bg-input">
 				<div
 					className="h-2 rounded-full bg-yellow-400 transition-all"
 					style={{ width: `${percentage}%` }}
 				/>
 			</div>
-			<span className="w-8 text-right text-xs text-gray-500">{count}</span>
+			<span className="w-8 text-right text-xs text-t2">{count}</span>
 		</div>
 	)
 }
@@ -86,22 +86,22 @@ export function SatisfactionPage() {
 	return (
 		<div className="mx-auto max-w-7xl space-y-6">
 			<div>
-				<h1 className="text-2xl font-bold text-gray-900">Customer Satisfaction</h1>
-				<p className="mt-1 text-sm text-gray-500">Track CSAT survey results and feedback</p>
+				<h1 className="text-2xl font-bold text-t1">Customer Satisfaction</h1>
+				<p className="mt-1 text-sm text-t2">Track CSAT survey results and feedback</p>
 			</div>
 
 			{/* Overview Stats */}
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 				{/* Average Score */}
-				<div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-					<p className="text-sm font-medium text-gray-500">Average Score</p>
+				<div className="rounded-lg border border-border bg-bg-card p-6 shadow-sm">
+					<p className="text-sm font-medium text-t2">Average Score</p>
 					<div className="mt-2 flex items-center gap-3">
-						<span className="text-4xl font-bold text-gray-900">
+						<span className="text-4xl font-bold text-t1">
 							{averageRating.toFixed(1)}
 						</span>
 						<div>
 							<StarDisplay rating={Math.round(averageRating)} size="lg" />
-							<p className="mt-0.5 text-xs text-gray-500">
+							<p className="mt-0.5 text-xs text-t2">
 								{filteredSurveys.length} response{filteredSurveys.length !== 1 ? 's' : ''}
 							</p>
 						</div>
@@ -109,8 +109,8 @@ export function SatisfactionPage() {
 				</div>
 
 				{/* Rating Distribution */}
-				<div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:col-span-2">
-					<p className="text-sm font-medium text-gray-500">Rating Distribution</p>
+				<div className="rounded-lg border border-border bg-bg-card p-6 shadow-sm sm:col-span-2">
+					<p className="text-sm font-medium text-t2">Rating Distribution</p>
 					<div className="mt-3 space-y-1.5">
 						{[5, 4, 3, 2, 1].map((star) => (
 							<div key={star} className="flex items-center gap-2">
@@ -120,8 +120,8 @@ export function SatisfactionPage() {
 									className={cn(
 										'flex w-12 items-center gap-1 rounded px-1 py-0.5 text-xs transition-colors',
 										ratingFilter === star
-											? 'bg-yellow-100 font-bold text-yellow-700'
-											: 'text-gray-600 hover:bg-gray-50',
+											? 'bg-warning-bg font-bold text-warning'
+											: 'text-t2 hover:bg-bg-hover',
 									)}
 								>
 									{star}
@@ -144,28 +144,28 @@ export function SatisfactionPage() {
 			{/* Filters */}
 			<div className="flex flex-col gap-3 sm:flex-row sm:items-end">
 				<div className="flex-1">
-					<label className="mb-1.5 block text-sm font-medium text-gray-700">From</label>
+					<label className="mb-1.5 block text-sm font-medium text-t2">From</label>
 					<input
 						type="date"
 						value={dateFrom}
 						onChange={(e) => setDateFrom(e.target.value)}
-						className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
+						className="h-9 w-full rounded-md border border-border-input bg-bg-card px-3 text-sm text-t2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
 					/>
 				</div>
 				<div className="flex-1">
-					<label className="mb-1.5 block text-sm font-medium text-gray-700">To</label>
+					<label className="mb-1.5 block text-sm font-medium text-t2">To</label>
 					<input
 						type="date"
 						value={dateTo}
 						onChange={(e) => setDateTo(e.target.value)}
-						className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
+						className="h-9 w-full rounded-md border border-border-input bg-bg-card px-3 text-sm text-t2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
 					/>
 				</div>
 				{ratingFilter !== null && (
 					<button
 						type="button"
 						onClick={() => setRatingFilter(null)}
-						className="inline-flex h-9 items-center gap-1 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-600 hover:bg-gray-50"
+						className="inline-flex h-9 items-center gap-1 rounded-md border border-border-input bg-bg-card px-3 text-sm text-t2 hover:bg-bg-hover"
 					>
 						Rating: {ratingFilter}
 						<svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -176,33 +176,33 @@ export function SatisfactionPage() {
 			</div>
 
 			{/* Survey Table */}
-			<div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+			<div className="overflow-hidden rounded-lg border border-border bg-bg-card shadow-sm">
 				<table className="w-full text-sm">
 					<thead>
-						<tr className="border-b border-gray-200 bg-gray-50">
-							<th className="px-4 py-3 text-left font-medium text-gray-500">Date</th>
-							<th className="px-4 py-3 text-left font-medium text-gray-500">Customer</th>
-							<th className="px-4 py-3 text-left font-medium text-gray-500">Platform</th>
-							<th className="px-4 py-3 text-left font-medium text-gray-500">Rating</th>
-							<th className="px-4 py-3 text-left font-medium text-gray-500">Comment</th>
+						<tr className="border-b border-border bg-bg-page">
+							<th className="px-4 py-3 text-left font-medium text-t2">Date</th>
+							<th className="px-4 py-3 text-left font-medium text-t2">Customer</th>
+							<th className="px-4 py-3 text-left font-medium text-t2">Platform</th>
+							<th className="px-4 py-3 text-left font-medium text-t2">Rating</th>
+							<th className="px-4 py-3 text-left font-medium text-t2">Comment</th>
 						</tr>
 					</thead>
-					<tbody className="divide-y divide-gray-100">
+					<tbody className="divide-y divide-border">
 						{filteredSurveys.map((survey) => (
-							<tr key={survey.id} className="hover:bg-gray-50">
-								<td className="whitespace-nowrap px-4 py-3 text-gray-600">
+							<tr key={survey.id} className="hover:bg-bg-hover">
+								<td className="whitespace-nowrap px-4 py-3 text-t2">
 									{new Date(survey.date).toLocaleDateString('en-US', {
 										month: 'short',
 										day: 'numeric',
 									})}
-									<span className="ml-1 text-gray-400">
+									<span className="ml-1 text-t3">
 										{new Date(survey.date).toLocaleTimeString([], {
 											hour: '2-digit',
 											minute: '2-digit',
 										})}
 									</span>
 								</td>
-								<td className="px-4 py-3 font-medium text-gray-900">
+								<td className="px-4 py-3 font-medium text-t1">
 									{survey.customerName}
 								</td>
 								<td className="px-4 py-3">
@@ -211,9 +211,9 @@ export function SatisfactionPage() {
 								<td className="px-4 py-3">
 									<StarDisplay rating={survey.rating} />
 								</td>
-								<td className="max-w-xs px-4 py-3 text-gray-600">
+								<td className="max-w-xs px-4 py-3 text-t2">
 									{survey.comment || (
-										<span className="italic text-gray-400">No comment</span>
+										<span className="italic text-t3">No comment</span>
 									)}
 								</td>
 							</tr>
@@ -221,7 +221,7 @@ export function SatisfactionPage() {
 					</tbody>
 				</table>
 				{filteredSurveys.length === 0 && (
-					<div className="py-12 text-center text-sm text-gray-500">
+					<div className="py-12 text-center text-sm text-t2">
 						No survey responses match your filters
 					</div>
 				)}

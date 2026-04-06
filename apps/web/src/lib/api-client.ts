@@ -54,8 +54,13 @@ async function fetchApi<T>(path: string, options?: RequestInit, retryCount = 0):
 	const text = await response.text()
 	if (!text) return {} as T
 	const parsed = JSON.parse(text)
-	// Auto-unwrap API response wrapper { data: [...] } or { data: [...], success: bool }
-	if (parsed && typeof parsed === 'object' && 'data' in parsed && Array.isArray(parsed.data)) {
+	// Auto-unwrap API response wrapper { data: [...] } but NOT paginated responses
+	// Paginated responses have { data, continuationToken, hasMore } — don't unwrap those
+	if (
+		parsed && typeof parsed === 'object' &&
+		'data' in parsed && Array.isArray(parsed.data) &&
+		!('continuationToken' in parsed) && !('hasMore' in parsed)
+	) {
 		return parsed.data as T
 	}
 	return parsed as T

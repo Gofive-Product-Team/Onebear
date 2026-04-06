@@ -34,20 +34,20 @@ function formatMs(ms: number): string {
 
 function SkeletonCard() {
 	return (
-		<div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm animate-pulse">
-			<div className="h-4 w-24 rounded bg-gray-200" />
-			<div className="mt-2 h-8 w-32 rounded bg-gray-200" />
-			<div className="mt-1 h-4 w-20 rounded bg-gray-200" />
+		<div className="rounded-lg border border-border bg-bg-card p-6 shadow-sm animate-pulse">
+			<div className="h-4 w-24 rounded bg-bg-input" />
+			<div className="mt-2 h-8 w-32 rounded bg-bg-input" />
+			<div className="mt-1 h-4 w-20 rounded bg-bg-input" />
 		</div>
 	)
 }
 
 function SkeletonChart() {
 	return (
-		<div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm animate-pulse">
-			<div className="h-5 w-40 rounded bg-gray-200" />
-			<div className="mt-1 h-4 w-56 rounded bg-gray-200" />
-			<div className="mt-4 h-64 rounded bg-gray-100" />
+		<div className="rounded-lg border border-border bg-bg-card p-6 shadow-sm animate-pulse">
+			<div className="h-5 w-40 rounded bg-bg-input" />
+			<div className="mt-1 h-4 w-56 rounded bg-bg-input" />
+			<div className="mt-4 h-64 rounded bg-bg-page" />
 		</div>
 	)
 }
@@ -66,8 +66,8 @@ export function DashboardPage() {
 			{/* Header */}
 			<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 				<div>
-					<h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-					<p className="mt-1 text-sm text-gray-500">Overview of your messaging performance</p>
+					<h1 className="text-2xl font-bold text-t1">Dashboard</h1>
+					<p className="mt-1 text-sm text-t2">Overview of your messaging performance</p>
 				</div>
 				<DateRangeFilter value={dateRange} onChange={setDateRange} />
 			</div>

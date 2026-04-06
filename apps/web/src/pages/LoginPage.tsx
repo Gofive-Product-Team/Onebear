@@ -63,56 +63,56 @@ export function LoginPage({ onSuccess }: { onSuccess: () => void }) {
 	}
 
 	return (
-		<div className="min-h-screen flex items-center justify-center bg-gray-50">
-			<div className="bg-white rounded-lg shadow-md border border-gray-200 p-8 w-full max-w-md">
-				<h1 className="text-2xl font-bold text-gray-900 mb-1">One Bear</h1>
-				<p className="text-sm text-gray-500 mb-6">Development Login</p>
+		<div className="min-h-screen flex items-center justify-center bg-bg-page">
+			<div className="bg-bg-card rounded-lg shadow-md border border-border p-8 w-full max-w-md">
+				<h1 className="text-2xl font-bold text-t1 mb-1">One Bear</h1>
+				<p className="text-sm text-t2 mb-6">Development Login</p>
 
 				{error && (
-					<div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4 text-sm">
+					<div className="bg-error-bg border border-error text-error px-4 py-3 rounded mb-4 text-sm">
 						{error}
 					</div>
 				)}
 
 				<div className="space-y-4">
 					<div>
-						<label className="block text-sm font-medium text-gray-700 mb-1">User ID</label>
+						<label className="block text-sm font-medium text-t2 mb-1">User ID</label>
 						<input
 							type="text"
 							value={userId}
 							onChange={(e) => setUserId(e.target.value)}
-							className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+							className="w-full px-3 py-2 border border-border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
 						/>
 					</div>
 					<div>
-						<label className="block text-sm font-medium text-gray-700 mb-1">Company ID</label>
+						<label className="block text-sm font-medium text-t2 mb-1">Company ID</label>
 						<input
 							type="text"
 							value={companyId}
 							onChange={(e) => setCompanyId(e.target.value)}
-							className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+							className="w-full px-3 py-2 border border-border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
 						/>
 					</div>
 					<div>
-						<label className="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
+						<label className="block text-sm font-medium text-t2 mb-1">Display Name</label>
 						<input
 							type="text"
 							value={displayName}
 							onChange={(e) => setDisplayName(e.target.value)}
-							className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+							className="w-full px-3 py-2 border border-border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
 						/>
 					</div>
 
 					<div>
-						<label className="block text-sm font-medium text-gray-700 mb-2">Permissions</label>
+						<label className="block text-sm font-medium text-t2 mb-2">Permissions</label>
 						<div className="space-y-2">
 							{ALL_PERMISSIONS.map((permId) => (
-								<label key={permId} className="flex items-center gap-2 text-sm text-gray-600">
+								<label key={permId} className="flex items-center gap-2 text-sm text-t2">
 									<input
 										type="checkbox"
 										checked={selectedPermissions.includes(permId)}
 										onChange={() => togglePermission(permId)}
-										className="rounded border-gray-300"
+										className="rounded border-border-input"
 									/>
 									{PERMISSION_LABELS[permId]}
 								</label>
@@ -123,13 +123,13 @@ export function LoginPage({ onSuccess }: { onSuccess: () => void }) {
 					<button
 						onClick={handleLogin}
 						disabled={loading}
-						className="w-full bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+						className="w-full bg-primary text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-primary-light disabled:opacity-50 disabled:cursor-not-allowed"
 					>
 						{loading ? 'Signing in...' : 'Sign In (Dev Mode)'}
 					</button>
 				</div>
 
-				<p className="text-xs text-gray-400 mt-4 text-center">
+				<p className="text-xs text-t3 mt-4 text-center">
 					This login is for development only. Production uses GoFive IdP (OAuth2 PKCE).
 				</p>
 			</div>
