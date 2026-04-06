@@ -2,23 +2,23 @@ import { type HTMLAttributes } from 'react'
 import { cn } from '@one-bear/ui'
 
 const variants = {
-	default: 'bg-blue-100 text-blue-800 border-blue-200',
-	secondary: 'bg-gray-100 text-gray-800 border-gray-200',
-	success: 'bg-green-100 text-green-800 border-green-200',
-	warning: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-	destructive: 'bg-red-100 text-red-800 border-red-200',
-	outline: 'bg-transparent text-gray-700 border-gray-300',
+	default: 'bg-primary-alpha text-primary border-primary/20',
+	secondary: 'bg-bg-input text-t3 border-border-input',
+	success: 'bg-success-bg text-success border-success/20',
+	warning: 'bg-warning-bg text-warning border-warning/20',
+	destructive: 'bg-error-bg text-error border-error/20',
+	outline: 'bg-transparent text-t2 border-border-input',
 } as const
 
 const platformColors: Record<string, string> = {
-	line: 'bg-green-100 text-green-800 border-green-200',
-	facebook: 'bg-blue-100 text-blue-800 border-blue-200',
-	instagram: 'bg-pink-100 text-pink-800 border-pink-200',
-	whatsapp: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-	email: 'bg-gray-100 text-gray-800 border-gray-200',
-	tiktok: 'bg-slate-100 text-slate-800 border-slate-200',
-	lazada: 'bg-orange-100 text-orange-800 border-orange-200',
-	shopee: 'bg-red-100 text-red-800 border-red-200',
+	line: 'bg-[#06C755]/10 text-[#06C755] border-[#06C755]/20',
+	facebook: 'bg-[#1877F2]/10 text-[#1877F2] border-[#1877F2]/20',
+	instagram: 'bg-pink-500/10 text-pink-500 border-pink-500/20',
+	whatsapp: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+	email: 'bg-bg-input text-t3 border-border-input',
+	tiktok: 'bg-bg-input text-t1 border-border-input',
+	lazada: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
+	shopee: 'bg-red-500/10 text-red-500 border-red-500/20',
 }
 
 interface Props extends HTMLAttributes<HTMLSpanElement> {

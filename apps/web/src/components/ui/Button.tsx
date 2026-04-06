@@ -3,11 +3,12 @@ import { cn } from '@one-bear/ui'
 import { Slot } from './Slot'
 
 const variants = {
-	default: 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm',
-	secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200 shadow-sm',
-	outline: 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 shadow-sm',
-	ghost: 'text-gray-700 hover:bg-gray-100',
-	destructive: 'bg-red-600 text-white hover:bg-red-700 shadow-sm',
+	default: 'bg-primary text-white hover:bg-primary-light shadow-sm',
+	secondary: 'bg-bg-input text-t2 hover:bg-bg-hover shadow-sm',
+	outline: 'border border-border-input bg-transparent text-t2 hover:bg-bg-hover shadow-sm',
+	ghost: 'text-t2 hover:bg-bg-hover',
+	destructive: 'bg-error text-white hover:bg-error/80 shadow-sm',
+	success: 'bg-success-bg text-success hover:bg-success hover:text-white',
 } as const
 
 const sizes = {
@@ -48,7 +49,7 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
 ) {
 	const classes = cn(
 		'inline-flex items-center justify-center font-medium transition-colors',
-		'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2',
+		'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-bg-app',
 		'disabled:pointer-events-none disabled:opacity-50',
 		variants[variant],
 		sizes[size],

@@ -20,13 +20,13 @@ export function Avatar({ src, fallback = '?', size = 'md', className, alt, ...pr
 	return (
 		<span
 			className={cn(
-				'relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-200',
+				'relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-bg-input',
 				sizes[size],
 				className,
 			)}
 		>
 			{showFallback ? (
-				<span className="font-medium text-gray-600 uppercase select-none">{fallback.slice(0, 2)}</span>
+				<span className="font-medium text-t3 uppercase select-none">{fallback.slice(0, 2)}</span>
 			) : (
 				<img
 					src={src}

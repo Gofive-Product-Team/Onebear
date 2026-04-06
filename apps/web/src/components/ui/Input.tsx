@@ -16,7 +16,7 @@ export const Input = forwardRef<HTMLInputElement, Props>(function Input(
 	return (
 		<div className="flex flex-col gap-1.5">
 			{label && (
-				<label htmlFor={inputId} className="text-sm font-medium text-gray-700">
+				<label htmlFor={inputId} className="text-sm font-medium text-t3">
 					{label}
 				</label>
 			)}
@@ -24,11 +24,11 @@ export const Input = forwardRef<HTMLInputElement, Props>(function Input(
 				ref={ref}
 				id={inputId}
 				className={cn(
-					'flex h-9 w-full rounded-md border bg-white px-3 py-1 text-sm transition-colors',
-					'placeholder:text-gray-400',
-					'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1',
+					'flex h-9 w-full rounded-md border bg-bg-input px-3 py-1 text-sm text-t1 transition-colors',
+					'placeholder:text-t3',
+					'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',
 					'disabled:cursor-not-allowed disabled:opacity-50',
-					error ? 'border-red-500 focus-visible:ring-red-500' : 'border-gray-300',
+					error ? 'border-error focus-visible:ring-error' : 'border-border-input',
 					className,
 				)}
 				aria-invalid={error ? 'true' : undefined}
@@ -36,7 +36,7 @@ export const Input = forwardRef<HTMLInputElement, Props>(function Input(
 				{...props}
 			/>
 			{error && (
-				<p id={`${inputId}-error`} className="text-xs text-red-600">
+				<p id={`${inputId}-error`} className="text-xs text-error">
 					{error}
 				</p>
 			)}
