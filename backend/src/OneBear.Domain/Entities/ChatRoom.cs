@@ -21,9 +21,6 @@ public class ChatRoom : MongoEntity, IAuditableEntity
     [JsonPropertyName("platform")]
     public string Platform { get; set; } = default!;
 
-    [JsonPropertyName("kind")]
-    public string? Kind { get; set; }
-
     [JsonPropertyName("integrationId")]
     public string IntegrationId { get; set; } = default!;
 
@@ -62,12 +59,6 @@ public class ChatRoom : MongoEntity, IAuditableEntity
 
     [JsonPropertyName("isAiMuted")]
     public bool IsAiMuted { get; set; }
-
-    [JsonPropertyName("customerId")]
-    public string? CustomerId { get; set; }
-
-    [JsonPropertyName("contactId")]
-    public string? ContactId { get; set; }
 
     [JsonPropertyName("createdBy")]
     public string? CreatedBy { get; set; }

@@ -372,8 +372,8 @@ public class OAuthService
                 ChannelId = _oauthOptions.Line.ClientId,
                 ChannelSecret = _oauthOptions.Line.ClientSecret,
                 AccessToken = accessToken,
-                PageId = botId, // Store bot_id in PageId field
-                PageName = botDisplayName ?? $"LINE Bot ({botId[..8]}...)",
+                PlatformAccountId = botId, // Store bot_id in PlatformAccountId field
+                PlatformAccountName = botDisplayName ?? $"LINE Bot ({botId[..8]}...)",
             };
 
             return await CreateIntegrationAsync(companyId, SocialPlatform.Line, credentials, userId, ct);
@@ -456,8 +456,8 @@ public class OAuthService
             PlatformCredentials fbCredentials = new()
             {
                 AccessToken = firstPage.AccessToken ?? longLivedToken,
-                PageId = firstPage.Id,
-                PageName = firstPage.Name ?? name,
+                PlatformAccountId = firstPage.Id,
+                PlatformAccountName = firstPage.Name ?? name,
             };
 
             Result<OAuthConnectResponse> fbResult = await CreateIntegrationAsync(
@@ -501,7 +501,7 @@ public class OAuthService
             PlatformCredentials igCredentials = new()
             {
                 AccessToken = pageAccessToken,
-                PageId = igAccountId,
+                PlatformAccountId = igAccountId,
             };
 
             await CreateIntegrationAsync(companyId, SocialPlatform.Instagram, igCredentials, userId, ct);

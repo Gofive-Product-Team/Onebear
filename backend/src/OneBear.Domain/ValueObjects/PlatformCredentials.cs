@@ -31,11 +31,11 @@ public class PlatformCredentials
     [JsonPropertyName("tokenExpiresAt")]
     public long? TokenExpiresAt { get; set; }
 
-    [JsonPropertyName("pageName")]
-    public string? PageName { get; set; }
+    [JsonPropertyName("platformAccountName")]
+    public string? PlatformAccountName { get; set; }
 
-    [JsonPropertyName("pageId")]
-    public string? PageId { get; set; }
+    [JsonPropertyName("platformAccountId")]
+    public string? PlatformAccountId { get; set; }
 
     [JsonPropertyName("shopId")]
     public string? ShopId { get; set; }

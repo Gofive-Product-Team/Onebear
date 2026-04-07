@@ -115,6 +115,7 @@ public class MessageOrchestrator
             Product = normalized.Product,
             Order = normalized.Order,
             Referral = normalized.Referral,
+            CreatedBy = chatUser.Id,
             CreatedTimestamp = now
         };
         await _messageRepo.CreateAsync(chatMessage, ct);
@@ -217,7 +218,7 @@ public class MessageOrchestrator
             return new Result<ChatMessageDto>.Failure(
                 new Error("ROOM_NOT_FOUND", "Room not found.", ErrorType.NotFound));
 
-        // Step 2: Create message with optimistic failure status (MSG-04)
+        // Step 2: Create message with Pending status (MSG-04); updated after send attempt
         long now = DateTimeHelper.NowUnixMilliseconds();
         ChatMessage chatMessage = new()
         {
@@ -229,7 +230,8 @@ public class MessageOrchestrator
             Platform = room.Platform,
             Timestamp = now,
             CompanyId = room.CompanyId,
-            DeliveryStatus = MessageDeliveryState.Failed,
+            DeliveryStatus = MessageDeliveryState.Pending,
+            CreatedBy = senderUserId,
             CreatedTimestamp = now
         };
         await _messageRepo.CreateAsync(chatMessage, ct);
@@ -276,7 +278,7 @@ public class MessageOrchestrator
         // Step 6: Update delivery status
         if (sendResult is Result<PlatformSendResult>.Success sendSuccess)
         {
-            chatMessage.DeliveryStatus = MessageDeliveryState.Sent;
+            chatMessage.DeliveryStatus = MessageDeliveryState.Delivered;
             chatMessage.Mid = sendSuccess.Value.PlatformMessageId;
         }
         else if (sendResult is Result<PlatformSendResult>.Failure sendFailure)

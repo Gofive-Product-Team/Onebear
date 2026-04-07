@@ -479,9 +479,9 @@ public class MessageOrchestratorTests
         // Assert
         Assert.IsType<Result<ChatMessageDto>.Success>(result);
 
-        // Message UpdateAsync called with Sent status
+        // Message UpdateAsync called with Delivered status
         Assert.NotNull(updatedMessage);
-        Assert.Equal(MessageDeliveryState.Sent, updatedMessage!.DeliveryStatus);
+        Assert.Equal(MessageDeliveryState.Delivered, updatedMessage!.DeliveryStatus);
         Assert.Equal("platform-msg-001", updatedMessage.Mid);
 
         mocks.MessageRepo.Verify(

@@ -118,7 +118,7 @@ public class WebhooksController : ControllerBase
                 return Ok();
             }
 
-            // Lookup integration by bot_id (stored in PageId field)
+            // Lookup integration by bot_id (stored in PlatformAccountId field)
             IntegrationChannel? integration = await _integrationService.GetByBotIdAsync(
                 SocialPlatform.Line, destination, ct);
 

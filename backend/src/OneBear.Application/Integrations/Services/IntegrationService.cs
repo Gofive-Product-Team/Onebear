@@ -83,7 +83,7 @@ public class IntegrationService : IIntegrationService
         if (cached is not null)
             return cached;
 
-        // Lookup integration where Credentials.PageId == botId (bot_id stored in PageId)
+        // Lookup integration where Credentials.PlatformAccountId == botId (bot_id stored in PlatformAccountId)
         IntegrationChannel? channel = await _repo.GetByBotIdAsync(platform, botId, ct);
         if (channel is not null)
             await _cache.SetAsync(cacheKey, channel, CacheTtl, ct);

@@ -30,9 +30,6 @@ public class ChatMessage : MongoEntity, IAuditableEntity
     [JsonPropertyName("companyId")]
     public string CompanyId { get; set; } = default!;
 
-    [JsonPropertyName("traceId")]
-    public string? TraceId { get; set; }
-
     [JsonPropertyName("deliveryStatus")]
     public string DeliveryStatus { get; set; } = Enums.MessageDeliveryState.Pending;
 

@@ -33,8 +33,8 @@ public static class IntegrationMapper
         return new PlatformCredentialSummaryDto
         {
             ChannelId = credentials.ChannelId,
-            PageName = credentials.PageName,
-            PageId = credentials.PageId,
+            PlatformAccountName = credentials.PlatformAccountName,
+            PlatformAccountId = credentials.PlatformAccountId,
             PhoneNumber = maskedPhone,
             ShopId = credentials.ShopId,
             ShopName = credentials.ShopName,

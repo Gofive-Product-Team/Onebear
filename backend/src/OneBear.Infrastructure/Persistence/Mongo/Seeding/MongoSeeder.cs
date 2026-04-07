@@ -114,7 +114,36 @@ public class MongoSeeder
                 .Ascending(v => v.CompanyId)
                 .Ascending(v => v.UserId), ct);
 
-        _logger.LogInformation("MongoDB indexes created/verified (16 total)");
+        // Rooms — inbound webhook room lookup (CRITICAL: runs every message)
+        await CreateIndexAsync(_context.Rooms, new CreateIndexModel<ChatRoom>(
+            Builders<ChatRoom>.IndexKeys
+                .Ascending(r => r.CompanyId).Ascending(r => r.UserId).Ascending(r => r.IntegrationId),
+            new CreateIndexOptions { Name = "ix_rooms_company_user_integration" }), ct);
+
+        // Rooms — badge count + unread
+        await CreateIndexAsync(_context.Rooms, new CreateIndexModel<ChatRoom>(
+            Builders<ChatRoom>.IndexKeys
+                .Ascending(r => r.CompanyId).Ascending(r => r.State).Ascending(r => r.Unread).Descending(r => r.LastMessageTimestamp),
+            new CreateIndexOptions { Name = "ix_rooms_company_state_unread_ts" }), ct);
+
+        // Rooms — followup scanner (cross-company)
+        await CreateIndexAsync(_context.Rooms, new CreateIndexModel<ChatRoom>(
+            Builders<ChatRoom>.IndexKeys.Ascending(r => r.FollowupTimestamp),
+            new CreateIndexOptions { Name = "ix_rooms_followup_ts" }), ct);
+
+        // IntegrationChannels — LINE webhook bot_id lookup (CRITICAL: runs every webhook)
+        await CreateIndexAsync(_context.IntegrationChannels, new CreateIndexModel<IntegrationChannel>(
+            Builders<IntegrationChannel>.IndexKeys
+                .Ascending(c => c.Platform).Ascending(c => c.IsActive).Ascending("credentials.platformAccountId"),
+            new CreateIndexOptions { Name = "ix_integrations_platform_active_accountid" }), ct);
+
+        // IntegrationChannels — token refresh worker
+        await CreateIndexAsync(_context.IntegrationChannels, new CreateIndexModel<IntegrationChannel>(
+            Builders<IntegrationChannel>.IndexKeys
+                .Ascending(c => c.IsActive).Ascending("credentials.tokenExpiresAt"),
+            new CreateIndexOptions { Name = "ix_integrations_active_tokenexpiry" }), ct);
+
+        _logger.LogInformation("MongoDB indexes created/verified (21 total)");
     }
 
     private async Task CreateIndexAsync<T>(
@@ -129,6 +158,14 @@ public class MongoSeeder
         await collection.Indexes.CreateOneAsync(model, cancellationToken: ct);
     }
 
+    private async Task CreateIndexAsync<T>(
+        IMongoCollection<T> collection,
+        CreateIndexModel<T> model,
+        CancellationToken ct)
+    {
+        await collection.Indexes.CreateOneAsync(model, cancellationToken: ct);
+    }
+
     public async Task SeedDevelopmentDataAsync(CancellationToken ct = default)
     {
         string companyId = "company-demo-001";
@@ -138,6 +175,7 @@ public class MongoSeeder
         IntegrationChannel lineChannel = new()
         {
             Id = "int-line-001", CompanyId = companyId, Platform = SocialPlatform.Line,
+            Name = "LINE Official",
             IsActive = true, HasChatFeature = true,
             Credentials = new PlatformCredentials { ChannelId = "demo-line-ch", ChannelSecret = "demo-secret", AccessToken = "demo-token" },
             GreetingMessages = [new() { Type = "text", Content = "Welcome! How can we help?", IsEnabled = true }],
@@ -149,6 +187,7 @@ public class MongoSeeder
         IntegrationChannel fbChannel = new()
         {
             Id = "int-fb-002", CompanyId = companyId, Platform = SocialPlatform.Facebook,
+            Name = "Facebook Page",
             IsActive = true, HasChatFeature = true,
             Credentials = new PlatformCredentials { AppId = "demo-app-id", AppSecret = "demo-secret", AccessToken = "demo-token" },
             CreatedBy = "system", CreatedTimestamp = now, UpdatedBy = "system", UpdatedTimestamp = now
@@ -169,16 +208,16 @@ public class MongoSeeder
         ChatUser agent1 = new()
         {
             Id = "agent-001", CompanyId = companyId, ExternalId = "agent-001",
-            DisplayName = "Agent One", IntegrationId = "int-line-001",
-            Platform = SocialPlatform.Line, Type = UserType.Agent,
+            DisplayName = "Agent One", IntegrationId = null,
+            Platform = null, Type = UserType.Agent,
             CreatedBy = "system", CreatedTimestamp = now, UpdatedBy = "system", UpdatedTimestamp = now
         };
 
         ChatUser agent2 = new()
         {
             Id = "agent-002", CompanyId = companyId, ExternalId = "agent-002",
-            DisplayName = "Agent Two", IntegrationId = "int-fb-002",
-            Platform = SocialPlatform.Facebook, Type = UserType.Agent,
+            DisplayName = "Agent Two", IntegrationId = null,
+            Platform = null, Type = UserType.Agent,
             CreatedBy = "system", CreatedTimestamp = now, UpdatedBy = "system", UpdatedTimestamp = now
         };
 
@@ -319,6 +358,7 @@ public class MongoSeeder
         IntegrationChannel lineCh = new()
         {
             Id = "dev-int-line", CompanyId = companyId, Platform = SocialPlatform.Line,
+            Name = "LINE Official",
             IsActive = true, HasChatFeature = true,
             Credentials = new PlatformCredentials { ChannelId = "dev-line-ch", ChannelSecret = "secret", AccessToken = "token" },
             GreetingMessages = [new() { Type = "text", Content = "\u0e2a\u0e27\u0e31\u0e2a\u0e14\u0e35\u0e04\u0e48\u0e30 \u0e21\u0e35\u0e2d\u0e30\u0e44\u0e23\u0e43\u0e2b\u0e49\u0e0a\u0e48\u0e27\u0e22\u0e44\u0e2b\u0e21\u0e04\u0e30?", IsEnabled = true }],
@@ -334,6 +374,7 @@ public class MongoSeeder
         IntegrationChannel fbCh = new()
         {
             Id = "dev-int-fb", CompanyId = companyId, Platform = SocialPlatform.Facebook,
+            Name = "Facebook Page",
             IsActive = true, HasChatFeature = true,
             Credentials = new PlatformCredentials { AppId = "dev-fb-app", AppSecret = "secret", AccessToken = "token" },
             CreatedBy = "system", CreatedTimestamp = now
@@ -341,6 +382,7 @@ public class MongoSeeder
         IntegrationChannel igCh = new()
         {
             Id = "dev-int-ig", CompanyId = companyId, Platform = SocialPlatform.Instagram,
+            Name = "Instagram",
             IsActive = true, HasChatFeature = true,
             Credentials = new PlatformCredentials { AppId = "dev-ig-app", AppSecret = "secret", AccessToken = "token" },
             CreatedBy = "system", CreatedTimestamp = now
@@ -348,6 +390,7 @@ public class MongoSeeder
         IntegrationChannel waCh = new()
         {
             Id = "dev-int-wa", CompanyId = companyId, Platform = SocialPlatform.WhatsApp,
+            Name = "WhatsApp Business",
             IsActive = true, HasChatFeature = true,
             Credentials = new PlatformCredentials { PhoneNumberId = "dev-phone", AppSecret = "secret", AccessToken = "token" },
             CreatedBy = "system", CreatedTimestamp = now
@@ -355,6 +398,7 @@ public class MongoSeeder
         IntegrationChannel shopCh = new()
         {
             Id = "dev-int-shopee", CompanyId = companyId, Platform = SocialPlatform.Shopee,
+            Name = "Shopee Shop",
             IsActive = true, HasChatFeature = true,
             Credentials = new PlatformCredentials { AppId = "dev-shopee-partner", AppSecret = "secret", AccessToken = "token", ChannelId = "shop-001" },
             CreatedBy = "system", CreatedTimestamp = now

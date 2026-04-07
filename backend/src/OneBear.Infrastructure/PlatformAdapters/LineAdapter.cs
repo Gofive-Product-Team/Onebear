@@ -306,9 +306,9 @@ public class LineAdapter : IPlatformAdapter
 
         // Module Auth requires X-Line-Bot-Id to identify which bot to act as
         // Without this header, LINE rejects with "Access to this API is not available"
-        if (!string.IsNullOrEmpty(integration.Credentials?.PageId))
+        if (!string.IsNullOrEmpty(integration.Credentials?.PlatformAccountId))
         {
-            client.DefaultRequestHeaders.TryAddWithoutValidation("X-Line-Bot-Id", integration.Credentials.PageId);
+            client.DefaultRequestHeaders.TryAddWithoutValidation("X-Line-Bot-Id", integration.Credentials.PlatformAccountId);
         }
 
         return client;

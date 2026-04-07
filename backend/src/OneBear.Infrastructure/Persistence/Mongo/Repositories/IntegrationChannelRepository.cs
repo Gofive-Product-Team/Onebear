@@ -55,11 +55,11 @@ public class IntegrationChannelRepository : MongoRepositoryBase<IntegrationChann
 
     public async Task<IntegrationChannel?> GetByBotIdAsync(string platform, string botId, CancellationToken ct = default)
     {
-        // LINE bot_id is stored in credentials.pageId
+        // LINE bot_id is stored in credentials.platformAccountId
         FilterDefinition<IntegrationChannel> filter = Builders<IntegrationChannel>.Filter.And(
             Builders<IntegrationChannel>.Filter.Eq(c => c.Platform, platform),
             Builders<IntegrationChannel>.Filter.Eq(c => c.IsActive, true),
-            Builders<IntegrationChannel>.Filter.Eq("credentials.pageId", botId));
+            Builders<IntegrationChannel>.Filter.Eq("credentials.platformAccountId", botId));
         return await _collection.Find(filter).FirstOrDefaultAsync(ct);
     }
 }

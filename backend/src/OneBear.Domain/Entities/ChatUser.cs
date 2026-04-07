@@ -21,16 +21,13 @@ public class ChatUser : MongoEntity, IAuditableEntity
     public string? PictureUrl { get; set; }
 
     [JsonPropertyName("integrationId")]
-    public string IntegrationId { get; set; } = default!;
+    public string? IntegrationId { get; set; }
 
     [JsonPropertyName("platform")]
-    public string Platform { get; set; } = default!;
+    public string? Platform { get; set; }
 
     [JsonPropertyName("type")]
     public string Type { get; set; } = Enums.UserType.Customer;
-
-    [JsonPropertyName("isGroup")]
-    public bool IsGroup { get; set; }
 
     [JsonPropertyName("isActive")]
     public bool IsActive { get; set; } = true;
