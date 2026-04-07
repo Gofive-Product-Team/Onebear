@@ -26,7 +26,7 @@ export function AutoAssignmentConfig() {
 		if (config) {
 			setEnabled(config.enabled)
 			setMode(config.mode)
-			setSelectedAgentIds(config.agentIds)
+			setSelectedAgentIds(config.agentIds ?? [])
 			setHasChanges(false)
 		}
 	}, [config])
@@ -145,11 +145,11 @@ export function AutoAssignmentConfig() {
 						{/* Agent list */}
 						<div className="flex flex-col gap-1.5">
 							<label className="text-sm font-medium text-gray-700">
-								Agents ({selectedAgentIds.length} selected)
+								Agents ({selectedAgentIds?.length ?? 0} selected)
 							</label>
 							<div className="max-h-64 space-y-1 overflow-y-auto rounded-md border border-gray-200 p-2">
 								{(Array.isArray(users) ? users : []).map((user) => {
-									const isSelected = selectedAgentIds.includes(user.id)
+									const isSelected = selectedAgentIds?.includes(user.id) ?? false
 									return (
 										<label
 											key={user.id}
