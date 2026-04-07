@@ -4,8 +4,7 @@ public class AuthOptions
 {
     public const string SectionName = "Authentication";
 
-    public string Authority { get; set; } = string.Empty;
-    public string Audience { get; set; } = "onebear-api";
+    public string Authority { get; set; } = "";
+    public string Audience { get; set; } = "account";
     public bool RequireHttpsMetadata { get; set; } = true;
-    public string DevSigningKey { get; set; } = string.Empty;
 }

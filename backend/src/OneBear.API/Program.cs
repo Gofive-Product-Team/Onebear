@@ -1,11 +1,9 @@
-using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using OneBear.API.Auth;
 using OneBear.API.Hubs;
@@ -52,7 +50,7 @@ builder.Services.AddSwaggerGen(options =>
 
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT token. Get one from POST /api/v1/dev/token in development.",
+        Description = "JWT token from Keycloak.",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.Http,
@@ -105,50 +103,30 @@ AuthenticationBuilder authBuilder = builder.Services.AddAuthentication(options =
 // Disable default claim type mapping so "sub" stays as "sub" (not remapped to long URI)
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
-// JWT Bearer — single AddJwtBearer call that branches on dev vs prod
-bool isDevMode = !string.IsNullOrEmpty(authOptions.DevSigningKey);
-authBuilder.AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+// JWT Bearer — Keycloak JWKS validation for all environments
+authBuilder.AddJwtBearer(options =>
 {
-    options.MapInboundClaims = false;
-    if (isDevMode)
+    options.Authority = authOptions.Authority;
+    options.Audience = authOptions.Audience;
+    options.RequireHttpsMetadata = authOptions.RequireHttpsMetadata;
+    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
     {
-        // Dev mode: validate tokens signed with symmetric key
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = false,
-            ValidateAudience = true,
-            ValidAudience = authOptions.Audience,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(authOptions.DevSigningKey)),
-            ClockSkew = TimeSpan.FromMinutes(1)
-        };
-    }
-    else
-    {
-        // Production: validate tokens from GoFive IdP via JWKS
-        options.Authority = authOptions.Authority;
-        options.Audience = authOptions.Audience;
-        options.RequireHttpsMetadata = authOptions.RequireHttpsMetadata;
-    }
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.FromMinutes(1),
+        NameClaimType = "preferred_username"
+    };
 
-    // Allow token from query string for SignalR (both modes)
-    options.Events = new JwtBearerEvents
+    // SignalR: allow token in query string
+    options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
     {
         OnMessageReceived = context =>
         {
-            Microsoft.Extensions.Primitives.StringValues accessToken = context.Request.Query["access_token"];
+            string? accessToken = context.Request.Query["access_token"];
             PathString path = context.HttpContext.Request.Path;
             if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
-            {
                 context.Token = accessToken;
-            }
-            return Task.CompletedTask;
-        },
-        OnAuthenticationFailed = context =>
-        {
-            ILogger logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("JwtAuth");
-            logger.LogWarning("JWT auth failed: {Error}", context.Exception.Message);
             return Task.CompletedTask;
         }
     };
@@ -265,12 +243,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("OneBear");
 app.UseRateLimiter();
-
-// Dev auth bypass: auto-authenticate requests without token (Development only)
-if (app.Environment.IsDevelopment())
-{
-    app.UseMiddleware<DevAuthBypassMiddleware>();
-}
 
 app.UseAuthentication();
 app.UseUserProfile();
