@@ -47,7 +47,7 @@ public class RoomsController : ControllerBase
         _messageRepo = messageRepo;
     }
 
-    /// <summary>List rooms with pagination.</summary>
+    /// <summary>List rooms with pagination, filtering, searching, and sorting.</summary>
     [HttpGet]
     public async Task<IActionResult> ListRooms(
         string companyId,
@@ -56,13 +56,17 @@ public class RoomsController : ControllerBase
         [FromQuery] string? status = null,
         [FromQuery] string? platform = null,
         [FromQuery] string? assigneeId = null,
+        [FromQuery] string? search = null,
+        [FromQuery] string? sort = null,
         CancellationToken ct = default)
     {
         RoomFilter filter = new()
         {
             State = status,
             Platform = platform,
-            AssignToUserId = assigneeId
+            AssignToUserId = assigneeId,
+            SearchQuery = search,
+            Sort = sort
         };
 
         Result<PagedResult<ChatRoomDto>> result =

@@ -6,7 +6,7 @@ import { useRooms, useBadgeCount, useSpamRooms } from '@/api/useRooms'
 import { useAuthStore } from '@/stores/auth-store'
 import { RoomCard } from './RoomCard'
 import { SpamFolder } from './SpamFolder'
-import { Input } from '@/components/ui/Input'
+import { RoomFilterBar, type RoomFilterState } from './RoomFilterBar'
 import type { ChatRoom } from '@one-bear/shared-types'
 
 interface Props {
@@ -51,20 +51,31 @@ function groupRooms(rooms: ChatRoom[], currentUserId: string | undefined) {
 	return { pinnedRooms, assignedToMe, allChats }
 }
 
+const DEFAULT_FILTERS: RoomFilterState = {
+	state: '',
+	platform: '',
+	search: '',
+	sort: 'latest',
+}
+
 export function RoomList({ activeRoomId }: Props) {
 	const navigate = useNavigate()
 	const user = useAuthStore((s) => s.user)
 	const companyId = user?.companyId ?? ''
 
-	const [searchQuery, setSearchQuery] = useState('')
+	const [filterState, setFilterState] = useState<RoomFilterState>(DEFAULT_FILTERS)
 	const [spamOpen, setSpamOpen] = useState(false)
 
-	const filters = useMemo(() => {
-		if (searchQuery.trim()) return { search: searchQuery.trim() }
-		return {}
-	}, [searchQuery])
+	const queryFilters = useMemo(() => {
+		const f: Record<string, string> = {}
+		if (filterState.state) f.state = filterState.state
+		if (filterState.platform) f.platform = filterState.platform
+		if (filterState.search) f.search = filterState.search
+		if (filterState.sort && filterState.sort !== 'latest') f.sort = filterState.sort
+		return Object.keys(f).length > 0 ? f : undefined
+	}, [filterState])
 
-	const { data, isLoading, isError } = useRooms(companyId, filters)
+	const { data, isLoading, isError } = useRooms(companyId, queryFilters)
 	const { data: badgeData } = useBadgeCount(companyId)
 	const { data: spamRooms = [] } = useSpamRooms(companyId)
 
@@ -124,12 +135,9 @@ export function RoomList({ activeRoomId }: Props) {
 						)}
 					</div>
 				</div>
-				<Input
-					placeholder="Search conversations..."
-					value={searchQuery}
-					onChange={(e) => setSearchQuery(e.target.value)}
-					className="h-8 text-sm"
-				/>
+
+				{/* Filter bar */}
+				<RoomFilterBar filters={filterState} onChange={setFilterState} />
 			</div>
 
 			{/* Room list */}

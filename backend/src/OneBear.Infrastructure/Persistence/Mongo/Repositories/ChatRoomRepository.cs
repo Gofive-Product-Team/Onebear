@@ -40,7 +40,15 @@ public class ChatRoomRepository : MongoRepositoryBase<ChatRoom>, IChatRoomReposi
             filters.Add(fb.Regex("customer.name", new BsonRegularExpression(filter.SearchQuery, "i")));
 
         FilterDefinition<ChatRoom> combinedFilter = fb.And(filters);
-        SortDefinition<ChatRoom> sort = Builders<ChatRoom>.Sort.Descending(r => r.LastMessageTimestamp);
+
+        SortDefinition<ChatRoom> sort = filter.Sort switch
+        {
+            "oldest" => Builders<ChatRoom>.Sort.Ascending(r => r.LastMessageTimestamp),
+            "unread" => Builders<ChatRoom>.Sort
+                .Descending(r => r.Unread)
+                .Descending(r => r.LastMessageTimestamp),
+            _ => Builders<ChatRoom>.Sort.Descending(r => r.LastMessageTimestamp), // "latest" or default
+        };
 
         int skip = 0;
         if (!string.IsNullOrEmpty(continuationToken) && int.TryParse(continuationToken, out int parsedOffset))
