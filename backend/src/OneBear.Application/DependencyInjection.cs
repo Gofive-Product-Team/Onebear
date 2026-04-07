@@ -43,6 +43,8 @@ public static class DependencyInjection
 
         // CRM
         services.AddScoped<CustomerService>();
+        services.AddScoped<TagRecalculationService>();
+        services.AddScoped<ActivityLogService>();
 
         return services;
     }

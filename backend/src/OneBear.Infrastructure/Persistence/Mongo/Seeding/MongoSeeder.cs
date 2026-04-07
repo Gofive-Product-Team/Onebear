@@ -188,7 +188,18 @@ public class MongoSeeder
                 .Text("phone"),
             new CreateIndexOptions { Name = "ix_customers_company_search" }), ct);
 
-        _logger.LogInformation("MongoDB indexes created/verified (29 total)");
+        // ActivityLogs: 2 indexes
+        await CreateIndexAsync(_context.ActivityLogs, "ix_activity_customer_ts",
+            Builders<ActivityLog>.IndexKeys
+                .Ascending(a => a.CustomerId)
+                .Descending(a => a.Timestamp), ct);
+
+        await CreateIndexAsync(_context.ActivityLogs, "ix_activity_company_ts",
+            Builders<ActivityLog>.IndexKeys
+                .Ascending(a => a.CompanyId)
+                .Descending(a => a.Timestamp), ct);
+
+        _logger.LogInformation("MongoDB indexes created/verified (31 total)");
     }
 
     private async Task CreateIndexAsync<T>(

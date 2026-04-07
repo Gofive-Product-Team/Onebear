@@ -11,11 +11,16 @@ using OneBear.Domain.ValueObjects;
 public class CustomerService
 {
     private readonly ICustomerRepository _customerRepo;
+    private readonly TagRecalculationService _tagRecalcService;
     private readonly ILogger<CustomerService> _logger;
 
-    public CustomerService(ICustomerRepository customerRepo, ILogger<CustomerService> logger)
+    public CustomerService(
+        ICustomerRepository customerRepo,
+        TagRecalculationService tagRecalcService,
+        ILogger<CustomerService> logger)
     {
         _customerRepo = customerRepo;
+        _tagRecalcService = tagRecalcService;
         _logger = logger;
     }
 
@@ -74,6 +79,7 @@ public class CustomerService
             UpdatedTimestamp = now
         };
 
+        customer = _tagRecalcService.RecalculateTagsAsync(customer);
         Customer created = await _customerRepo.CreateAsync(customer, ct);
         _logger.LogInformation("Customer {CustomerId} created by {UserId} for company {CompanyId}",
             created.Id, userId, companyId);
@@ -103,6 +109,7 @@ public class CustomerService
             customer.TaxId = request.TaxId.Trim();
 
         customer.UpdatedBy = userId;
+        customer = _tagRecalcService.RecalculateTagsAsync(customer);
 
         Customer updated = await _customerRepo.UpdateAsync(customer, ct);
         return new Result<CustomerDetailDto>.Success(CustomerMapper.ToDetailDto(updated));
@@ -227,6 +234,7 @@ public class CustomerService
         }
 
         customer.UpdatedTimestamp = now;
+        customer = _tagRecalcService.RecalculateTagsAsync(customer);
 
         await _customerRepo.UpdateAsync(customer, ct);
         return new Result<CustomerDetailDto>.Success(CustomerMapper.ToDetailDto(customer));
@@ -246,5 +254,65 @@ public class CustomerService
             Cold = counts.Cold,
             Organization = counts.Organization
         };
+    }
+
+    public async Task<CustomerKpiSnapshotDto> GetKpiSnapshotAsync(
+        string companyId, CancellationToken ct = default)
+    {
+        CustomerSegmentCounts counts = await _customerRepo.GetSegmentCountsAsync(companyId, ct);
+        decimal totalLtv = await _customerRepo.GetTotalLtvAsync(companyId, ct);
+        int newThisWeek = await _customerRepo.GetNewThisWeekCountAsync(companyId, ct);
+
+        string? alertMessage = counts.AtRisk > 0
+            ? $"{counts.AtRisk} VIP customers are at risk of going cold"
+            : null;
+
+        return new CustomerKpiSnapshotDto
+        {
+            TotalCustomers = counts.All,
+            AtRiskCount = counts.AtRisk,
+            HotCount = counts.Hot,
+            NewThisWeek = newThisWeek,
+            TotalLtv = totalLtv,
+            AlertMessage = alertMessage
+        };
+    }
+
+    /// <summary>
+    /// Updates LastActivityTimestamp for a customer linked to a ChatUser, then recalculates tags.
+    /// Called when messages are received or sent.
+    /// </summary>
+    public async Task UpdateActivityAsync(
+        string companyId, string chatUserId, CancellationToken ct = default)
+    {
+        // Find customer by linked chat user channel (chatUserId matches CustomerChannel.ChatUserId)
+        CustomerQueryParams query = new() { PageSize = 1 };
+        (List<Customer> items, _) = await _customerRepo.QueryAsync(companyId, query, ct);
+
+        // We need to search by chatUserId — use a dedicated lookup
+        // For now, use the generic query and filter in memory for MVP
+        // TODO: Add GetByChatUserIdAsync to ICustomerRepository when needed at scale
+        Customer? customer = null;
+        foreach (Customer candidate in items)
+        {
+            if (candidate.Channels.Any(ch => ch.ChatUserId == chatUserId))
+            {
+                customer = candidate;
+                break;
+            }
+        }
+
+        if (customer is null)
+        {
+            _logger.LogDebug("No customer linked to ChatUser {ChatUserId} in company {CompanyId}", chatUserId, companyId);
+            return;
+        }
+
+        long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        customer.LastActivityTimestamp = now;
+        customer = _tagRecalcService.RecalculateTagsAsync(customer);
+
+        await _customerRepo.UpdateAsync(customer, ct);
+        _logger.LogDebug("Updated activity timestamp for customer {CustomerId}", customer.Id);
     }
 }

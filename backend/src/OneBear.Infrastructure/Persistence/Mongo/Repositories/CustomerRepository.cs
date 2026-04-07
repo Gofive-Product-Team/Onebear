@@ -150,4 +150,53 @@ public class CustomerRepository : MongoRepositoryBase<Customer>, ICustomerReposi
         );
         return await _collection.Find(filter).FirstOrDefaultAsync(ct);
     }
+
+    public async Task<decimal> GetTotalLtvAsync(string companyId, CancellationToken ct = default)
+    {
+        FilterDefinitionBuilder<Customer> fb = Builders<Customer>.Filter;
+        FilterDefinition<Customer> filter = fb.And(
+            fb.Eq(c => c.CompanyId, companyId),
+            fb.Eq(c => c.IsPromoted, true)
+        );
+
+        // Use aggregation to sum Ltv
+        List<Customer> customers = await _collection
+            .Find(filter)
+            .Project(Builders<Customer>.Projection.Include(c => c.Ltv))
+            .As<Customer>()
+            .ToListAsync(ct);
+
+        return customers.Sum(c => c.Ltv);
+    }
+
+    public async Task<int> GetNewThisWeekCountAsync(string companyId, CancellationToken ct = default)
+    {
+        long weekAgoMs = DateTimeOffset.UtcNow.AddDays(-7).ToUnixTimeMilliseconds();
+
+        FilterDefinitionBuilder<Customer> fb = Builders<Customer>.Filter;
+        FilterDefinition<Customer> filter = fb.And(
+            fb.Eq(c => c.CompanyId, companyId),
+            fb.Eq(c => c.IsPromoted, true),
+            fb.Gte(c => c.CreatedTimestamp, weekAgoMs)
+        );
+
+        long count = await _collection.CountDocumentsAsync(filter, cancellationToken: ct);
+        return (int)count;
+    }
+
+    public async Task<List<Customer>> GetActivePromotedBatchAsync(
+        int skip, int batchSize, CancellationToken ct = default)
+    {
+        FilterDefinitionBuilder<Customer> fb = Builders<Customer>.Filter;
+        FilterDefinition<Customer> filter = fb.And(
+            fb.Eq(c => c.IsPromoted, true),
+            fb.Eq(c => c.Status, "Active")
+        );
+
+        return await _collection
+            .Find(filter)
+            .Skip(skip)
+            .Limit(batchSize)
+            .ToListAsync(ct);
+    }
 }

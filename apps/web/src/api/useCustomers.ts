@@ -16,6 +16,8 @@ export interface CustomerChannel {
 	displayName: string | null
 }
 
+export type SuggestedActionType = 'chat' | 'followup' | 'welcome'
+
 export interface CustomerListItem {
 	id: string
 	customerType: string // "Individual" | "Organization"
@@ -34,6 +36,8 @@ export interface CustomerListItem {
 	pinnedNote: string | null
 	isAtRisk: boolean
 	daysSinceLastPurchase: number | null
+	suggestedAction: string | null
+	suggestedActionType: SuggestedActionType | null
 }
 
 export interface CustomerDetail extends CustomerListItem {

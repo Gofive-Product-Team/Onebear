@@ -10,6 +10,7 @@ import { AppShell } from '../components/layout/AppShell'
 import { ChatLayout } from '../components/chat/ChatLayout'
 import { DashboardPage } from '../pages/DashboardPage'
 import { CustomerPage } from '../pages/CustomerPage'
+import { CustomerProfilePage } from '../pages/CustomerProfilePage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { PaymentPage } from '../pages/PaymentPage'
 import { SatisfactionPage } from '../pages/SatisfactionPage'
@@ -101,6 +102,17 @@ const customerRoute = createRoute({
 	component: CustomerPage,
 })
 
+function CustomerProfileRoutePage() {
+	const { customerId } = useParams({ from: '/customer/$customerId' })
+	return <CustomerProfilePage customerId={customerId} />
+}
+
+const customerProfileRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: '/customer/$customerId',
+	component: CustomerProfileRoutePage,
+})
+
 const dashboardRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/dashboard',
@@ -173,6 +185,7 @@ export const routeTree = rootRoute.addChildren([
 	chatRoute,
 	chatRoomRoute,
 	customerRoute,
+	customerProfileRoute,
 	dashboardRoute,
 	settingsRoute,
 	settingsIntegrationsRoute,

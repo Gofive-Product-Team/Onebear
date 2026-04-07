@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { cn } from '@one-bear/ui'
 import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -10,6 +11,7 @@ import { SortDropdown } from '@/components/customer/SortDropdown'
 import { CustomerSearch } from '@/components/customer/CustomerSearch'
 import { AddCustomerPanel } from '@/components/customer/AddCustomerPanel'
 import { FloatingActionButton } from '@/components/customer/FloatingActionButton'
+import { KpiSnapshotBar } from '@/components/customer/KpiSnapshotBar'
 
 // ─── Empty segment counts fallback ────────────────────────────────────────────
 
@@ -83,6 +85,7 @@ function EmptyState({ search, onAdd }: { search: string; onAdd: () => void }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export function CustomerPage() {
+	const navigate = useNavigate()
 	const [segment, setSegment] = useState('All')
 	const [search, setSearch] = useState('')
 	const [sort, setSort] = useState('recent')
@@ -152,6 +155,9 @@ export function CustomerPage() {
 				</Button>
 			</div>
 
+			{/* KPI Snapshot bar */}
+			<KpiSnapshotBar />
+
 			{/* Filter chips */}
 			<FilterChips
 				counts={counts ?? EMPTY_COUNTS}
@@ -205,6 +211,9 @@ export function CustomerPage() {
 									key={customer.id}
 									customer={customer}
 									onClick={() => handleCardClick(customer.id)}
+									onNavigateToProfile={(id) =>
+										navigate({ to: '/customer/$customerId', params: { customerId: id } })
+									}
 								/>
 							))}
 

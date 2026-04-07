@@ -19,4 +19,6 @@ public record CustomerListDto
     public string? PinnedNote { get; init; }
     public bool IsAtRisk { get; init; }
     public int? DaysSinceLastPurchase { get; init; }
+    public string? SuggestedAction { get; init; }
+    public string? SuggestedActionType { get; init; }
 }

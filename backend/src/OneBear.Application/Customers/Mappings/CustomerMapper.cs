@@ -41,7 +41,9 @@ public static class CustomerMapper
             LastMessagePreview = null, // Populated by service if needed
             PinnedNote = customer.PinnedNote,
             IsAtRisk = isAtRisk,
-            DaysSinceLastPurchase = daysSinceLastPurchase
+            DaysSinceLastPurchase = daysSinceLastPurchase,
+            SuggestedAction = ComputeSuggestedAction(customer),
+            SuggestedActionType = ComputeSuggestedActionType(customer)
         };
     }
 
@@ -111,5 +113,31 @@ public static class CustomerMapper
         long diffMs = nowMs - lastOrderTimestamp.Value;
         if (diffMs < 0) return 0;
         return (int)(diffMs / 86400000L);
+    }
+
+    private static string? ComputeSuggestedAction(Customer c)
+    {
+        bool isHot = c.Tags.Any(t => t.Name == "Hot");
+        bool isAtRisk = c.Tags.Any(t => t.Name == "At-risk");
+        bool isNew = c.Tags.Any(t => t.Name == "New");
+        bool wasVip = c.Tags.Any(t => t.Name == "VIP");
+
+        if (isHot) return "Send a thank you message";
+        if (isAtRisk && wasVip) return "Win them back with a special offer";
+        if (isAtRisk) return "Check in on their experience";
+        if (isNew && c.OrderCount == 0) return "Welcome and introduce products";
+        return null;
+    }
+
+    private static string? ComputeSuggestedActionType(Customer c)
+    {
+        bool isHot = c.Tags.Any(t => t.Name == "Hot");
+        bool isAtRisk = c.Tags.Any(t => t.Name == "At-risk");
+        bool isNew = c.Tags.Any(t => t.Name == "New");
+
+        if (isHot) return "chat";
+        if (isAtRisk) return "followup";
+        if (isNew && c.OrderCount == 0) return "welcome";
+        return null;
     }
 }

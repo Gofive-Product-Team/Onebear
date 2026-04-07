@@ -37,4 +37,5 @@ public class MongoDbContext
     public IMongoCollection<CompanyFeatureSettings> CompanyFeatureSettings => _database.GetCollection<CompanyFeatureSettings>("CompanyFeatureSettings");
     public IMongoCollection<UserVerification> UserVerifications => _database.GetCollection<UserVerification>("UserVerifications");
     public IMongoCollection<Customer> Customers => _database.GetCollection<Customer>("Customers");
+    public IMongoCollection<ActivityLog> ActivityLogs => _database.GetCollection<ActivityLog>("ActivityLogs");
 }

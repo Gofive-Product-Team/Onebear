@@ -14,10 +14,12 @@ using OneBear.Domain.Common;
 public class CustomersController : ControllerBase
 {
     private readonly CustomerService _customerService;
+    private readonly ActivityLogService _activityLogService;
 
-    public CustomersController(CustomerService customerService)
+    public CustomersController(CustomerService customerService, ActivityLogService activityLogService)
     {
         _customerService = customerService;
+        _activityLogService = activityLogService;
     }
 
     /// <summary>List customers (paginated, filtered, sorted).</summary>
@@ -53,6 +55,16 @@ public class CustomersController : ControllerBase
     {
         CustomerSegmentCountsDto counts = await _customerService.GetSegmentCountsAsync(companyId, ct);
         return Ok(counts);
+    }
+
+    /// <summary>Get KPI snapshot (total, at-risk, hot, LTV, new this week).</summary>
+    [HttpGet("kpi-snapshot")]
+    public async Task<IActionResult> GetKpiSnapshot(
+        string companyId,
+        CancellationToken ct = default)
+    {
+        CustomerKpiSnapshotDto snapshot = await _customerService.GetKpiSnapshotAsync(companyId, ct);
+        return Ok(snapshot);
     }
 
     /// <summary>Get customer detail.</summary>
@@ -160,6 +172,22 @@ public class CustomersController : ControllerBase
     {
         Result<CustomerDetailDto> result = await _customerService.PromoteAsync(companyId, customerId, ct);
         return result.ToActionResult();
+    }
+
+    /// <summary>Get activity log for a customer (paginated).</summary>
+    [HttpGet("{customerId}/activity")]
+    public async Task<IActionResult> GetActivityLog(
+        string companyId,
+        string customerId,
+        [FromQuery] string? type = null,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? continuationToken = null,
+        CancellationToken ct = default)
+    {
+        (List<ActivityLogDto> items, string? nextToken) =
+            await _activityLogService.GetByCustomerAsync(customerId, type, pageSize, continuationToken, ct);
+
+        return Ok(new { items, continuationToken = nextToken });
     }
 }
 

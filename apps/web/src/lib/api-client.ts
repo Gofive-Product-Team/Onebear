@@ -180,6 +180,10 @@ export const api = {
 			fetchApi(`/companies/${companyId}/customers/${id}/pinned-note`, { method: 'DELETE' }),
 		promote: (companyId: string, id: string) =>
 			fetchApi(`/companies/${companyId}/customers/${id}/promote`, { method: 'POST' }),
+		kpiSnapshot: (companyId: string) =>
+			fetchApi(`/companies/${companyId}/customers/kpi-snapshot`),
+		activity: (companyId: string, customerId: string, params?: Record<string, string>) =>
+			fetchApi(`/companies/${companyId}/customers/${customerId}/activity${params ? '?' + new URLSearchParams(params) : ''}`),
 	},
 	companies: {
 		featureSettings: (companyId: string) => fetchApi(`/companies/${companyId}/feature-settings`),

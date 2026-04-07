@@ -13,4 +13,7 @@ public interface ICustomerRepository
     Task<CustomerSegmentCounts> GetSegmentCountsAsync(string companyId, CancellationToken ct = default);
     Task<Customer?> GetByPhoneAsync(string companyId, string phone, CancellationToken ct = default);
     Task<Customer?> GetByEmailAsync(string companyId, string email, CancellationToken ct = default);
+    Task<decimal> GetTotalLtvAsync(string companyId, CancellationToken ct = default);
+    Task<int> GetNewThisWeekCountAsync(string companyId, CancellationToken ct = default);
+    Task<List<Customer>> GetActivePromotedBatchAsync(int skip, int batchSize, CancellationToken ct = default);
 }

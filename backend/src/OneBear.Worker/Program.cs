@@ -42,6 +42,14 @@ builder.Services.AddQuartz(q =>
         .ForJob(followupJobKey)
         .WithIdentity("FollowupReminder-trigger")
         .WithSimpleSchedule(s => s.WithIntervalInMinutes(1).RepeatForever()));
+
+    // Scheduled tag recalculation — daily at 2:00 AM UTC
+    JobKey tagRecalcJobKey = new("ScheduledTagRecalculation");
+    q.AddJob<ScheduledTagRecalculationJob>(opts => opts.WithIdentity(tagRecalcJobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(tagRecalcJobKey)
+        .WithIdentity("ScheduledTagRecalculation-trigger")
+        .WithCronSchedule("0 0 2 * * ?"));
 });
 builder.Services.AddQuartzHostedService(opt => opt.WaitForJobsToComplete = true);
 

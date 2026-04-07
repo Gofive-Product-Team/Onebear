@@ -1,7 +1,7 @@
 import { cn } from '@one-bear/ui'
 import { Tooltip } from '@/components/ui/Tooltip'
 import { SegmentTag } from './SegmentTag'
-import type { CustomerListItem, CustomerTag } from '@/api/useCustomers'
+import type { CustomerListItem, CustomerTag, SuggestedActionType } from '@/api/useCustomers'
 
 // ─── Avatar colour helper ─────────────────────────────────────────────────────
 
@@ -76,14 +76,51 @@ function formatLastPurchase(timestamp: number | null): string {
 	return `${months}mo ago`
 }
 
+// ─── Suggested action chip ────────────────────────────────────────────────────
+
+const SUGGESTED_ACTION_STYLES: Record<SuggestedActionType, string> = {
+	chat: 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200',
+	followup: 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200',
+	welcome: 'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200',
+}
+
+interface SuggestedActionChipProps {
+	action: string
+	actionType: SuggestedActionType
+	onAction: (type: SuggestedActionType) => void
+}
+
+function SuggestedActionChip({ action, actionType, onAction }: SuggestedActionChipProps) {
+	const style = SUGGESTED_ACTION_STYLES[actionType]
+	return (
+		<button
+			type="button"
+			onClick={(e) => {
+				e.stopPropagation()
+				onAction(actionType)
+			}}
+			className={cn(
+				'w-full rounded-md border px-3 py-1.5 text-left text-xs font-medium transition-colors',
+				style,
+			)}
+		>
+			<span className="mr-1.5" aria-hidden="true">
+				{actionType === 'chat' ? '💬' : actionType === 'followup' ? '📋' : '👋'}
+			</span>
+			{action}
+		</button>
+	)
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props {
 	customer: CustomerListItem
 	onClick: () => void
+	onNavigateToProfile?: (id: string) => void
 }
 
-export function CustomerCard({ customer, onClick }: Props) {
+export function CustomerCard({ customer, onClick, onNavigateToProfile }: Props) {
 	const initials = customer.name.slice(0, 2).toUpperCase()
 	const avatarBg = generateAvatarColor(customer.name)
 	const sortedTags = sortTags(customer.tags).slice(0, 2)
@@ -92,6 +129,15 @@ export function CustomerCard({ customer, onClick }: Props) {
 	const hasAtRisk = customer.tags.some(
 		(t) => t.name.toLowerCase() === 'at-risk' || t.name.toLowerCase() === 'atrisk',
 	)
+
+	function handleSuggestedAction(type: SuggestedActionType) {
+		if (type === 'chat') {
+			// Navigate to chat — if handler provided, use it, otherwise let parent handle
+			onNavigateToProfile?.(customer.id)
+		} else {
+			onClick()
+		}
+	}
 
 	return (
 		<article
@@ -216,6 +262,15 @@ export function CustomerCard({ customer, onClick }: Props) {
 					{hasHotTag ? 'Chat Now' : 'Follow-up'}
 				</button>
 			</div>
+
+			{/* Suggested action chip */}
+			{customer.suggestedAction && customer.suggestedActionType && (
+				<SuggestedActionChip
+					action={customer.suggestedAction}
+					actionType={customer.suggestedActionType}
+					onAction={handleSuggestedAction}
+				/>
+			)}
 		</article>
 	)
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { cn } from '@one-bear/ui'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -69,6 +70,7 @@ export function CustomerDetailPanel({ customerId, onClose }: Props) {
 	const { data: customer, isLoading, isError } = useCustomer(customerId)
 	const [showEdit, setShowEdit] = useState(false)
 	const [showNoteEditor, setShowNoteEditor] = useState(false)
+	const navigate = useNavigate()
 
 	if (isLoading) return <DetailSkeleton />
 
@@ -277,6 +279,34 @@ export function CustomerDetailPanel({ customerId, onClose }: Props) {
 						<span className="text-t1">{formatTimestamp(customer.createdTimestamp)}</span>
 					</div>
 				</div>
+			</div>
+
+			{/* View full profile link */}
+			<div className="border-t border-border px-6 py-4">
+				<Button
+					variant="outline"
+					className="w-full"
+					onClick={() => {
+						onClose()
+						navigate({ to: '/customer/$customerId', params: { customerId: customer.id } })
+					}}
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						className="mr-2 h-4 w-4"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="2"
+						strokeLinecap="round"
+						strokeLinejoin="round"
+					>
+						<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+						<polyline points="15 3 21 3 21 9" />
+						<line x1="10" y1="14" x2="21" y2="3" />
+					</svg>
+					View Full Profile
+				</Button>
 			</div>
 
 			{/* Edit dialog */}
