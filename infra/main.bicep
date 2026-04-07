@@ -16,6 +16,24 @@ param apiImageTag string = 'latest'
 @description('Worker image tag')
 param workerImageTag string = 'latest'
 
+@description('External MongoDB connection string (Azure DocumentDB / Cosmos DB)')
+@secure()
+param mongoDbConnectionString string
+
+@description('External RabbitMQ connection string')
+@secure()
+param rabbitMqConnectionString string
+
+@description('Keycloak realm URL')
+param keycloakAuthority string = 'https://auth-nonprod.gofive.co.th/auth/realms/onebear-dev'
+
+@description('Keycloak API client secret')
+@secure()
+param keycloakClientSecret string = ''
+
+@description('MongoDB database name')
+param mongoDbDatabaseName string = 'OneBear'
+
 // Naming convention
 var prefix = 'onebear'
 var envSuffix = environment
@@ -88,6 +106,30 @@ module api 'modules/container-app.bicep' = {
     envVars: [
       { name: 'ASPNETCORE_ENVIRONMENT', value: environment == 'prod' ? 'Production' : 'Development' }
       { name: 'ASPNETCORE_URLS', value: 'http://+:8080' }
+      // Database
+      { name: 'ConnectionStrings__MongoDb', secretRef: 'mongodb-conn' }
+      { name: 'MongoDb__DatabaseName', value: mongoDbDatabaseName }
+      { name: 'ConnectionStrings__Redis', secretRef: 'redis-conn' }
+      { name: 'ConnectionStrings__RabbitMq', secretRef: 'rabbitmq-conn' }
+      // Azure services
+      { name: 'Azure__SignalR__ConnectionString', secretRef: 'signalr-conn' }
+      { name: 'Azure__BlobStorage__ConnectionString', secretRef: 'storage-conn' }
+      // Auth
+      { name: 'Authentication__Authority', value: keycloakAuthority }
+      { name: 'Authentication__Audience', value: 'account' }
+      { name: 'Authentication__RequireHttpsMetadata', value: environment == 'prod' ? 'true' : 'false' }
+      { name: 'Keycloak__ClientSecret', secretRef: 'keycloak-secret' }
+      { name: 'Keycloak__ClientId', value: 'onebear-api' }
+      { name: 'Keycloak__AdminBaseUrl', value: '${keycloakAuthority}/../../../admin/realms/${last(split(keycloakAuthority, '/'))}' }
+      { name: 'Keycloak__TokenUrl', value: '${keycloakAuthority}/protocol/openid-connect/token' }
+    ]
+    secrets: [
+      { name: 'mongodb-conn', value: mongoDbConnectionString }
+      { name: 'redis-conn', value: redis.outputs.connectionString }
+      { name: 'rabbitmq-conn', value: rabbitMqConnectionString }
+      { name: 'signalr-conn', value: signalr.outputs.connectionString }
+      { name: 'storage-conn', value: storage.outputs.connectionString }
+      { name: 'keycloak-secret', value: keycloakClientSecret }
     ]
     keyVaultName: keyVault.outputs.name
   }
@@ -110,6 +152,16 @@ module worker 'modules/container-app.bicep' = {
     memory: '0.5Gi'
     envVars: [
       { name: 'DOTNET_ENVIRONMENT', value: environment == 'prod' ? 'Production' : 'Development' }
+      // Database
+      { name: 'ConnectionStrings__MongoDb', secretRef: 'mongodb-conn' }
+      { name: 'MongoDb__DatabaseName', value: mongoDbDatabaseName }
+      { name: 'ConnectionStrings__Redis', secretRef: 'redis-conn' }
+      { name: 'ConnectionStrings__RabbitMq', secretRef: 'rabbitmq-conn' }
+    ]
+    secrets: [
+      { name: 'mongodb-conn', value: mongoDbConnectionString }
+      { name: 'redis-conn', value: redis.outputs.connectionString }
+      { name: 'rabbitmq-conn', value: rabbitMqConnectionString }
     ]
     keyVaultName: keyVault.outputs.name
   }

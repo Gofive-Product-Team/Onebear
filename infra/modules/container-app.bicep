@@ -10,6 +10,7 @@ param maxReplicas int
 param cpu string
 param memory string
 param envVars array = []
+param secrets array = []
 param keyVaultName string
 
 resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
@@ -37,6 +38,7 @@ resource app 'Microsoft.App/containerApps@2023-05-01' = {
           allowCredentials: true
         }
       } : null
+      secrets: secrets
       registries: [
         {
           server: '${acrName}.azurecr.io'

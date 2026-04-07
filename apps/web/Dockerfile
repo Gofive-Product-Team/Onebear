@@ -16,11 +16,12 @@ COPY libs/ libs/
 COPY tsconfig.base.json nx.json ./
 
 # Build args for environment-specific config
-ARG VITE_API_BASE_URL=http://localhost:5000
-ARG VITE_KEYCLOAK_URL=https://auth-nonprod.gofive.co.th/auth/realms/onebear-dev
+# Build args — MUST be provided via docker build --build-arg or docker-compose args
+ARG VITE_API_BASE_URL
+ARG VITE_KEYCLOAK_URL
 ARG VITE_KEYCLOAK_CLIENT_ID=onebear-spa
-ARG VITE_REDIRECT_URI=http://localhost:5173/auth/callback
-ARG VITE_POST_LOGOUT_REDIRECT_URI=http://localhost:5173
+ARG VITE_REDIRECT_URI
+ARG VITE_POST_LOGOUT_REDIRECT_URI
 
 # Write env file from build args
 RUN echo "VITE_API_BASE_URL=${VITE_API_BASE_URL}" > apps/web/.env.production && \
