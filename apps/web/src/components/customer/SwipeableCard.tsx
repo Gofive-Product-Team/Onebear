@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, type ReactNode, type TouchEvent } from 'react'
+import { useState, useRef, useCallback, useEffect, type ReactNode, type TouchEvent } from 'react'
 import { cn } from '@one-bear/ui'
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -24,6 +24,20 @@ export function SwipeableCard({ onFollowup, onChat, onSnooze, children }: Props)
 	const [offset, setOffset] = useState(0)
 	const [isAnimating, setIsAnimating] = useState(false)
 	const [snoozeTriggered, setSnoozeTriggered] = useState(false)
+	const [showHint, setShowHint] = useState(() => {
+		if (typeof window === 'undefined') return false
+		return !sessionStorage.getItem('swipe-hint-seen')
+	})
+
+	useEffect(() => {
+		if (showHint) {
+			const timer = setTimeout(() => {
+				setShowHint(false)
+				sessionStorage.setItem('swipe-hint-seen', '1')
+			}, 3000)
+			return () => clearTimeout(timer)
+		}
+	}, [showHint])
 
 	const startXRef = useRef<number | null>(null)
 	const startYRef = useRef<number | null>(null)
@@ -127,6 +141,22 @@ export function SwipeableCard({ onFollowup, onChat, onSnooze, children }: Props)
 
 	return (
 		<div className="relative overflow-hidden rounded-xl md:overflow-visible md:rounded-none">
+			{/* Swipe hint arrow — shown once per session */}
+			{showHint && (
+				<div className="pointer-events-none absolute left-2 top-1/2 z-30 -translate-y-1/2 animate-pulse text-t3">
+					<svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+						<path d="M19 12H5M5 12l7-7M5 12l7 7" />
+					</svg>
+				</div>
+			)}
+
+			{/* Snoozed overlay */}
+			{snoozeTriggered && (
+				<div className="absolute inset-0 z-30 flex items-center justify-center rounded-xl bg-white/80 backdrop-blur-sm">
+					<span className="text-sm font-medium text-green-600">Snoozed 24h</span>
+				</div>
+			)}
+
 			{/* Snooze indicator — revealed on swipe right */}
 			<div
 				className={cn(

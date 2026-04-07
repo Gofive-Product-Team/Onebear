@@ -41,3 +41,15 @@ export function SegmentTag({ tag, className }: Props) {
 		</span>
 	)
 }
+
+// ─── Highest-priority tag picker ─────────────────────────────────────────────
+
+const TAG_PRIORITY_ORDER = ['hot', 'at-risk', 'atrisk', 'vip', 'loyal', 'cold', 'new', 'organization']
+
+export function getHighestPriorityTag(tags: CustomerTag[]): CustomerTag | null {
+	for (const priority of TAG_PRIORITY_ORDER) {
+		const match = tags.find((t) => t.name.toLowerCase().replace(/\s+/g, '') === priority)
+		if (match) return match
+	}
+	return tags[0] ?? null
+}

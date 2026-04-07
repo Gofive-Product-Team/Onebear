@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { cn } from '@one-bear/ui'
 import { Tooltip } from '@/components/ui/Tooltip'
-import { SegmentTag } from './SegmentTag'
+import { SegmentTag, getHighestPriorityTag } from './SegmentTag'
 import { OrganizationCard } from './OrganizationCard'
 import { ChatDraftModal } from './ChatDraftModal'
 import type { CustomerListItem, CustomerTag, SuggestedActionType } from '@/api/useCustomers'
@@ -172,12 +172,13 @@ export function CustomerCard({
 
 	const initials = customer.name.slice(0, 2).toUpperCase()
 	const avatarBg = generateAvatarColor(customer.name)
-	const sortedTags = sortTags(customer.tags).slice(0, 2)
+	const topTag = getHighestPriorityTag(customer.tags)
 
 	const hasHotTag = customer.tags.some((t) => t.name.toLowerCase() === 'hot')
 	const hasAtRisk = customer.tags.some(
 		(t) => t.name.toLowerCase() === 'at-risk' || t.name.toLowerCase() === 'atrisk',
 	)
+	const isAtRisk = customer.isAtRisk && customer.daysSinceLastPurchase !== null
 
 	function handleSuggestedAction(type: SuggestedActionType) {
 		setChatDraftActionType(type)
@@ -193,7 +194,8 @@ export function CustomerCard({
 			onKeyDown={(e) => e.key === 'Enter' && handleCardClick()}
 			aria-selected={isSelectionMode ? isSelected : undefined}
 			className={cn(
-				'relative flex cursor-pointer flex-col gap-3 rounded-xl border bg-bg-card p-4 shadow-sm',
+				'relative flex cursor-pointer flex-col justify-between gap-1.5 md:gap-2 lg:gap-2.5 rounded-xl border bg-bg-card p-4 shadow-sm',
+				'h-[140px] md:h-[180px] lg:h-[200px] overflow-hidden',
 				'transition-all hover:border-blue-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
 				isSelected ? 'border-primary ring-2 ring-primary/30' : 'border-border',
 			)}
@@ -214,24 +216,27 @@ export function CustomerCard({
 					)}
 				</span>
 			)}
-			{/* Top row: avatar + name + channels + pinned note icon */}
+			{/* Top row: avatar + name + tag + channels + pinned note icon */}
 			<div className={cn('flex items-start gap-3', isSelectionMode && 'pl-7')}>
-				{/* Avatar */}
+				{/* Avatar — responsive sizing */}
 				<div
-					className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white"
+					className="flex h-10 w-10 lg:h-14 lg:w-14 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white"
 					style={{ backgroundColor: customer.avatar ? undefined : avatarBg }}
 					aria-hidden="true"
 				>
 					{customer.avatar ? (
-						<img src={customer.avatar} alt="" className="h-10 w-10 rounded-full object-cover" />
+						<img src={customer.avatar} alt="" className="h-10 w-10 lg:h-14 lg:w-14 rounded-full object-cover" />
 					) : (
 						initials
 					)}
 				</div>
 
-				{/* Name + channels */}
+				{/* Name + tag + channels */}
 				<div className="min-w-0 flex-1">
-					<p className="truncate text-sm font-semibold text-t1">{customer.name}</p>
+					<div className="flex items-center gap-1.5">
+						<p className="truncate text-sm font-semibold text-t1">{customer.name}</p>
+						{topTag && <SegmentTag tag={topTag} />}
+					</div>
 					{customer.channels.length > 0 && (
 						<div className="mt-1 flex items-center gap-1">
 							{customer.channels.slice(0, 5).map((ch, i) => (
@@ -254,60 +259,49 @@ export function CustomerCard({
 				)}
 			</div>
 
-			{/* Segment tags */}
-			{sortedTags.length > 0 && (
-				<div className="flex flex-wrap gap-1.5">
-					{sortedTags.map((tag) => (
-						<SegmentTag key={tag.name} tag={tag} />
-					))}
-				</div>
-			)}
-
-			{/* Last message preview */}
+			{/* Last message preview — desktop only */}
 			{customer.lastMessagePreview && (
-				<p className="truncate text-xs text-t3">{customer.lastMessagePreview}</p>
+				<p className="hidden lg:block truncate text-xs text-t3">{customer.lastMessagePreview}</p>
 			)}
 
-			{/* Stats row */}
-			<div className="grid grid-cols-4 gap-1 rounded-lg bg-bg-page px-3 py-2 text-center">
+			{/* Stats row — 2 cols mobile, 4 cols tablet/desktop */}
+			<div className="grid grid-cols-2 md:grid-cols-4 gap-1 rounded-lg bg-bg-page px-3 py-2 text-center">
 				<div>
 					<p className="text-[10px] text-t3">LTV</p>
 					<p className="text-xs font-semibold text-t1">{formatCurrency(customer.ltv)}</p>
 				</div>
-				<div>
+				<div className="hidden md:block">
 					<p className="text-[10px] text-t3">Orders</p>
 					<p className="text-xs font-semibold text-t1">{customer.orderCount}</p>
 				</div>
-				<div>
+				<div className="hidden md:block">
 					<p className="text-[10px] text-t3">AOV</p>
 					<p className="text-xs font-semibold text-t1">{formatCurrency(customer.aov)}</p>
 				</div>
 				<div>
 					<p className="text-[10px] text-t3">Last</p>
-					<p className="text-xs font-semibold text-t1">{formatLastPurchase(customer.lastOrderTimestamp)}</p>
+					<p className="flex items-center justify-center gap-1 text-xs font-semibold text-t1">
+						{formatLastPurchase(customer.lastOrderTimestamp)}
+						{isAtRisk && (
+							<span className="inline-block h-2 w-2 rounded-full bg-red-500" title={`No purchase for ${customer.daysSinceLastPurchase} days`} />
+						)}
+					</p>
 				</div>
 			</div>
-
-			{/* At-risk banner */}
-			{customer.isAtRisk && customer.daysSinceLastPurchase !== null && (
-				<div className="rounded-md bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-700">
-					No purchase for {customer.daysSinceLastPurchase} days
-				</div>
-			)}
 
 			{/* Quick actions */}
 			<div className="flex gap-2">
 				<button
 					type="button"
 					onClick={(e) => e.stopPropagation()}
-					className="min-h-[28px] min-w-[44px] flex-1 rounded-md bg-bg-input px-2 py-1 text-xs font-medium text-t2 transition-colors hover:bg-bg-hover"
+					className="min-h-[44px] min-w-[44px] flex-1 rounded-md bg-bg-input px-2 py-1 text-xs font-medium text-t2 transition-colors hover:bg-bg-hover"
 				>
 					Chat
 				</button>
 				<button
 					type="button"
 					onClick={(e) => e.stopPropagation()}
-					className="min-h-[28px] min-w-[44px] flex-1 rounded-md bg-bg-input px-2 py-1 text-xs font-medium text-t2 transition-colors hover:bg-bg-hover"
+					className="min-h-[44px] min-w-[44px] flex-1 rounded-md bg-bg-input px-2 py-1 text-xs font-medium text-t2 transition-colors hover:bg-bg-hover"
 				>
 					Orders
 				</button>
@@ -315,7 +309,7 @@ export function CustomerCard({
 					type="button"
 					onClick={(e) => e.stopPropagation()}
 					className={cn(
-						'min-h-[28px] min-w-[44px] flex-1 rounded-md px-2 py-1 text-xs font-medium transition-colors',
+						'min-h-[44px] min-w-[44px] flex-1 rounded-md px-2 py-1 text-xs font-medium transition-colors',
 						hasHotTag
 							? 'bg-green-100 text-green-700 hover:bg-green-200'
 							: hasAtRisk
@@ -327,13 +321,15 @@ export function CustomerCard({
 				</button>
 			</div>
 
-			{/* Suggested action chip */}
+			{/* Suggested action chip — hidden on mobile */}
 			{customer.suggestedAction && customer.suggestedActionType && (
-				<SuggestedActionChip
-					action={customer.suggestedAction}
-					actionType={customer.suggestedActionType}
-					onAction={handleSuggestedAction}
-				/>
+				<div className="hidden md:block">
+					<SuggestedActionChip
+						action={customer.suggestedAction}
+						actionType={customer.suggestedActionType}
+						onAction={handleSuggestedAction}
+					/>
+				</div>
 			)}
 		</article>
 

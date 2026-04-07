@@ -175,7 +175,8 @@ export function OrganizationCard({ customer, onClick, onNavigateToProfile, onSug
 			onClick={onClick}
 			onKeyDown={(e) => e.key === 'Enter' && onClick()}
 			className={cn(
-				'relative flex cursor-pointer flex-col gap-3 rounded-xl border border-border bg-bg-card p-4 shadow-sm',
+				'relative flex cursor-pointer flex-col justify-between gap-1.5 md:gap-2 lg:gap-2.5 rounded-xl border border-border bg-bg-card p-4 shadow-sm',
+				'h-[140px] md:h-[180px] lg:h-[200px] overflow-hidden',
 				'transition-all hover:border-purple-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
 			)}
 		>
@@ -266,7 +267,7 @@ export function OrganizationCard({ customer, onClick, onNavigateToProfile, onSug
 				<button
 					type="button"
 					onClick={(e) => e.stopPropagation()}
-					className="min-h-[28px] min-w-[44px] flex-1 rounded-md bg-bg-input px-2 py-1 text-xs font-medium text-t2 transition-colors hover:bg-bg-hover"
+					className="min-h-[44px] min-w-[44px] flex-1 rounded-md bg-bg-input px-2 py-1 text-xs font-medium text-t2 transition-colors hover:bg-bg-hover"
 				>
 					Chat
 				</button>
@@ -279,7 +280,7 @@ export function OrganizationCard({ customer, onClick, onNavigateToProfile, onSug
 							e.stopPropagation()
 							setShowContacts((prev) => !prev)
 						}}
-						className="min-h-[28px] w-full rounded-md bg-purple-100 px-2 py-1 text-xs font-medium text-purple-700 transition-colors hover:bg-purple-200"
+						className="min-h-[44px] w-full rounded-md bg-purple-100 px-2 py-1 text-xs font-medium text-purple-700 transition-colors hover:bg-purple-200"
 					>
 						Contacts
 					</button>
@@ -294,7 +295,7 @@ export function OrganizationCard({ customer, onClick, onNavigateToProfile, onSug
 				<button
 					type="button"
 					onClick={(e) => e.stopPropagation()}
-					className="min-h-[28px] min-w-[44px] flex-1 rounded-md bg-bg-input px-2 py-1 text-xs font-medium text-t2 transition-colors hover:bg-bg-hover"
+					className="min-h-[44px] min-w-[44px] flex-1 rounded-md bg-bg-input px-2 py-1 text-xs font-medium text-t2 transition-colors hover:bg-bg-hover"
 				>
 					Orders
 				</button>
