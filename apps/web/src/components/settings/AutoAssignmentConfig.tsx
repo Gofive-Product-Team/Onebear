@@ -148,7 +148,7 @@ export function AutoAssignmentConfig() {
 								Agents ({selectedAgentIds.length} selected)
 							</label>
 							<div className="max-h-64 space-y-1 overflow-y-auto rounded-md border border-gray-200 p-2">
-								{users?.map((user) => {
+								{(Array.isArray(users) ? users : []).map((user) => {
 									const isSelected = selectedAgentIds.includes(user.id)
 									return (
 										<label

@@ -289,10 +289,15 @@ export function useUsers() {
 
 	return useQuery({
 		queryKey: ['users', companyId],
-		queryFn: () =>
-			api.users.list(companyId) as Promise<
-				Array<{ id: string; displayName: string; email: string }>
-			>,
+		queryFn: async () => {
+			const result = await api.users.list(companyId)
+			// Backend returns {data: [...], continuationToken, hasMore} — extract the array
+			if (result && typeof result === 'object' && 'data' in result && Array.isArray((result as Record<string, unknown>).data)) {
+				return (result as Record<string, unknown>).data as Array<{ id: string; displayName: string; email: string }>
+			}
+			// Already unwrapped or is an array
+			return (Array.isArray(result) ? result : []) as Array<{ id: string; displayName: string; email: string }>
+		},
 		enabled: !!companyId,
 	})
 }
