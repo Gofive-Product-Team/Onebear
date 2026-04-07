@@ -21,6 +21,7 @@ public static class MessageMappingHelpers
         IsDeleted = msg.IsDeleted,
         IsPinnedByUser = msg.IsPinnedByUser,
         MessagePinnedTimestamp = msg.MessagePinnedTimestamp,
+        IsAiMessage = msg.IsAiMessage,
         Attachment = msg.Attachment is not null ? new MessageAttachmentDto
         {
             FileUrl = msg.Attachment.FileUrl,

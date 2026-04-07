@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using OneBear.API.Auth;
 using OneBear.API.Hubs;
+using OneBear.Application.Chatbot.Services;
 using OneBear.Application.Common.DTOs;
 using OneBear.Application.Common.Interfaces;
 using OneBear.Application.Messaging;
@@ -53,11 +54,26 @@ public class ChatHubTests
         Mock<IEventPublisher> eventPubMock = new();
         Mock<ILogger<MessageOrchestrator>> orchLoggerMock = new();
 
+        // Create ChatbotService with mocked dependencies for hub tests
+        Mock<IChatbotConfigurationRepository> chatbotRepoMock = new();
+        Mock<ICreditService> creditServiceMock = new();
+        Mock<IAiActivityLogger> activityLoggerMock = new();
+        ChatbotService chatbotService = new(
+            chatbotRepoMock.Object,
+            roomRepoMock.Object,
+            eventPubMock.Object,
+            creditServiceMock.Object,
+            activityLoggerMock.Object,
+            messageRepoMock.Object,
+            autoAssignMock.Object,
+            new Mock<ILogger<ChatbotService>>().Object);
+
         _orchestrator = new MessageOrchestrator(
             _spMock.Object, integrationMock.Object, chatUserMock.Object,
             roomStateMock.Object, messageRepoMock.Object, roomRepoMock.Object,
             autoAssignMock.Object, signalRMock.Object, eventPubMock.Object,
             new OneBear.Application.Messaging.SpamDetectionService(),
+            chatbotService,
             orchLoggerMock.Object);
 
         // Set up user claims

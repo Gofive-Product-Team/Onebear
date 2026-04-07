@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
+using OneBear.Application.Chatbot.Services;
 using OneBear.Application.Common.DTOs;
 using OneBear.Application.Common.Interfaces;
 using OneBear.Application.Events;
@@ -153,6 +154,25 @@ public class MessageOrchestratorTests
             roomStateServiceMock, messageRepoMock, roomRepoMock, autoAssignmentServiceMock,
             signalRNotifierMock, eventPublisherMock, loggerMock);
 
+        // Create ChatbotService with mocked dependencies for orchestrator tests
+        Mock<IChatbotConfigurationRepository> chatbotRepoMock = new();
+        Mock<ICreditService> creditServiceMock = new();
+        Mock<IAiActivityLogger> activityLoggerMock = new();
+
+        creditServiceMock
+            .Setup(c => c.HasCreditAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        ChatbotService chatbotService = new(
+            chatbotRepoMock.Object,
+            roomRepoMock.Object,
+            eventPublisherMock.Object,
+            creditServiceMock.Object,
+            activityLoggerMock.Object,
+            messageRepoMock.Object,
+            autoAssignmentServiceMock.Object,
+            new Mock<ILogger<ChatbotService>>().Object);
+
         MessageOrchestrator sut = new(
             spMock.Object,
             integrationServiceMock.Object,
@@ -164,6 +184,7 @@ public class MessageOrchestratorTests
             signalRNotifierMock.Object,
             eventPublisherMock.Object,
             new SpamDetectionService(),
+            chatbotService,
             loggerMock.Object);
 
         return (sut, mocks);

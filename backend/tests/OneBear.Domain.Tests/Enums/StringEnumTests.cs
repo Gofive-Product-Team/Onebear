@@ -38,7 +38,7 @@ public class StringEnumTests
     [Fact]
     public void MessageType_All_ContainsAllTypes()
     {
-        Assert.Equal(19, MessageType.All.Length);
+        Assert.Equal(20, MessageType.All.Length);
         Assert.Contains("Text", MessageType.All);
         Assert.Contains("Image", MessageType.All);
         Assert.Contains("System", MessageType.All);

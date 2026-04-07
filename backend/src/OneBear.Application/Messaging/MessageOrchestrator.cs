@@ -3,6 +3,7 @@ namespace OneBear.Application.Messaging;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using OneBear.Application.Chatbot.Services;
 using OneBear.Application.Common;
 using OneBear.Application.Common.DTOs;
 using OneBear.Application.Common.Interfaces;
@@ -27,6 +28,7 @@ public class MessageOrchestrator
     private readonly ISignalRNotifier _signalRNotifier;
     private readonly IEventPublisher _eventPublisher;
     private readonly SpamDetectionService _spamService;
+    private readonly ChatbotService _chatbotService;
     private readonly ILogger<MessageOrchestrator> _logger;
 
     public MessageOrchestrator(
@@ -40,6 +42,7 @@ public class MessageOrchestrator
         ISignalRNotifier signalRNotifier,
         IEventPublisher eventPublisher,
         SpamDetectionService spamService,
+        ChatbotService chatbotService,
         ILogger<MessageOrchestrator> logger)
     {
         _sp = sp;
@@ -52,6 +55,7 @@ public class MessageOrchestrator
         _signalRNotifier = signalRNotifier;
         _eventPublisher = eventPublisher;
         _spamService = spamService;
+        _chatbotService = chatbotService;
         _logger = logger;
     }
 
@@ -264,6 +268,16 @@ public class MessageOrchestrator
                 Platform = platform,
                 RecipientExternalId = chatUser.ExternalId
             }, ct);
+        }
+
+        // Step 12.5: Trigger AI chatbot (if eligible)
+        try
+        {
+            await _chatbotService.TryEngageAsync(room, chatMessage, integrationId, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "AI chatbot engagement failed for room {RoomId}, continuing", room.Id);
         }
 
         // Step 12: Return result

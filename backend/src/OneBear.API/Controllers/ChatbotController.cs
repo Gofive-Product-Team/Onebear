@@ -26,6 +26,8 @@ public class ChatbotController : ControllerBase
     private readonly IChatMessageRepository _messageRepo;
     private readonly IServiceProvider _sp;
     private readonly ISignalRNotifier _signalRNotifier;
+    private readonly IAiActivityLogger _activityLogger;
+    private readonly ICreditService _creditService;
 
     public ChatbotController(
         IChatbotConfigurationRepository chatbotRepo,
@@ -33,7 +35,9 @@ public class ChatbotController : ControllerBase
         IChatRoomRepository roomRepo,
         IChatMessageRepository messageRepo,
         IServiceProvider sp,
-        ISignalRNotifier signalRNotifier)
+        ISignalRNotifier signalRNotifier,
+        IAiActivityLogger activityLogger,
+        ICreditService creditService)
     {
         _chatbotRepo = chatbotRepo;
         _chatbotService = chatbotService;
@@ -41,6 +45,8 @@ public class ChatbotController : ControllerBase
         _messageRepo = messageRepo;
         _sp = sp;
         _signalRNotifier = signalRNotifier;
+        _activityLogger = activityLogger;
+        _creditService = creditService;
     }
 
     // ──────────────────────────────────────────────
@@ -204,7 +210,8 @@ public class ChatbotController : ControllerBase
         if (room is null)
             return NotFound(new { error = "Room not found" });
 
-        Result<ChatRoom> result = await _chatbotService.HandleHandoffAsync(room, ct);
+        Result<ChatRoom> result = await _chatbotService.HandleHandoffAsync(
+            room, request.Reason, request.Confidence, ct);
         if (result is Result<ChatRoom>.Failure f)
             return StatusCode(500, new { error = f.Error.Message });
 
@@ -279,12 +286,30 @@ public class ChatbotController : ControllerBase
             Platform = room.Platform,
             Timestamp = now,
             CompanyId = room.CompanyId,
+            IsAiMessage = true,
+            CreatedBy = "ai",
             DeliveryStatus = sendResult is Result<PlatformSendResult>.Success s && s.Value.Success
                 ? MessageDeliveryState.Sent
                 : MessageDeliveryState.Failed,
             CreatedTimestamp = now
         };
         await _messageRepo.CreateAsync(aiMessage, ct);
+
+        // Deduct 1 AI credit
+        await _creditService.DeductAsync(request.CompanyId, 1, "ai_response", request.RoomId, ct);
+
+        // Log AI response activity
+        await _activityLogger.LogAsync(new AiActivityLog
+        {
+            CompanyId = request.CompanyId,
+            RoomId = request.RoomId,
+            MessageId = aiMessage.Id,
+            EventType = "ai_response",
+            Model = request.Usage?.Model,
+            PromptTokens = request.Usage?.PromptTokens,
+            CompletionTokens = request.Usage?.CompletionTokens,
+            Details = $"AI responded with {responseContent.Length} chars. Tokens: {request.Usage?.TotalTokens ?? 0}"
+        }, ct);
 
         // Notify via SignalR
         await _signalRNotifier.SendToRoomAsync(room.Id, "ReceiveMessage", new
@@ -296,7 +321,8 @@ public class ChatbotController : ControllerBase
             type = aiMessage.Type,
             platform = aiMessage.Platform,
             timestamp = aiMessage.Timestamp,
-            deliveryStatus = aiMessage.DeliveryStatus
+            deliveryStatus = aiMessage.DeliveryStatus,
+            isAiMessage = aiMessage.IsAiMessage
         }, ct);
 
         return Ok(new
@@ -330,7 +356,17 @@ public record AiCallbackRequest
     public string CompanyId { get; init; } = default!;
     public string ResponseContent { get; init; } = default!;
     public string? MessageId { get; init; }
+    public AiUsageInfo? Usage { get; init; }
+    public List<string>? AutoTagIds { get; init; }
+    public bool IsAiMuted { get; init; }
 }
+
+public record AiUsageInfo(
+    string? Model,
+    int? PromptTokens,
+    int? CompletionTokens,
+    int? TotalTokens,
+    List<string>? SourceIds);
 
 public record AiHandoffCallbackRequest
 {

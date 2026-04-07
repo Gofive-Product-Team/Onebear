@@ -1,9 +1,11 @@
 namespace OneBear.Application.Chatbot.Services;
 
 using Microsoft.Extensions.Logging;
+using OneBear.Application.Common.Interfaces;
 using OneBear.Application.Events;
 using OneBear.Domain.Common;
 using OneBear.Domain.Entities;
+using OneBear.Domain.Enums;
 using OneBear.Domain.Interfaces;
 using OneBear.Domain.Interfaces.Repositories;
 using OneBear.Domain.ValueObjects;
@@ -13,17 +15,29 @@ public class ChatbotService
     private readonly IChatbotConfigurationRepository _chatbotRepo;
     private readonly IChatRoomRepository _roomRepo;
     private readonly IEventPublisher _eventPublisher;
+    private readonly ICreditService _creditService;
+    private readonly IAiActivityLogger _activityLogger;
+    private readonly IChatMessageRepository _messageRepo;
+    private readonly IAutoAssignmentService _autoAssignmentService;
     private readonly ILogger<ChatbotService> _logger;
 
     public ChatbotService(
         IChatbotConfigurationRepository chatbotRepo,
         IChatRoomRepository roomRepo,
         IEventPublisher eventPublisher,
+        ICreditService creditService,
+        IAiActivityLogger activityLogger,
+        IChatMessageRepository messageRepo,
+        IAutoAssignmentService autoAssignmentService,
         ILogger<ChatbotService> logger)
     {
         _chatbotRepo = chatbotRepo;
         _roomRepo = roomRepo;
         _eventPublisher = eventPublisher;
+        _creditService = creditService;
+        _activityLogger = activityLogger;
+        _messageRepo = messageRepo;
+        _autoAssignmentService = autoAssignmentService;
         _logger = logger;
     }
 
@@ -59,6 +73,21 @@ public class ChatbotService
         if (room.AttendedUserIds.Count > 0)
         {
             _logger.LogDebug("Agent attending room {RoomId}, skipping AI chatbot", room.Id);
+            return new Result<bool>.Success(false);
+        }
+
+        // Check 5: Credit available
+        bool hasCredit = await _creditService.HasCreditAsync(room.CompanyId, ct);
+        if (!hasCredit)
+        {
+            _logger.LogInformation("AI credit exhausted for company {CompanyId}", room.CompanyId);
+            await _activityLogger.LogAsync(new AiActivityLog
+            {
+                CompanyId = room.CompanyId,
+                RoomId = room.Id,
+                EventType = "credit_exhausted",
+                Details = "AI engagement skipped — credit exhausted"
+            }, ct);
             return new Result<bool>.Success(false);
         }
 
@@ -108,10 +137,11 @@ public class ChatbotService
 
     /// <summary>
     /// Handle AI handoff — called when the AI decides it cannot handle the conversation
-    /// (e.g. confidence below threshold). Mutes AI for the room and sets handoff metadata.
+    /// (e.g. confidence below threshold). Mutes AI for the room, creates a private note,
+    /// auto-assigns an agent, and logs the handoff.
     /// </summary>
     public async Task<Result<ChatRoom>> HandleHandoffAsync(
-        ChatRoom room, CancellationToken ct)
+        ChatRoom room, string? reason, double? confidence, CancellationToken ct)
     {
         long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
@@ -122,9 +152,46 @@ public class ChatbotService
 
         ChatRoom updated = await _roomRepo.UpdateAsync(room, ct);
 
+        // Create private note so admin sees handoff context
+        string noteContent = !string.IsNullOrEmpty(reason)
+            ? $"[AI] ลูกค้าถามเรื่อง '{reason}' — ไม่พบในฐานความรู้"
+            : "[AI] Handoff — AI ไม่สามารถตอบได้";
+        ChatMessage privateNote = new()
+        {
+            Id = Guid.NewGuid().ToString(),
+            RoomId = room.Id,
+            UserId = "ai-chatbot",
+            Content = noteContent,
+            Type = MessageType.PrivateNote,
+            Platform = room.Platform,
+            Timestamp = now,
+            CompanyId = room.CompanyId,
+            IsAiMessage = true,
+            CreatedBy = "ai",
+            CreatedTimestamp = now,
+            DeliveryStatus = MessageDeliveryState.Delivered
+        };
+        await _messageRepo.CreateAsync(privateNote, ct);
+
+        // Auto-assign an agent to handle the room
+        Result<ChatRoom> assignResult = await _autoAssignmentService.TryAssignAsync(updated, room.CompanyId, ct);
+        if (assignResult is Result<ChatRoom>.Success assignSuccess)
+            updated = assignSuccess.Value;
+
+        // Log handoff activity
+        await _activityLogger.LogAsync(new AiActivityLog
+        {
+            CompanyId = room.CompanyId,
+            RoomId = room.Id,
+            EventType = "ai_handoff",
+            HandoffReason = reason,
+            Confidence = confidence,
+            Details = $"AI handed off room to admin. Reason: {reason ?? "unknown"}, Confidence: {confidence}"
+        }, ct);
+
         _logger.LogInformation(
-            "AI handed off room {RoomId} to admin at {Timestamp}",
-            room.Id, now);
+            "AI handed off room {RoomId} to admin at {Timestamp}. Reason: {Reason}, Confidence: {Confidence}",
+            room.Id, now, reason, confidence);
 
         return new Result<ChatRoom>.Success(updated);
     }

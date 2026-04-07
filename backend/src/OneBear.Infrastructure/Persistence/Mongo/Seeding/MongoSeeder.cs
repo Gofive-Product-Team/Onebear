@@ -234,7 +234,26 @@ public class MongoSeeder
                 .Ascending(a => a.CompanyId)
                 .Descending(a => a.Timestamp), ct);
 
-        _logger.LogInformation("MongoDB indexes created/verified (34 total)");
+        // AiActivityLogs: 3 indexes
+        IMongoCollection<AiActivityLog> aiLogs = _context.Database.GetCollection<AiActivityLog>("AiActivityLogs");
+        await CreateIndexAsync(aiLogs, "ix_ailogs_company_ts",
+            Builders<AiActivityLog>.IndexKeys
+                .Ascending(x => x.CompanyId)
+                .Descending(x => x.Timestamp), ct);
+
+        await CreateIndexAsync(aiLogs, "ix_ailogs_company_room_ts",
+            Builders<AiActivityLog>.IndexKeys
+                .Ascending(x => x.CompanyId)
+                .Ascending(x => x.RoomId)
+                .Descending(x => x.Timestamp), ct);
+
+        await CreateIndexAsync(aiLogs, "ix_ailogs_company_eventtype_ts",
+            Builders<AiActivityLog>.IndexKeys
+                .Ascending(x => x.CompanyId)
+                .Ascending(x => x.EventType)
+                .Descending(x => x.Timestamp), ct);
+
+        _logger.LogInformation("MongoDB indexes created/verified (37 total)");
     }
 
     private async Task CreateIndexAsync<T>(

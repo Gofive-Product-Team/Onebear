@@ -82,4 +82,21 @@ public class ChatMessageRepository : MongoRepositoryBase<ChatMessage>, IChatMess
             .Limit(limit)
             .ToListAsync(ct);
     }
+
+    public async Task<List<ChatMessage>> GetRecentByRoomAsync(string roomId, int limit, CancellationToken ct = default)
+    {
+        FilterDefinitionBuilder<ChatMessage> fb = Builders<ChatMessage>.Filter;
+        FilterDefinition<ChatMessage> filter = fb.And(
+            fb.Eq(m => m.RoomId, roomId),
+            fb.Eq(m => m.IsDeleted, false)
+        );
+
+        SortDefinition<ChatMessage> sort = Builders<ChatMessage>.Sort.Descending(m => m.Timestamp);
+
+        return await _collection
+            .Find(filter)
+            .Sort(sort)
+            .Limit(limit)
+            .ToListAsync(ct);
+    }
 }

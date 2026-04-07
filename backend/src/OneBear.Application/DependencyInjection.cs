@@ -11,6 +11,7 @@ using OneBear.Application.Integrations.Services;
 using OneBear.Application.Chatbot.Services;
 using OneBear.Application.Notifications.Services;
 using OneBear.Application.Customers.Services;
+using OneBear.Domain.Interfaces;
 
 public static class DependencyInjection
 {
@@ -40,6 +41,8 @@ public static class DependencyInjection
 
         // Chatbot & notifications
         services.AddScoped<ChatbotService>();
+        services.AddScoped<IAiActivityLogger, AiActivityLogger>();
+        services.AddScoped<ICreditService, MongoCreditService>();
         services.AddScoped<NotificationService>();
 
         // CRM

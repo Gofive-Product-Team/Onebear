@@ -75,6 +75,9 @@ public class ChatMessage : MongoEntity, IAuditableEntity
     [JsonPropertyName("messagePinnedTimestamp")]
     public long? MessagePinnedTimestamp { get; set; }
 
+    [JsonPropertyName("isAiMessage")]
+    public bool IsAiMessage { get; set; }
+
     [JsonPropertyName("createdBy")]
     public string? CreatedBy { get; set; }
 
