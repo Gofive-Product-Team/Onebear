@@ -1,0 +1,60 @@
+name: Deploy to UAT
+
+on:
+  workflow_dispatch:
+
+env:
+  ACR_NAME: onebearacr
+  RESOURCE_GROUP: onebear-uat
+  API_APP_NAME: onebear-api-uat
+  WORKER_APP_NAME: onebear-worker-uat
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: uat
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to ACR
+        run: az acr login --name ${{ env.ACR_NAME }}
+
+      - name: Build and push images
+        run: |
+          docker build -t ${{ env.ACR_NAME }}.azurecr.io/onebear-api:uat-${{ github.sha }} \
+            -t ${{ env.ACR_NAME }}.azurecr.io/onebear-api:uat-latest \
+            -f backend/src/OneBear.API/Dockerfile backend/
+          docker push ${{ env.ACR_NAME }}.azurecr.io/onebear-api --all-tags
+
+          docker build -t ${{ env.ACR_NAME }}.azurecr.io/onebear-worker:uat-${{ github.sha }} \
+            -t ${{ env.ACR_NAME }}.azurecr.io/onebear-worker:uat-latest \
+            -f backend/src/OneBear.Worker/Dockerfile backend/
+          docker push ${{ env.ACR_NAME }}.azurecr.io/onebear-worker --all-tags
+
+      - name: Deploy Container Apps
+        run: |
+          az containerapp update --name ${{ env.API_APP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.ACR_NAME }}.azurecr.io/onebear-api:uat-${{ github.sha }}
+          az containerapp update --name ${{ env.WORKER_APP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.ACR_NAME }}.azurecr.io/onebear-worker:uat-${{ github.sha }}
+
+      - name: Build and Deploy Frontend
+        run: |
+          cd apps/web && npm ci
+          echo "VITE_API_BASE_URL=https://${{ env.API_APP_NAME }}.azurecontainerapps.io" > .env.production
+          echo "VITE_KEYCLOAK_URL=https://auth-nonprod.gofive.co.th/auth/realms/onebear-uat" >> .env.production
+          echo "VITE_KEYCLOAK_CLIENT_ID=onebear-spa" >> .env.production
+          npm run build
+      - uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.SWA_TOKEN_UAT }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: apps/web
+          output_location: dist
+          skip_api_build: true

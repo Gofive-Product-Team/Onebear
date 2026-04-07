@@ -1,0 +1,73 @@
+name: Deploy to Dev
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  ACR_NAME: onebearacr
+  RESOURCE_GROUP: onebear-dev
+  API_APP_NAME: onebear-api-dev
+  WORKER_APP_NAME: onebear-worker-dev
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to ACR
+        run: az acr login --name ${{ env.ACR_NAME }}
+
+      - name: Build and push API image
+        run: |
+          docker build -t ${{ env.ACR_NAME }}.azurecr.io/onebear-api:dev-${{ github.sha }} \
+            -t ${{ env.ACR_NAME }}.azurecr.io/onebear-api:dev-latest \
+            -f backend/src/OneBear.API/Dockerfile backend/
+          docker push ${{ env.ACR_NAME }}.azurecr.io/onebear-api --all-tags
+
+      - name: Build and push Worker image
+        run: |
+          docker build -t ${{ env.ACR_NAME }}.azurecr.io/onebear-worker:dev-${{ github.sha }} \
+            -t ${{ env.ACR_NAME }}.azurecr.io/onebear-worker:dev-latest \
+            -f backend/src/OneBear.Worker/Dockerfile backend/
+          docker push ${{ env.ACR_NAME }}.azurecr.io/onebear-worker --all-tags
+
+      - name: Deploy API Container App
+        run: |
+          az containerapp update \
+            --name ${{ env.API_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.ACR_NAME }}.azurecr.io/onebear-api:dev-${{ github.sha }}
+
+      - name: Deploy Worker Container App
+        run: |
+          az containerapp update \
+            --name ${{ env.WORKER_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.ACR_NAME }}.azurecr.io/onebear-worker:dev-${{ github.sha }}
+
+      - name: Build Frontend
+        run: |
+          cd apps/web
+          npm ci
+          echo "VITE_API_BASE_URL=https://${{ env.API_APP_NAME }}.azurecontainerapps.io" > .env.production
+          echo "VITE_KEYCLOAK_URL=https://auth-nonprod.gofive.co.th/auth/realms/onebear-dev" >> .env.production
+          echo "VITE_KEYCLOAK_CLIENT_ID=onebear-spa" >> .env.production
+          npm run build
+
+      - name: Deploy Static Web App
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.SWA_TOKEN_DEV }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: apps/web
+          output_location: dist
+          skip_api_build: true
