@@ -125,7 +125,7 @@ function ContextMenuPanel({ x, y, customer, onClose }: MenuPanelProps) {
 			{/* "Saved" toast */}
 			{savedToast.visible && (
 				<div className="absolute -top-8 left-0 rounded-md bg-green-600 px-2 py-1 text-xs text-white shadow" role="status">
-					Saved
+					Updated
 				</div>
 			)}
 

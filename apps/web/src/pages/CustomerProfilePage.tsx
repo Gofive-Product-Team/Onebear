@@ -3,6 +3,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { Button } from '@/components/ui/Button'
 import { Tabs, TabList, Tab, TabPanel } from '@/components/ui/Tabs'
 import { useCustomer } from '@/api/useCustomers'
+import { getHighestPriorityTag } from '@/components/customer/SegmentTag'
 import { GeneralInfoTab } from '@/components/customer/profile/GeneralInfoTab'
 import { OrderHistoryTab } from '@/components/customer/profile/OrderHistoryTab'
 import { ConversationHistoryTab } from '@/components/customer/profile/ConversationHistoryTab'
@@ -86,32 +87,61 @@ export function CustomerProfilePage({ customerId }: Props) {
 
 			{/* Profile content */}
 			{customer && !isLoading && (
-				<Tabs defaultValue="general">
-					{/* Tab list */}
-					<TabList className="w-full sm:w-auto">
-						<Tab value="general">General Info</Tab>
-						<Tab value="orders">Order History</Tab>
-						<Tab value="conversations">Conversations</Tab>
-						<Tab value="activity">Activity Log</Tab>
-					</TabList>
+				<>
+					{/* Quick Stats bar */}
+					<div className="flex gap-3 overflow-x-auto pb-3">
+						{[
+							{
+								label: 'LTV',
+								value: `฿${customer.ltv >= 1000 ? (customer.ltv / 1000).toFixed(1) + 'K' : customer.ltv}`,
+							},
+							{ label: 'Orders', value: String(customer.orderCount) },
+							{
+								label: 'AOV',
+								value: `฿${customer.aov >= 1000 ? (customer.aov / 1000).toFixed(1) + 'K' : customer.aov}`,
+							},
+							{
+								label: 'Tier',
+								value: getHighestPriorityTag(customer.tags)?.name ?? '\u2014',
+							},
+						].map((stat) => (
+							<div
+								key={stat.label}
+								className="min-w-[80px] shrink-0 rounded-lg border border-border bg-bg-card px-4 py-2.5 text-center"
+							>
+								<p className="text-[10px] font-medium uppercase tracking-wide text-t3">
+									{stat.label}
+								</p>
+								<p className="text-sm font-bold text-t1">{stat.value}</p>
+							</div>
+						))}
+					</div>
 
-					{/* Tab panels */}
-					<TabPanel value="general" className="mt-6">
-						<GeneralInfoTab customer={customer} />
-					</TabPanel>
+					<Tabs defaultValue="general">
+						<TabList className="w-full sm:w-auto">
+							<Tab value="general">General Info</Tab>
+							<Tab value="orders">Order History</Tab>
+							<Tab value="conversations">Conversations</Tab>
+							<Tab value="activity">Activity Log</Tab>
+						</TabList>
 
-					<TabPanel value="orders" className="mt-6">
-						<OrderHistoryTab customer={customer} />
-					</TabPanel>
+						<TabPanel value="general" className="mt-6">
+							<GeneralInfoTab customer={customer} />
+						</TabPanel>
 
-					<TabPanel value="conversations" className="mt-6">
-						<ConversationHistoryTab customer={customer} />
-					</TabPanel>
+						<TabPanel value="orders" className="mt-6">
+							<OrderHistoryTab customer={customer} />
+						</TabPanel>
 
-					<TabPanel value="activity" className="mt-6">
-						<ActivityLogTab customerId={customer.id} />
-					</TabPanel>
-				</Tabs>
+						<TabPanel value="conversations" className="mt-6">
+							<ConversationHistoryTab customer={customer} />
+						</TabPanel>
+
+						<TabPanel value="activity" className="mt-6">
+							<ActivityLogTab customerId={customer.id} />
+						</TabPanel>
+					</Tabs>
+				</>
 			)}
 		</div>
 	)

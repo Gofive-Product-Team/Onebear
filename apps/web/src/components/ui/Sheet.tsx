@@ -4,7 +4,7 @@ import { cn } from '@one-bear/ui'
 interface Props {
 	open: boolean
 	onOpenChange: (open: boolean) => void
-	side?: 'left' | 'right'
+	side?: 'left' | 'right' | 'bottom'
 	children: ReactNode
 }
 
@@ -34,9 +34,11 @@ export function Sheet({ open, onOpenChange, side = 'right', children }: Props) {
 			<div className="fixed inset-0 bg-black/50" onClick={() => onOpenChange(false)} />
 			<div
 				className={cn(
-					'fixed inset-y-0 z-50 flex w-[280px] flex-col bg-bg-page shadow-xl transition-transform duration-300',
-					side === 'right' && 'right-0 animate-in slide-in-from-right',
-					side === 'left' && 'left-0 animate-in slide-in-from-left',
+					'fixed z-50 flex flex-col bg-bg-page shadow-xl transition-transform duration-300',
+					side === 'right' && 'inset-y-0 right-0 w-[280px] animate-in slide-in-from-right',
+					side === 'left' && 'inset-y-0 left-0 w-[280px] animate-in slide-in-from-left',
+					side === 'bottom' &&
+						'inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl animate-in slide-in-from-bottom',
 				)}
 			>
 				{children}

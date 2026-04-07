@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { cn } from '@one-bear/ui'
 import { Tooltip } from '@/components/ui/Tooltip'
 import { Button } from '@/components/ui/Button'
 import type { CustomerDetail } from '@/api/useCustomers'
@@ -42,8 +44,29 @@ interface Props {
 }
 
 export function OrderHistoryTab({ customer }: Props) {
+	const [dateRange, setDateRange] = useState('All')
+
 	return (
 		<div className="space-y-6">
+			{/* Date filter buttons */}
+			<div className="flex gap-2">
+				{['7d', '30d', '90d', 'All'].map((range) => (
+					<button
+						key={range}
+						type="button"
+						onClick={() => setDateRange(range)}
+						className={cn(
+							'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+							dateRange === range
+								? 'bg-primary text-white'
+								: 'bg-bg-input text-t2 hover:bg-bg-hover',
+						)}
+					>
+						{range === 'All' ? 'All time' : `Last ${range}`}
+					</button>
+				))}
+			</div>
+
 			{/* CRM stats */}
 			<StatStrip customer={customer} />
 

@@ -112,7 +112,7 @@ function LongPressBottomSheet({ open, onClose, customer }: SheetProps) {
 				<div className="border-b border-border px-5 py-3">
 					<p className="text-base font-semibold text-t1">{customer.name}</p>
 					{savedVisible && (
-						<p className="mt-0.5 text-xs text-green-600" role="status">Saved</p>
+						<p className="mt-0.5 text-xs text-green-600" role="status">Updated</p>
 					)}
 				</div>
 
@@ -184,6 +184,11 @@ function LongPressBottomSheet({ open, onClose, customer }: SheetProps) {
 							<Input
 								value={editName}
 								onChange={(e) => setEditName(e.target.value)}
+								onBlur={handleSaveName}
+								onKeyDown={(e) => {
+									if (e.key === 'Enter') e.currentTarget.blur()
+									if (e.key === 'Escape') resetAndClose()
+								}}
 								autoFocus
 								aria-label="Customer name"
 							/>

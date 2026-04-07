@@ -32,6 +32,8 @@ export function BulkFollowupSheet({ open, onOpenChange, customerIds, onSuccess }
 	const [channel, setChannel] = useState('line')
 	const [message, setMessage] = useState(DEFAULT_TEMPLATE)
 	const [didSucceed, setDidSucceed] = useState(false)
+	const [scheduled, setScheduled] = useState(false)
+	const [scheduleTime, setScheduleTime] = useState('')
 
 	const bulkFollowup = useBulkFollowup()
 
@@ -128,6 +130,45 @@ export function BulkFollowupSheet({ open, onOpenChange, customerIds, onSuccess }
 							aria-label="Follow-up message"
 						/>
 						<p className="text-xs text-t3">{message.length} characters</p>
+					</div>
+
+					{/* Send now / Schedule toggle */}
+					<div className="flex flex-col gap-1.5">
+						<label className="text-sm font-medium text-t1">Timing</label>
+						<div className="flex gap-2">
+							<button
+								type="button"
+								onClick={() => setScheduled(false)}
+								className={cn(
+									'flex-1 rounded-lg border px-3 py-2 text-sm font-medium',
+									!scheduled
+										? 'border-primary bg-primary/10 text-primary'
+										: 'border-border text-t2',
+								)}
+							>
+								Send now
+							</button>
+							<button
+								type="button"
+								onClick={() => setScheduled(true)}
+								className={cn(
+									'flex-1 rounded-lg border px-3 py-2 text-sm font-medium',
+									scheduled
+										? 'border-primary bg-primary/10 text-primary'
+										: 'border-border text-t2',
+								)}
+							>
+								Schedule
+							</button>
+						</div>
+						{scheduled && (
+							<input
+								type="datetime-local"
+								value={scheduleTime}
+								onChange={(e) => setScheduleTime(e.target.value)}
+								className="w-full rounded-lg border border-border bg-bg-input px-3 py-2 text-sm"
+							/>
+						)}
 					</div>
 
 					{/* Error */}

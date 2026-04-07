@@ -17,6 +17,12 @@ import { BulkFollowupSheet } from '@/components/customer/BulkFollowupSheet'
 import { CustomerContextMenu } from '@/components/customer/CustomerContextMenu'
 import { CustomerLongPressSheet } from '@/components/customer/CustomerLongPressSheet'
 import { SwipeableCard } from '@/components/customer/SwipeableCard'
+import {
+	AdvancedFilterPanel,
+	ActiveFilterChips,
+	EMPTY_FILTERS,
+	type AdvancedFilters,
+} from '@/components/customer/AdvancedFilterPanel'
 
 // ─── Empty segment counts fallback ────────────────────────────────────────────
 
@@ -97,6 +103,7 @@ export function CustomerPage() {
 	const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null)
 	const [showAddPanel, setShowAddPanel] = useState(false)
 	const [addInitialName, setAddInitialName] = useState<string | undefined>(undefined)
+	const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>(EMPTY_FILTERS)
 
 	// Selection mode
 	const [isSelectionMode, setIsSelectionMode] = useState(false)
@@ -229,7 +236,7 @@ export function CustomerPage() {
 				}}
 			/>
 
-			{/* Search + Sort row */}
+			{/* Search + Sort + Advanced Filters row */}
 			<div className="flex gap-3">
 				<div className="flex-1">
 					<CustomerSearch
@@ -240,7 +247,36 @@ export function CustomerPage() {
 					/>
 				</div>
 				<SortDropdown value={sort} onChange={setSort} />
+				<AdvancedFilterPanel
+					filters={advancedFilters}
+					onApply={setAdvancedFilters}
+					onClear={() => setAdvancedFilters(EMPTY_FILTERS)}
+				/>
 			</div>
+
+			{/* Active advanced filter chips */}
+			<ActiveFilterChips
+				filters={advancedFilters}
+				onRemove={(key, value) => {
+					setAdvancedFilters((prev) => {
+						const next = { ...prev }
+						if (key === 'segment' && value) {
+							next.segments = next.segments.filter((s) => s !== value)
+						} else if (key === 'channel' && value) {
+							next.channels = next.channels.filter((c) => c !== value)
+						} else if (key === 'dateRange') {
+							next.dateRange = null
+						} else if (key === 'ltvMin') {
+							next.ltvMin = null
+						} else if (key === 'ltvMax') {
+							next.ltvMax = null
+						} else if (key === 'tagSearch') {
+							next.tagSearch = ''
+						}
+						return next
+					})
+				}}
+			/>
 
 			{/* Error state */}
 			{isError && (
@@ -260,7 +296,7 @@ export function CustomerPage() {
 			<div className={cn('flex gap-6', selectedCustomerId && 'lg:pr-0')}>
 				{/* Card grid */}
 				<div className="min-w-0 flex-1">
-					<div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+					<div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
 						{/* Loading skeletons */}
 						{isLoading &&
 							Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}

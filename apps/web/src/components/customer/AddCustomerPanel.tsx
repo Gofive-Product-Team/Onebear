@@ -71,6 +71,7 @@ function DuplicateWarningBanner({ warning, onViewProfile, onAddAnyway }: Duplica
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function AddCustomerPanel({ open, onOpenChange, initialName }: Props) {
+	const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
 	const createCustomer = useCreateCustomer()
 	const checkDuplicate = useCheckDuplicate()
 	const [duplicateWarning, setDuplicateWarning] = useState<DuplicateWarning | null>(null)
@@ -135,7 +136,7 @@ export function AddCustomerPanel({ open, onOpenChange, initialName }: Props) {
 	}
 
 	return (
-		<Sheet open={open} onOpenChange={onOpenChange} side="right">
+		<Sheet open={open} onOpenChange={onOpenChange} side={isMobile ? 'bottom' : 'right'}>
 			<SheetHeader>
 				<SheetTitle>Add Customer</SheetTitle>
 				<SheetClose onClose={() => onOpenChange(false)} />

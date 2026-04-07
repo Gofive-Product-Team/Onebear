@@ -3,9 +3,11 @@ import { cn } from '@one-bear/ui'
 import { Badge } from '@/components/ui/Badge'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
+import { Tooltip } from '@/components/ui/Tooltip'
 import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogFooter, DialogClose } from '@/components/ui/Dialog'
 import { PinnedNoteEditor } from '@/components/customer/PinnedNoteEditor'
 import { SegmentTag } from '@/components/customer/SegmentTag'
+import { NextBestActionCard } from '@/components/customer/NextBestActionCard'
 import { generateAvatarColor } from '@/components/customer/CustomerCard'
 import { LinkContactDialog } from './LinkContactDialog'
 import { useAddCustomerTag, useRemoveCustomerTag, useCustomerContacts, useUnlinkContact } from '@/api/useCustomers'
@@ -84,7 +86,13 @@ function TagEditor({ customerId, tags }: TagEditorProps) {
 			<div className="flex flex-wrap gap-1.5">
 				{tags.map((tag) => (
 					<div key={tag.name} className="group relative">
-						<SegmentTag tag={tag} />
+						{tag.reason ? (
+							<Tooltip content={tag.reason} side="top">
+								<SegmentTag tag={tag} />
+							</Tooltip>
+						) : (
+							<SegmentTag tag={tag} />
+						)}
 						<button
 							type="button"
 							onClick={() => removeTag.mutate({ id: customerId, name: tag.name })}
@@ -278,6 +286,14 @@ export function GeneralInfoTab({ customer }: Props) {
 
 	return (
 		<div className="space-y-6">
+			{/* Next Best Action */}
+			<NextBestActionCard
+				customer={customer}
+				onDraftMessage={() => {
+					// TODO: integrate with draft message flow
+				}}
+			/>
+
 			{/* Profile header */}
 			<div className="flex items-center gap-4">
 				<div
