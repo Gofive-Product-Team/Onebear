@@ -165,12 +165,12 @@ export function AutoAssignmentConfig() {
 												className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
 											/>
 											<Avatar
-												fallback={user.displayName.slice(0, 2)}
+												fallback={(user.displayName ?? user.email ?? '?').slice(0, 2)}
 												size="sm"
 											/>
 											<div className="min-w-0 flex-1">
 												<p className="text-sm font-medium text-gray-900">
-													{user.displayName}
+													{user.displayName ?? user.email}
 												</p>
 												<p className="truncate text-xs text-gray-500">
 													{user.email}
