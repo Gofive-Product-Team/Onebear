@@ -58,6 +58,8 @@ public static class DependencyInjection
         services.AddScoped<IAiCreditRepository, AiCreditRepository>();
         services.AddScoped<IUnansweredQuestionRepository, UnansweredQuestionRepository>();
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
+        services.AddScoped<ICompanyRepository, CompanyRepository>();
+        services.AddScoped<IRoleRepository, RoleRepository>();
 
         services.AddTransient<MongoSeeder>();
 

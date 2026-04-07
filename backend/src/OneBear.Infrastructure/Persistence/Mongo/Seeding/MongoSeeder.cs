@@ -267,7 +267,22 @@ public class MongoSeeder
                 .Ascending(p => p.CompanyId)
                 .Ascending(p => p.IsActive), ct);
 
-        _logger.LogInformation("MongoDB indexes created/verified (40 total)");
+        // Companies: 1 index (ownerUserId lookup)
+        await CreateIndexAsync(_context.Companies, "ix_companies_owner",
+            Builders<Company>.IndexKeys
+                .Ascending(c => c.OwnerUserId), ct);
+
+        // Roles: 2 indexes
+        await CreateIndexAsync(_context.Roles, "ix_roles_company",
+            Builders<Role>.IndexKeys
+                .Ascending(r => r.CompanyId), ct);
+
+        await CreateIndexAsync(_context.Roles, "ix_roles_company_system",
+            Builders<Role>.IndexKeys
+                .Ascending(r => r.CompanyId)
+                .Ascending(r => r.IsSystem), ct);
+
+        _logger.LogInformation("MongoDB indexes created/verified (43 total)");
     }
 
     private async Task CreateIndexAsync<T>(

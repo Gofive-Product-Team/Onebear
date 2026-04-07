@@ -66,8 +66,17 @@ public class StringEnumTests
     [Fact]
     public void Permission_All_ContainsAllPermissions()
     {
-        Assert.Equal(5, Permission.All.Length);
+        Assert.Equal(15, Permission.All.Length);
         Assert.Contains(3001, Permission.All);
         Assert.Contains(3005, Permission.All);
+        Assert.Contains(3010, Permission.All);
+        Assert.Contains(3012, Permission.All);
+        Assert.Contains(3020, Permission.All);
+        Assert.Contains(3021, Permission.All);
+        Assert.Contains(3030, Permission.All);
+        Assert.Contains(3031, Permission.All);
+        Assert.Contains(3040, Permission.All);
+        Assert.Contains(3050, Permission.All);
+        Assert.Contains(3051, Permission.All);
     }
 }

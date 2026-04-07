@@ -32,7 +32,7 @@ public class RoomAuthorizationService : IRoomAuthorizationService
         if (user is not null)
         {
             int[] permissions = Auth.ClaimsPrincipalExtensions.GetPermissions(user);
-            if (permissions.Contains(Domain.Enums.Permission.ChatAccessAllData))
+            if (permissions.Contains(Domain.Enums.Permission.ChatAccessAll))
                 return true;
         }
 

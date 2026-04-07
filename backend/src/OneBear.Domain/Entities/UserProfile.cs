@@ -19,8 +19,11 @@ public class UserProfile : MongoEntity
     [JsonPropertyName("permissions")]
     public List<int> Permissions { get; set; } = new();
 
-    [JsonPropertyName("role")]
-    public string Role { get; set; } = "member";
+    [JsonPropertyName("roleId")]
+    public string RoleId { get; set; } = "";
+
+    [JsonPropertyName("roleName")]
+    public string RoleName { get; set; } = "";
 
     [JsonPropertyName("isActive")]
     public bool IsActive { get; set; } = true;

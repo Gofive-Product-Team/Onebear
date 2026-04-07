@@ -148,10 +148,10 @@ builder.Services.AddSingleton<IAuthorizationHandler, PermissionHandler>();
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy(AuthConstants.PolicyChatView, policy => policy.Requirements.Add(new PermissionRequirement(Permission.ChatView)));
-    options.AddPolicy(AuthConstants.PolicyChatResolve, policy => policy.Requirements.Add(new PermissionRequirement(Permission.ChatResolved)));
+    options.AddPolicy(AuthConstants.PolicyChatResolve, policy => policy.Requirements.Add(new PermissionRequirement(Permission.ChatResolve)));
     options.AddPolicy(AuthConstants.PolicyChatMention, policy => policy.Requirements.Add(new PermissionRequirement(Permission.ChatMention)));
-    options.AddPolicy(AuthConstants.PolicyChatAssignAll, policy => policy.Requirements.Add(new PermissionRequirement(Permission.ChatAssignAllCompany)));
-    options.AddPolicy(AuthConstants.PolicyChatAdmin, policy => policy.Requirements.Add(new PermissionRequirement(Permission.ChatAccessAllData)));
+    options.AddPolicy(AuthConstants.PolicyChatAssignAll, policy => policy.Requirements.Add(new PermissionRequirement(Permission.ChatAssign)));
+    options.AddPolicy(AuthConstants.PolicyChatAdmin, policy => policy.Requirements.Add(new PermissionRequirement(Permission.ChatAccessAll)));
 });
 
 // CORS

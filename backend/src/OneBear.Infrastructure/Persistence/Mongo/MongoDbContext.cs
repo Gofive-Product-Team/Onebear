@@ -39,4 +39,6 @@ public class MongoDbContext
     public IMongoCollection<Customer> Customers => _database.GetCollection<Customer>("Customers");
     public IMongoCollection<ActivityLog> ActivityLogs => _database.GetCollection<ActivityLog>("ActivityLogs");
     public IMongoCollection<UserProfile> UserProfiles => _database.GetCollection<UserProfile>("UserProfiles");
+    public IMongoCollection<Company> Companies => _database.GetCollection<Company>("Companies");
+    public IMongoCollection<Role> Roles => _database.GetCollection<Role>("Roles");
 }

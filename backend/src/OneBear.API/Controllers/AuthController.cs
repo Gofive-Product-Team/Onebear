@@ -103,7 +103,8 @@ public class AuthController : ControllerBase
             Email = request.Email,
             DisplayName = request.DisplayName,
             CompanyId = companyId,
-            Role = "owner",
+            RoleId = "",
+            RoleName = "owner",
             Permissions = [3001, 3002, 3003, 3004, 3005],
             IsActive = true,
             CreatedTimestamp = now
@@ -152,7 +153,8 @@ public class AuthController : ControllerBase
             profileId = m.Id,
             email = m.Email,
             displayName = m.DisplayName,
-            role = m.Role,
+            roleId = m.RoleId,
+            roleName = m.RoleName,
             permissions = m.Permissions,
             isActive = m.IsActive,
             createdTimestamp = m.CreatedTimestamp,
@@ -197,7 +199,8 @@ public class AuthController : ControllerBase
             Email = request.Email,
             DisplayName = keycloakUser.FirstName ?? request.Email,
             CompanyId = companyId,
-            Role = request.Role ?? "member",
+            RoleId = request.RoleId ?? "",
+            RoleName = request.RoleName ?? "member",
             Permissions = request.Permissions ?? [3001],
             IsActive = true,
             CreatedTimestamp = now
@@ -212,7 +215,8 @@ public class AuthController : ControllerBase
             profileId = profile.Id,
             email = profile.Email,
             displayName = profile.DisplayName,
-            role = profile.Role,
+            roleId = profile.RoleId,
+            roleName = profile.RoleName,
             permissions = profile.Permissions,
             isActive = profile.IsActive
         });
@@ -235,8 +239,11 @@ public class AuthController : ControllerBase
         if (profile is null)
             return NotFound(new { error = "MEMBER_NOT_FOUND", message = "Member not found in this company." });
 
-        if (request.Role is not null)
-            profile.Role = request.Role;
+        if (request.RoleId is not null)
+            profile.RoleId = request.RoleId;
+
+        if (request.RoleName is not null)
+            profile.RoleName = request.RoleName;
 
         if (request.Permissions is not null)
             profile.Permissions = request.Permissions;
@@ -253,7 +260,8 @@ public class AuthController : ControllerBase
             profileId = profile.Id,
             email = profile.Email,
             displayName = profile.DisplayName,
-            role = profile.Role,
+            roleId = profile.RoleId,
+            roleName = profile.RoleName,
             permissions = profile.Permissions,
             isActive = profile.IsActive
         });
@@ -275,7 +283,7 @@ public class AuthController : ControllerBase
         if (profile is null)
             return NotFound(new { error = "MEMBER_NOT_FOUND", message = "Member not found in this company." });
 
-        if (profile.Role == "owner")
+        if (profile.RoleName == "owner")
             return BadRequest(new { error = "CANNOT_DEACTIVATE_OWNER", message = "Cannot deactivate the company owner." });
 
         profile.IsActive = false;
@@ -302,12 +310,14 @@ public record RegisterRequest
 public record AddMemberRequest
 {
     public string Email { get; init; } = "";
-    public string? Role { get; init; }
+    public string? RoleId { get; init; }
+    public string? RoleName { get; init; }
     public List<int>? Permissions { get; init; }
 }
 
 public record UpdateMemberRequest
 {
-    public string? Role { get; init; }
+    public string? RoleId { get; init; }
+    public string? RoleName { get; init; }
     public List<int>? Permissions { get; init; }
 }
