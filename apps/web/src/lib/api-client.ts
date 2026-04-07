@@ -228,6 +228,29 @@ export const api = {
 	companies: {
 		featureSettings: (companyId: string) => fetchApi(`/companies/${companyId}/feature-settings`),
 	},
+	company: {
+		get: (companyId: string) => fetchApi(`/companies/${companyId}/profile`),
+		update: (companyId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/profile`, { method: 'PUT', body: JSON.stringify(body) }),
+	},
+	members: {
+		list: (companyId: string) => fetchApi(`/companies/${companyId}/members`),
+		add: (companyId: string, body: { email: string; roleId: string }) =>
+			fetchApi(`/companies/${companyId}/members`, { method: 'POST', body: JSON.stringify(body) }),
+		update: (companyId: string, id: string, body: { roleId: string }) =>
+			fetchApi(`/companies/${companyId}/members/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+		remove: (companyId: string, id: string) =>
+			fetchApi(`/companies/${companyId}/members/${id}`, { method: 'DELETE' }),
+	},
+	roles: {
+		list: (companyId: string) => fetchApi(`/companies/${companyId}/roles`),
+		create: (companyId: string, body: { name: string; description?: string; permissions: number[] }) =>
+			fetchApi(`/companies/${companyId}/roles`, { method: 'POST', body: JSON.stringify(body) }),
+		update: (companyId: string, roleId: string, body: { name?: string; description?: string; permissions?: number[] }) =>
+			fetchApi(`/companies/${companyId}/roles/${roleId}`, { method: 'PUT', body: JSON.stringify(body) }),
+		delete: (companyId: string, roleId: string) =>
+			fetchApi(`/companies/${companyId}/roles/${roleId}`, { method: 'DELETE' }),
+	},
 	chatbot: {
 		configuration: (companyId: string) => fetchApi(`/companies/${companyId}/chatbot/configuration`),
 		update: (companyId: string, body: object) =>
