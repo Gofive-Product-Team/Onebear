@@ -11,12 +11,16 @@ using OneBear.Application.Integrations.Services;
 using OneBear.Application.Chatbot.Services;
 using OneBear.Application.Notifications.Services;
 using OneBear.Application.Customers.Services;
+using OneBear.Application.Auth.Services;
 using OneBear.Domain.Interfaces;
 
 public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
+        // Auth
+        services.AddHttpClient<KeycloakAdminService>();
+
         services.AddValidatorsFromAssemblyContaining<SendMessageCommandValidator>();
 
         // Core messaging pipeline

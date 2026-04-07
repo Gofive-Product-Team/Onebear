@@ -41,6 +41,8 @@ AuthOptions authOptions = builder.Configuration
     .GetSection(AuthOptions.SectionName).Get<AuthOptions>() ?? new AuthOptions();
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.SectionName));
 builder.Services.Configure<ApiKeyOptions>(builder.Configuration.GetSection(ApiKeyOptions.SectionName));
+builder.Services.Configure<OneBear.Application.Auth.KeycloakAdminOptions>(
+    builder.Configuration.GetSection(OneBear.Application.Auth.KeycloakAdminOptions.SectionName));
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
@@ -271,6 +273,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseAuthentication();
+app.UseUserProfile();
 app.UseSubscriptionCheck(app.Environment.IsDevelopment());
 app.UseAuthorization();
 app.MapControllers();
