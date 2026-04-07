@@ -55,7 +55,7 @@ services:
     volumes:
       - azurite-data:/data
 
-  # ─── Application ────────────────────────────────────
+  # ─── Backend ────────────────────────────────────────
 
   api:
     build:
@@ -73,10 +73,18 @@ services:
       - ConnectionStrings__RabbitMq=amqp://guest:guest@rabbitmq:5672
       - Azure__BlobStorage__ConnectionString=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1
       - Azure__SignalR__ConnectionString=
-      - Authentication__DevSigningKey=OneBear-Dev-Signing-Key-Min-32-Chars!!
+      - Authentication__Authority=https://auth-nonprod.gofive.co.th/auth/realms/onebear-dev
+      - Authentication__Audience=account
+      - Authentication__RequireHttpsMetadata=false
+      - Keycloak__AdminBaseUrl=https://auth-nonprod.gofive.co.th/auth/admin/realms/onebear-dev
+      - Keycloak__TokenUrl=https://auth-nonprod.gofive.co.th/auth/realms/onebear-dev/protocol/openid-connect/token
+      - Keycloak__ClientId=onebear-api
+      - Keycloak__ClientSecret=${KEYCLOAK_CLIENT_SECRET:-}
       - Cors__AllowedOrigins__0=http://localhost:5173
-      - Cors__AllowedOrigins__1=http://localhost:5174
+      - Cors__AllowedOrigins__1=http://localhost:3000
+      - Cors__AllowedOrigins__2=http://localhost:80
       - ApiKeys__Primary=dev-webhook-key-change-in-production
+      - ApiKeys__AiService=dev-ai-key-change-in-production
     depends_on:
       mongodb:
         condition: service_healthy
@@ -84,7 +92,7 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-    profiles: ["app"]
+    profiles: ["app", "full"]
 
   worker:
     build:
@@ -97,6 +105,8 @@ services:
       - MongoDb__DatabaseName=OneBear
       - ConnectionStrings__Redis=redis:6379
       - ConnectionStrings__RabbitMq=amqp://guest:guest@rabbitmq:5672
+      - AiService__BaseUrl=${AI_SERVICE_BASE_URL:-}
+      - AiService__ApiKey=${AI_SERVICE_API_KEY:-}
     depends_on:
       mongodb:
         condition: service_healthy
@@ -104,7 +114,26 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-    profiles: ["app"]
+    profiles: ["app", "full"]
+
+  # ─── Frontend ───────────────────────────────────────
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        - VITE_API_BASE_URL=
+        - VITE_KEYCLOAK_URL=https://auth-nonprod.gofive.co.th/auth/realms/onebear-dev
+        - VITE_KEYCLOAK_CLIENT_ID=onebear-spa
+        - VITE_REDIRECT_URI=http://localhost:3000/auth/callback
+        - VITE_POST_LOGOUT_REDIRECT_URI=http://localhost:3000
+    container_name: onebear-web
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    profiles: ["full"]
 
 volumes:
   mongodb-data:
