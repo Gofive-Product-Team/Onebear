@@ -24,8 +24,8 @@ export function AutoAssignmentConfig() {
 	// Sync local state when config loads
 	useEffect(() => {
 		if (config) {
-			setEnabled(config.enabled)
-			setMode(config.mode)
+			setEnabled(config.enabled ?? false)
+			setMode(config.mode ?? 'round-robin')
 			setSelectedAgentIds(config.agentIds ?? [])
 			setHasChanges(false)
 		}

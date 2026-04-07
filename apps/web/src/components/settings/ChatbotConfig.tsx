@@ -261,12 +261,12 @@ export function ChatbotConfig() {
 
 	useEffect(() => {
 		if (config) {
-			setEnabled(config.enabled)
-			setScheduleMode(config.scheduleMode)
+			setEnabled(config.enabled ?? false)
+			setScheduleMode(config.scheduleMode ?? 'always')
 			setSchedule(config.schedule?.length > 0 ? config.schedule : DEFAULT_SCHEDULE)
-			setBusinessOverview(config.businessOverview)
-			setResponseStyle(config.responseStyle)
-			setInstructions(config.instructions)
+			setBusinessOverview(config.businessOverview ?? '')
+			setResponseStyle(config.responseStyle ?? '')
+			setInstructions(config.instructions ?? '')
 			setTone(config.tone ?? 'casual')
 			setHasChanges(false)
 		}
