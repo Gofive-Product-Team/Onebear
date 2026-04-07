@@ -49,7 +49,7 @@ public class CustomersController : ControllerBase
 
         (List<CustomerListDto> items, string? nextToken) = await _customerService.ListAsync(companyId, query, ct);
 
-        return Ok(new { items, continuationToken = nextToken });
+        return Ok(new { data = items, continuationToken = nextToken, hasMore = nextToken != null });
     }
 
     /// <summary>Get segment counts for filter chips.</summary>
@@ -192,7 +192,7 @@ public class CustomersController : ControllerBase
         (List<ActivityLogDto> items, string? nextToken) =
             await _activityLogService.GetByCustomerAsync(customerId, type, pageSize, continuationToken, ct);
 
-        return Ok(new { items, continuationToken = nextToken });
+        return Ok(new { data = items, continuationToken = nextToken, hasMore = nextToken != null });
     }
 
     // ─── Phase 4: Bulk Follow-up & Snooze ────────────────────────────────────
