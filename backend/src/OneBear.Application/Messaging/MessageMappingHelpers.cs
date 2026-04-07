@@ -13,8 +13,8 @@ public static class MessageMappingHelpers
         Type = msg.Type,
         Platform = msg.Platform,
         DeliveryStatus = msg.DeliveryStatus,
-        SenderName = sender?.DisplayName,
-        SenderType = sender?.Type,
+        SenderName = sender?.DisplayName ?? (msg.IsAiMessage ? "AI" : null),
+        SenderType = sender?.Type ?? InferSenderType(msg),
         Timestamp = msg.Timestamp,
         Mid = msg.Mid,
         IsEdited = msg.IsEdited,
@@ -51,6 +51,27 @@ public static class MessageMappingHelpers
             Currency = msg.Order.Currency
         } : null,
     };
+
+    /// <summary>Infer sender type when ChatUser is not available (e.g., admin without ChatUser record).</summary>
+    private static string? InferSenderType(ChatMessage msg)
+    {
+        if (msg.IsAiMessage || msg.CreatedBy == "ai" || msg.UserId == "ai-chatbot")
+            return "Agent";
+        if (msg.Type == "system" || msg.CreatedBy == "system")
+            return "System";
+        // If message was sent outbound (has delivery status tracking) and not from a known customer,
+        // it's from an agent (admin sent via the web UI)
+        if (msg.DeliveryStatus == Domain.Enums.MessageDeliveryState.Delivered
+            || msg.DeliveryStatus == Domain.Enums.MessageDeliveryState.Pending
+            || msg.DeliveryStatus == Domain.Enums.MessageDeliveryState.Failed)
+        {
+            // Outbound messages from agents won't have a ChatUser record
+            // but they do have a UserId that's the Keycloak sub (UUID format)
+            if (msg.UserId is not null && msg.UserId.Contains('-') && msg.UserId.Length > 30)
+                return "Agent";
+        }
+        return null;
+    }
 
     public static ChatRoomDto ToDto(ChatRoom room) => new()
     {

@@ -64,12 +64,8 @@ public class UserProfileMiddleware
 
         // Extract sub (Keycloak user ID) from JWT
         string? sub = context.User.FindFirstValue("sub");
-        _logger.LogInformation("[UserProfileMiddleware] path={Path} sub={Sub} claims=[{Claims}]",
-            path, sub ?? "(null)",
-            string.Join(", ", context.User.Claims.Select(c => $"{c.Type}={c.Value[..Math.Min(c.Value.Length, 30)]}")));
         if (string.IsNullOrEmpty(sub))
         {
-            _logger.LogWarning("[UserProfileMiddleware] No sub claim found, skipping");
             await _next(context);
             return;
         }

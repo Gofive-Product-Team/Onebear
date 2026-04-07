@@ -403,6 +403,8 @@ public class MessageOrchestrator
 
         // Step 8: Broadcast via SignalR
         ChatMessageDto messageDto = MessageMappingHelpers.ToDto(chatMessage);
+        messageDto.SenderType = "Agent";  // Outbound messages are always from agents
+        messageDto.SenderName = senderUserId; // Will be resolved to display name by frontend
         await _signalRNotifier.SendToRoomAsync(room.Id, "ReceiveMessage", messageDto, ct);
 
         // Step 9: Return result

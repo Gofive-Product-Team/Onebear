@@ -35,8 +35,8 @@ export function Sheet({ open, onOpenChange, side = 'right', children }: Props) {
 			<div
 				className={cn(
 					'fixed z-50 flex flex-col bg-bg-page shadow-xl transition-transform duration-300',
-					side === 'right' && 'inset-y-0 right-0 w-[280px] animate-in slide-in-from-right',
-					side === 'left' && 'inset-y-0 left-0 w-[280px] animate-in slide-in-from-left',
+					side === 'right' && 'inset-y-0 right-0 w-[500px] max-w-[90vw] animate-in slide-in-from-right',
+					side === 'left' && 'inset-y-0 left-0 w-[500px] max-w-[90vw] animate-in slide-in-from-left',
 					side === 'bottom' &&
 						'inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl animate-in slide-in-from-bottom',
 				)}
