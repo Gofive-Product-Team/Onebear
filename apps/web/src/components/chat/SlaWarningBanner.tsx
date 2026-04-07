@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { cn } from '@one-bear/ui'
+import { AlertTriangle } from 'lucide-react'
 
 interface Props {
 	frtStartTimestamp: number | null
@@ -85,9 +86,7 @@ export function SlaWarningBanner({ frtStartTimestamp, isFrtStopped }: Props) {
 			)}
 			role="alert"
 		>
-			<span className={cn('shrink-0 text-sm font-semibold', level.iconClass)} aria-hidden="true">
-				⚠️
-			</span>
+			<AlertTriangle className={cn('h-4 w-4 shrink-0', level.iconClass)} aria-hidden="true" />
 			<p className={cn('text-xs font-medium', level.iconClass)}>{level.label}</p>
 		</div>
 	)

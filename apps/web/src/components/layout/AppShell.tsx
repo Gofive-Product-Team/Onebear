@@ -2,7 +2,6 @@ import { type ReactNode } from 'react'
 import { useRouterState } from '@tanstack/react-router'
 import { cn } from '@one-bear/ui'
 import { Sidebar } from './Sidebar'
-import { ThemeToggle } from './ThemeToggle'
 
 function isChatPath(pathname: string): boolean {
   return pathname === '/chat' || pathname.startsWith('/chat/')
@@ -19,7 +18,6 @@ export function AppShell({ children }: Props) {
   return (
     <div className="flex h-screen overflow-hidden bg-bg-app">
       <Sidebar />
-      <ThemeToggle />
 
       {/* Main content area */}
       <main className={cn('flex-1 overflow-hidden', isChat ? '' : 'overflow-y-auto p-6')}>

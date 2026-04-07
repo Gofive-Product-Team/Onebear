@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { cn } from '@one-bear/ui'
+import { MessageCircle, ClipboardList, Hand } from 'lucide-react'
 import { Tooltip } from '@/components/ui/Tooltip'
 import { SegmentTag } from './SegmentTag'
 import { ContactAvatarStack } from './ContactAvatarStack'
@@ -74,8 +75,8 @@ function SuggestedActionChip({ action, actionType, onAction }: SuggestedActionCh
 				style,
 			)}
 		>
-			<span className="mr-1.5" aria-hidden="true">
-				{actionType === 'chat' ? '💬' : actionType === 'followup' ? '📋' : '👋'}
+			<span className="mr-1.5 inline-flex" aria-hidden="true">
+				{actionType === 'chat' ? <MessageCircle className="h-3.5 w-3.5" /> : actionType === 'followup' ? <ClipboardList className="h-3.5 w-3.5" /> : <Hand className="h-3.5 w-3.5" />}
 			</span>
 			{action}
 		</button>

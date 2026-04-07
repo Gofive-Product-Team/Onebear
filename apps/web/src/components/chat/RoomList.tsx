@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { cn } from '@one-bear/ui'
+import { Pin, ArrowLeftRight, MessageCircle } from 'lucide-react'
 import { useRooms, useBadgeCount, useSpamRooms } from '@/api/useRooms'
 import { useAuthStore } from '@/stores/auth-store'
 import { RoomCard } from './RoomCard'
@@ -25,9 +26,12 @@ function SkeletonRoomCard() {
 	)
 }
 
-function SectionHeader({ label }: { label: string }) {
+function SectionHeader({ label, icon }: { label: string; icon?: React.ReactNode }) {
 	return (
-		<h3 className="px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">{label}</h3>
+		<h3 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+			{icon}
+			{label}
+		</h3>
 	)
 }
 
@@ -156,7 +160,7 @@ export function RoomList({ activeRoomId }: Props) {
 						{/* Pinned section */}
 						{pinnedRooms.length > 0 && (
 							<div>
-								<SectionHeader label="📌 Pinned" />
+								<SectionHeader label="Pinned" icon={<Pin className="h-3.5 w-3.5" />} />
 								{pinnedRooms.map((room) => (
 									<RoomCard
 										key={room.id}
@@ -171,7 +175,7 @@ export function RoomList({ activeRoomId }: Props) {
 						{/* Assigned to Me section */}
 						{assignedToMe.length > 0 && (
 							<div className={cn(pinnedRooms.length > 0 && 'mt-1')}>
-								<SectionHeader label="🔀 Assigned to Me" />
+								<SectionHeader label="Assigned to Me" icon={<ArrowLeftRight className="h-3.5 w-3.5" />} />
 								{assignedToMe.map((room) => (
 									<RoomCard
 										key={room.id}
@@ -185,7 +189,7 @@ export function RoomList({ activeRoomId }: Props) {
 
 						{/* All Chats section */}
 						<div className={cn((pinnedRooms.length > 0 || assignedToMe.length > 0) && 'mt-1')}>
-							<SectionHeader label="💬 All Chats" />
+							<SectionHeader label="All Chats" icon={<MessageCircle className="h-3.5 w-3.5" />} />
 							{allChats.length === 0 && (
 								<p className="px-3 py-2 text-xs text-t3">No conversations.</p>
 							)}

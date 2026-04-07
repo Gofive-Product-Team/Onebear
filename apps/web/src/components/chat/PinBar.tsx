@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { cn } from '@one-bear/ui'
+import { Pin } from 'lucide-react'
 import type { ChatMessage } from '@one-bear/shared-types'
 
 interface Props {
@@ -38,7 +39,7 @@ export function PinBar({ pinnedMessages, onScrollToMessage }: Props) {
 				className="flex w-full items-center gap-2 px-4 py-2 text-left hover:bg-amber-100 transition-colors"
 				aria-label={pinnedMessages.length === 1 ? 'Jump to pinned message' : 'Toggle pinned messages list'}
 			>
-				<span className="text-sm" aria-hidden>📌</span>
+				<Pin className="h-4 w-4 shrink-0 text-amber-700" aria-hidden />
 				<span className="flex-1 min-w-0 text-xs text-amber-900 truncate">
 					{pinnedMessages.length === 1
 						? truncate(latest.content)
@@ -70,7 +71,7 @@ export function PinBar({ pinnedMessages, onScrollToMessage }: Props) {
 								}}
 								className="flex w-full items-start gap-2 px-4 py-2 text-left hover:bg-amber-100 transition-colors"
 							>
-								<span className="text-xs text-amber-500 mt-0.5" aria-hidden>📌</span>
+								<Pin className="h-3.5 w-3.5 shrink-0 text-amber-500 mt-0.5" aria-hidden />
 								<span className="flex-1 min-w-0 text-xs text-amber-900 break-words line-clamp-2">
 									{truncate(msg.content, 120)}
 								</span>

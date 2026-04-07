@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { cn } from '@one-bear/ui'
+import { Pin, ArrowLeftRight, AlertTriangle } from 'lucide-react'
 import type { ChatRoom, ChatState } from '@one-bear/shared-types'
 import { Avatar } from '@/components/ui/Avatar'
 import { Tooltip } from '@/components/ui/Tooltip'
@@ -109,9 +110,7 @@ export function RoomCard({ room, isActive, onClick }: Props) {
 								{customerName}
 							</span>
 							{room.isPinned && (
-								<span className="shrink-0 text-[10px]" aria-label="Pinned">
-									📌
-								</span>
+								<Pin className="h-3.5 w-3.5 shrink-0 text-t3" aria-label="Pinned" />
 							)}
 						</div>
 						{room.lastMessageTimestamp ? (
@@ -150,7 +149,7 @@ export function RoomCard({ room, isActive, onClick }: Props) {
 					{!room.isSpam && room.spamScore != null && room.spamScore > 0.5 && (
 						<div className="flex items-center gap-1.5 mt-1">
 							<span className="inline-flex items-center gap-1 rounded-full bg-red-50 border border-red-200 px-2 py-0.5 text-[10px] font-medium text-red-700">
-								⚠️ May be spam
+								<AlertTriangle className="h-3 w-3" /> May be spam
 							</span>
 						</div>
 					)}
@@ -159,7 +158,7 @@ export function RoomCard({ room, isActive, onClick }: Props) {
 					{room.handoffSource && (
 						<div className="flex items-center gap-1.5 mt-1">
 							<span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800">
-								🔀{' '}
+								<ArrowLeftRight className="h-3 w-3" />{' '}
 								{room.handoffSource === 'ai'
 									? 'Handed off from AI'
 									: `Handed off from ${room.handoffSourceName ?? room.handoffSource}`}
@@ -203,7 +202,7 @@ export function RoomCard({ room, isActive, onClick }: Props) {
 							onClick={handlePinToggle}
 							className="flex w-full items-center gap-2 px-3 py-2 text-sm text-t1 hover:bg-bg-hover"
 						>
-							<span>{room.isPinned ? '📌 Unpin' : '📌 Pin'}</span>
+							<span className="inline-flex items-center gap-1.5"><Pin className="h-3.5 w-3.5" /> {room.isPinned ? 'Unpin' : 'Pin'}</span>
 						</button>
 					</div>
 				</>

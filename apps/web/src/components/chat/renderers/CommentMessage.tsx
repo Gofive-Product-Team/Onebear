@@ -1,3 +1,4 @@
+import { MessageCircle } from 'lucide-react'
 import type { ChatMessage } from '@one-bear/shared-types'
 
 interface Props {
@@ -11,7 +12,7 @@ export function CommentMessage({ message }: Props) {
 	return (
 		<div className="flex flex-col gap-1.5">
 			<div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">
-				<span>💬</span>
+				<MessageCircle className="h-4 w-4" />
 				<span>Comment</span>
 			</div>
 			{postContent && (

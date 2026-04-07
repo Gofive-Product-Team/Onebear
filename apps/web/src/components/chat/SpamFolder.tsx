@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { cn } from '@one-bear/ui'
+import { AlertTriangle } from 'lucide-react'
 import type { ChatRoom } from '@one-bear/shared-types'
 import { useSpamRooms, useMarkNotSpam } from '@/api/useRooms'
 import { useAuthStore } from '@/stores/auth-store'
@@ -67,7 +68,7 @@ function SpamRoomCard({ room, onMarkNotSpam }: { room: ChatRoom; onMarkNotSpam: 
 				{/* Spam score indicator */}
 				{room.spamScore != null && (
 					<span className="mt-1 inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700">
-						⚠️ Spam score: {Math.round(room.spamScore * 100)}%
+						<AlertTriangle className="h-3 w-3" /> Spam score: {Math.round(room.spamScore * 100)}%
 					</span>
 				)}
 			</div>

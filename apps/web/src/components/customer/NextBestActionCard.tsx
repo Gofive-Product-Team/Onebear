@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Lightbulb } from 'lucide-react'
 import type { CustomerDetail } from '@/api/useCustomers'
 
 interface Props {
@@ -16,9 +17,7 @@ export function NextBestActionCard({ customer, onDraftMessage }: Props) {
 	return (
 		<div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
 			<div className="flex items-start gap-3">
-				<span className="text-lg" aria-hidden="true">
-					&#x1F4A1;
-				</span>
+				<Lightbulb className="h-5 w-5 text-blue-500 shrink-0" aria-hidden="true" />
 				<div className="flex-1">
 					<p className="text-sm font-semibold text-t1">Next Best Action</p>
 					<p className="mt-0.5 text-sm text-t2">{customer.suggestedAction}</p>

@@ -1,6 +1,7 @@
 import { useAuthStore } from '@/stores/auth-store'
 import { getLogoutUrl } from '@/lib/keycloak'
 import { SidebarNavItem } from './SidebarNavItem'
+import { ThemeToggle } from './ThemeToggle'
 
 function ChatIcon() {
   return (
@@ -96,6 +97,9 @@ export function Sidebar() {
 
       {/* Spacer */}
       <div className="flex-1" />
+
+      {/* Theme toggle */}
+      <ThemeToggle />
 
       {/* Logout button */}
       <button

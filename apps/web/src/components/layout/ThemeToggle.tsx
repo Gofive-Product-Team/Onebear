@@ -32,7 +32,7 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggleTheme}
-      className="fixed top-3.5 right-4 z-[999] w-[34px] h-[34px] rounded-[10px] bg-bg-input border border-border cursor-pointer text-t3 transition-all duration-250 flex items-center justify-center hover:bg-primary-alpha hover:text-primary"
+      className="w-10 h-10 flex items-center justify-center rounded-xl text-t3 hover:bg-primary-alpha hover:text-primary transition-colors"
       title="Toggle theme"
     >
       {theme === 'dark' ? <SunIcon /> : <MoonIcon />}

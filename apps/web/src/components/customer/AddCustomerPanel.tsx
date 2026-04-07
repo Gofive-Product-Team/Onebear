@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { cn } from '@one-bear/ui'
+import { AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Sheet, SheetHeader, SheetTitle, SheetContent, SheetClose } from '@/components/ui/Sheet'
@@ -44,7 +45,7 @@ function DuplicateWarningBanner({ warning, onViewProfile, onAddAnyway }: Duplica
 	return (
 		<div className="flex flex-col gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm text-amber-800">
 			<p>
-				<span aria-hidden="true" className="mr-1">⚠️</span>
+				<AlertTriangle className="h-4 w-4 text-orange-500 shrink-0 mr-1 inline" aria-hidden="true" />
 				A customer with matching <strong>{warning.field}</strong> already exists —{' '}
 				<strong>{warning.matchName}</strong>
 			</p>

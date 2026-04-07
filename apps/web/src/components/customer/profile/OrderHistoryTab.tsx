@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { cn } from '@one-bear/ui'
+import { Package } from 'lucide-react'
 import { Tooltip } from '@/components/ui/Tooltip'
 import { Button } from '@/components/ui/Button'
 import type { CustomerDetail } from '@/api/useCustomers'
@@ -72,8 +73,8 @@ export function OrderHistoryTab({ customer }: Props) {
 
 			{/* Placeholder content */}
 			<div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-border py-16 text-center">
-				<div className="flex h-16 w-16 items-center justify-center rounded-full bg-bg-input text-2xl">
-					📦
+				<div className="flex h-16 w-16 items-center justify-center rounded-full bg-bg-input text-t3">
+					<Package className="h-8 w-8" />
 				</div>
 				<div>
 					<p className="text-base font-semibold text-t1">Order history coming soon</p>

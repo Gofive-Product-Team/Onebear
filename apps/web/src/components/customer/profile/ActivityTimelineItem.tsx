@@ -1,19 +1,21 @@
+import type { ReactNode } from 'react'
+import { MessageCircle, Package, CreditCard, FileText, Tag, RefreshCw, ClipboardList, Circle } from 'lucide-react'
 import type { ActivityLogItem } from '@/api/useActivityLog'
 
 // ─── Icon map ─────────────────────────────────────────────────────────────────
 
-const TYPE_ICONS: Record<string, string> = {
-	chat: '💬',
-	order: '📦',
-	payment: '💳',
-	note: '📝',
-	tag_change: '🏷️',
-	status_change: '🔄',
-	followup: '📋',
+const TYPE_ICONS: Record<string, ReactNode> = {
+	chat: <MessageCircle className="h-4 w-4" />,
+	order: <Package className="h-4 w-4" />,
+	payment: <CreditCard className="h-4 w-4" />,
+	note: <FileText className="h-4 w-4" />,
+	tag_change: <Tag className="h-4 w-4" />,
+	status_change: <RefreshCw className="h-4 w-4" />,
+	followup: <ClipboardList className="h-4 w-4" />,
 }
 
-function getIcon(type: string): string {
-	return TYPE_ICONS[type.toLowerCase()] ?? '🔵'
+function getIcon(type: string): ReactNode {
+	return TYPE_ICONS[type.toLowerCase()] ?? <Circle className="h-4 w-4" />
 }
 
 // ─── Relative time from unix ms timestamp ─────────────────────────────────────
@@ -45,7 +47,7 @@ export function ActivityTimelineItem({ item, isLast = false }: Props) {
 		<div className="flex gap-3">
 			{/* Timeline dot + line */}
 			<div className="flex flex-col items-center">
-				<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-bg-input text-sm">
+				<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-bg-input text-t3">
 					{getIcon(item.type)}
 				</div>
 				{!isLast && <div className="mt-1 flex-1 w-px bg-border" />}

@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react'
+import { Image, Video, Music, FileText, FileSpreadsheet, Archive, Paperclip } from 'lucide-react'
 import type { ChatMessage } from '@one-bear/shared-types'
 
 interface Props {
@@ -11,16 +13,16 @@ function formatFileSize(bytes: number): string {
 	return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
 }
 
-function getFileIcon(mimeType: string): string {
-	if (mimeType.startsWith('image/')) return '🖼️'
-	if (mimeType.startsWith('video/')) return '🎬'
-	if (mimeType.startsWith('audio/')) return '🎵'
-	if (mimeType === 'application/pdf') return '📄'
-	if (mimeType.includes('word') || mimeType.includes('document')) return '📝'
-	if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return '📊'
-	if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) return '📊'
-	if (mimeType.includes('zip') || mimeType.includes('rar') || mimeType.includes('archive')) return '🗜️'
-	return '📎'
+function getFileIcon(mimeType: string): ReactNode {
+	if (mimeType.startsWith('image/')) return <Image className="h-5 w-5" />
+	if (mimeType.startsWith('video/')) return <Video className="h-5 w-5" />
+	if (mimeType.startsWith('audio/')) return <Music className="h-5 w-5" />
+	if (mimeType === 'application/pdf') return <FileText className="h-5 w-5" />
+	if (mimeType.includes('word') || mimeType.includes('document')) return <FileText className="h-5 w-5" />
+	if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return <FileSpreadsheet className="h-5 w-5" />
+	if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) return <FileSpreadsheet className="h-5 w-5" />
+	if (mimeType.includes('zip') || mimeType.includes('rar') || mimeType.includes('archive')) return <Archive className="h-5 w-5" />
+	return <Paperclip className="h-5 w-5" />
 }
 
 export function FileMessage({ message }: Props) {
@@ -38,7 +40,7 @@ export function FileMessage({ message }: Props) {
 			download={fileName}
 			className="inline-flex items-center gap-2 rounded-lg border border-current/20 px-2 py-1.5 text-sm underline-offset-2 hover:underline"
 		>
-			<span className="text-base leading-none">{getFileIcon(mimeType)}</span>
+			<span className="leading-none shrink-0">{getFileIcon(mimeType)}</span>
 			<span className="flex flex-col">
 				<span className="font-medium leading-tight">{fileName}</span>
 				{fileSize !== undefined && (

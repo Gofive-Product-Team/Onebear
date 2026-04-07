@@ -1,4 +1,5 @@
 import { cn } from '@one-bear/ui'
+import { AlertTriangle } from 'lucide-react'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useKpiSnapshot } from '@/api/useCustomerKpi'
 
@@ -70,7 +71,7 @@ export function KpiSnapshotBar() {
 			{/* Alert banner */}
 			{data.alertMessage && (
 				<div className="flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-4 py-2.5 text-sm font-medium text-orange-700">
-					<span aria-hidden="true">⚠️</span>
+					<AlertTriangle className="h-4 w-4 text-orange-500 shrink-0" aria-hidden="true" />
 					<span>{data.alertMessage}</span>
 				</div>
 			)}

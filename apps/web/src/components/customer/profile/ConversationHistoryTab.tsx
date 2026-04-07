@@ -1,4 +1,5 @@
 import { cn } from '@one-bear/ui'
+import { MessageCircle } from 'lucide-react'
 import type { CustomerDetail } from '@/api/useCustomers'
 
 // ─── Platform colors ──────────────────────────────────────────────────────────
@@ -53,8 +54,8 @@ export function ConversationHistoryTab({ customer }: Props) {
 	if (customer.channels.length === 0) {
 		return (
 			<div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-				<div className="flex h-14 w-14 items-center justify-center rounded-full bg-bg-input text-2xl">
-					💬
+				<div className="flex h-14 w-14 items-center justify-center rounded-full bg-bg-input text-t3">
+					<MessageCircle className="h-8 w-8" />
 				</div>
 				<div>
 					<p className="text-sm font-medium text-t1">No channels connected</p>

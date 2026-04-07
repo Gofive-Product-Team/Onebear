@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { Mail } from 'lucide-react'
 import type { ChatMessage } from '@one-bear/shared-types'
 
 interface Props {
@@ -47,7 +48,7 @@ export function EmailMessage({ message }: Props) {
 	return (
 		<div className="flex flex-col gap-2">
 			<div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">
-				<span>✉️</span>
+				<Mail className="h-4 w-4" />
 				<span>Email</span>
 			</div>
 			{subject && (
