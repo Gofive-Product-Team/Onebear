@@ -14,10 +14,46 @@ namespace OneBear.API.Controllers;
 public class CompaniesController : ControllerBase
 {
     private readonly ICompanyFeatureSettingsRepository _featureSettingsRepo;
+    private readonly ICompanyRepository _companyRepo;
 
-    public CompaniesController(ICompanyFeatureSettingsRepository featureSettingsRepo)
+    public CompaniesController(
+        ICompanyFeatureSettingsRepository featureSettingsRepo,
+        ICompanyRepository companyRepo)
     {
         _featureSettingsRepo = featureSettingsRepo;
+        _companyRepo = companyRepo;
+    }
+
+    /// <summary>Get company profile.</summary>
+    [HttpGet("profile")]
+    [Authorize(Policy = AuthConstants.PolicySettingsView)]
+    public async Task<IActionResult> GetCompany(string companyId, CancellationToken ct)
+    {
+        Company? company = await _companyRepo.GetByIdAsync(companyId, ct);
+        if (company is null)
+            return NotFound();
+        return Ok(company);
+    }
+
+    /// <summary>Update company profile.</summary>
+    [HttpPut("profile")]
+    [Authorize(Policy = AuthConstants.PolicySettingsManage)]
+    public async Task<IActionResult> UpdateCompany(string companyId, [FromBody] UpdateCompanyRequest request, CancellationToken ct)
+    {
+        Company? company = await _companyRepo.GetByIdAsync(companyId, ct);
+        if (company is null)
+            return NotFound();
+
+        if (request.Name is not null) company.Name = request.Name;
+        if (request.Logo is not null) company.Logo = request.Logo;
+        if (request.Address is not null) company.Address = request.Address;
+        if (request.TaxId is not null) company.TaxId = request.TaxId;
+        if (request.Phone is not null) company.Phone = request.Phone;
+        if (request.Website is not null) company.Website = request.Website;
+        company.UpdatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        await _companyRepo.UpdateAsync(company, ct);
+        return Ok(company);
     }
 
     /// <summary>Get feature settings for a company.</summary>
@@ -130,3 +166,11 @@ public record UpdateSlaSettingsRequest
     public int? Level2Minutes { get; init; }
     public int? Level3Minutes { get; init; }
 }
+
+public record UpdateCompanyRequest(
+    string? Name,
+    string? Logo,
+    string? Address,
+    string? TaxId,
+    string? Phone,
+    string? Website);

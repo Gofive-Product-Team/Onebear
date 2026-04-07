@@ -152,6 +152,17 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(AuthConstants.PolicyChatMention, policy => policy.Requirements.Add(new PermissionRequirement(Permission.ChatMention)));
     options.AddPolicy(AuthConstants.PolicyChatAssignAll, policy => policy.Requirements.Add(new PermissionRequirement(Permission.ChatAssign)));
     options.AddPolicy(AuthConstants.PolicyChatAdmin, policy => policy.Requirements.Add(new PermissionRequirement(Permission.ChatAccessAll)));
+
+    options.AddPolicy(AuthConstants.PolicyCustomerView, policy => policy.Requirements.Add(new PermissionRequirement(Permission.CustomerView)));
+    options.AddPolicy(AuthConstants.PolicyCustomerEdit, policy => policy.Requirements.Add(new PermissionRequirement(Permission.CustomerEdit)));
+    options.AddPolicy(AuthConstants.PolicyCustomerExport, policy => policy.Requirements.Add(new PermissionRequirement(Permission.CustomerExport)));
+    options.AddPolicy(AuthConstants.PolicySettingsView, policy => policy.Requirements.Add(new PermissionRequirement(Permission.SettingsView)));
+    options.AddPolicy(AuthConstants.PolicySettingsManage, policy => policy.Requirements.Add(new PermissionRequirement(Permission.SettingsManage)));
+    options.AddPolicy(AuthConstants.PolicyMembersView, policy => policy.Requirements.Add(new PermissionRequirement(Permission.MembersView)));
+    options.AddPolicy(AuthConstants.PolicyMembersManage, policy => policy.Requirements.Add(new PermissionRequirement(Permission.MembersManage)));
+    options.AddPolicy(AuthConstants.PolicyDashboardView, policy => policy.Requirements.Add(new PermissionRequirement(Permission.DashboardView)));
+    options.AddPolicy(AuthConstants.PolicyAiConfig, policy => policy.Requirements.Add(new PermissionRequirement(Permission.AiConfig)));
+    options.AddPolicy(AuthConstants.PolicyAiCredit, policy => policy.Requirements.Add(new PermissionRequirement(Permission.AiCredit)));
 });
 
 // CORS

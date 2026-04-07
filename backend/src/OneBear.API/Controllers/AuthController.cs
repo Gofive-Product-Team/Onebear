@@ -7,6 +7,7 @@ using OneBear.Application.Auth.Services;
 using OneBear.Application.Common;
 using OneBear.Domain.Common;
 using OneBear.Domain.Entities;
+using OneBear.Domain.Enums;
 using OneBear.Domain.Interfaces;
 using OneBear.Domain.Interfaces.Repositories;
 
@@ -20,6 +21,8 @@ public class AuthController : ControllerBase
     private readonly KeycloakAdminService _keycloakAdmin;
     private readonly IUserProfileRepository _userProfileRepo;
     private readonly ICompanyFeatureSettingsRepository _companySettingsRepo;
+    private readonly ICompanyRepository _companyRepo;
+    private readonly IRoleRepository _roleRepo;
     private readonly ICacheService _cacheService;
     private readonly ILogger<AuthController> _logger;
 
@@ -27,12 +30,16 @@ public class AuthController : ControllerBase
         KeycloakAdminService keycloakAdmin,
         IUserProfileRepository userProfileRepo,
         ICompanyFeatureSettingsRepository companySettingsRepo,
+        ICompanyRepository companyRepo,
+        IRoleRepository roleRepo,
         ICacheService cacheService,
         ILogger<AuthController> logger)
     {
         _keycloakAdmin = keycloakAdmin;
         _userProfileRepo = userProfileRepo;
         _companySettingsRepo = companySettingsRepo;
+        _companyRepo = companyRepo;
+        _roleRepo = roleRepo;
         _cacheService = cacheService;
         _logger = logger;
     }
@@ -73,13 +80,59 @@ public class AuthController : ControllerBase
         }
 
         string keycloakUserId = ((Result<string>.Success)keycloakResult).Value;
-        string companyId = Guid.NewGuid().ToString();
         long now = DateTimeHelper.NowUnixMilliseconds();
+
+        // Create Company entity
+        Company company = new()
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = request.CompanyName,
+            OwnerUserId = keycloakUserId,
+            CreatedTimestamp = now
+        };
+        await _companyRepo.CreateAsync(company, ct);
+
+        // Seed default roles
+        Role ownerRole = new()
+        {
+            CompanyId = company.Id,
+            Name = "Owner",
+            Description = "Full access to everything",
+            Permissions = Permission.OwnerPermissions.ToList(),
+            IsSystem = true,
+            IsOwnerRole = true,
+            CreatedTimestamp = now
+        };
+        await _roleRepo.CreateAsync(ownerRole, ct);
+
+        Role adminRole = new()
+        {
+            CompanyId = company.Id,
+            Name = "Admin",
+            Description = "Manage settings, chat, and customers",
+            Permissions = Permission.AdminPermissions.ToList(),
+            IsSystem = true,
+            IsOwnerRole = false,
+            CreatedTimestamp = now
+        };
+        await _roleRepo.CreateAsync(adminRole, ct);
+
+        Role agentRole = new()
+        {
+            CompanyId = company.Id,
+            Name = "Agent",
+            Description = "Handle chats and view customers",
+            Permissions = Permission.AgentPermissions.ToList(),
+            IsSystem = true,
+            IsOwnerRole = false,
+            CreatedTimestamp = now
+        };
+        await _roleRepo.CreateAsync(agentRole, ct);
 
         // Create CompanyFeatureSettings for the new company
         CompanyFeatureSettings companySettings = new()
         {
-            CompanyId = companyId,
+            CompanyId = company.Id,
             Features = new Dictionary<string, bool>
             {
                 ["social-chat"] = true,
@@ -102,10 +155,10 @@ public class AuthController : ControllerBase
             KeycloakUserId = keycloakUserId,
             Email = request.Email,
             DisplayName = request.DisplayName,
-            CompanyId = companyId,
-            RoleId = "",
-            RoleName = "owner",
-            Permissions = [3001, 3002, 3003, 3004, 3005],
+            CompanyId = company.Id,
+            RoleId = ownerRole.Id,
+            RoleName = "Owner",
+            Permissions = Permission.OwnerPermissions.ToList(),
             IsActive = true,
             CreatedTimestamp = now
         };
@@ -113,12 +166,12 @@ public class AuthController : ControllerBase
 
         _logger.LogInformation(
             "Registered new account: {Email}, CompanyId: {CompanyId}, KeycloakUserId: {KeycloakUserId}",
-            request.Email, companyId, keycloakUserId);
+            request.Email, company.Id, keycloakUserId);
 
         return Ok(new
         {
             profileId = profile.Id,
-            companyId,
+            companyId = company.Id,
             keycloakUserId,
             email = request.Email,
             displayName = request.DisplayName
@@ -142,7 +195,7 @@ public class AuthController : ControllerBase
     /// <summary>
     /// List members of a company.
     /// </summary>
-    [Authorize(Policy = AuthConstants.PolicyChatAdmin)]
+    [Authorize(Policy = AuthConstants.PolicyMembersView)]
     [HttpGet("companies/{companyId}/members")]
     public async Task<IActionResult> ListMembers(string companyId, CancellationToken ct)
     {
@@ -165,9 +218,9 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Add a member to a company by email. Looks up the Keycloak user first.
+    /// Add a member to a company by email. Looks up the Keycloak user and assigns a role.
     /// </summary>
-    [Authorize(Policy = AuthConstants.PolicyChatAdmin)]
+    [Authorize(Policy = AuthConstants.PolicyMembersManage)]
     [HttpPost("companies/{companyId}/members")]
     public async Task<IActionResult> AddMember(
         string companyId,
@@ -176,6 +229,13 @@ public class AuthController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.Email))
             return BadRequest(new { error = "VALIDATION_ERROR", message = "Email is required." });
+        if (string.IsNullOrWhiteSpace(request.RoleId))
+            return BadRequest(new { error = "VALIDATION_ERROR", message = "RoleId is required." });
+
+        // Validate role exists and belongs to this company
+        Role? role = await _roleRepo.GetByIdAsync(request.RoleId, ct);
+        if (role is null || role.CompanyId != companyId)
+            return BadRequest(new { error = "INVALID_ROLE", message = "Role not found." });
 
         // Check if already a member of this company
         UserProfile? existing = await _userProfileRepo.GetByEmailAsync(request.Email, ct);
@@ -199,16 +259,16 @@ public class AuthController : ControllerBase
             Email = request.Email,
             DisplayName = keycloakUser.FirstName ?? request.Email,
             CompanyId = companyId,
-            RoleId = request.RoleId ?? "",
-            RoleName = request.RoleName ?? "member",
-            Permissions = request.Permissions ?? [3001],
+            RoleId = role.Id,
+            RoleName = role.Name,
+            Permissions = role.Permissions,
             IsActive = true,
             CreatedTimestamp = now
         };
 
         await _userProfileRepo.CreateAsync(profile, ct);
 
-        _logger.LogInformation("Added member {Email} to company {CompanyId}", request.Email, companyId);
+        _logger.LogInformation("Added member {Email} to company {CompanyId} with role {RoleName}", request.Email, companyId, role.Name);
 
         return Ok(new
         {
@@ -223,9 +283,9 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Update a member's permissions and/or role.
+    /// Update a member's role. Permissions are derived from the role.
     /// </summary>
-    [Authorize(Policy = AuthConstants.PolicyChatAdmin)]
+    [Authorize(Policy = AuthConstants.PolicyMembersManage)]
     [HttpPut("companies/{companyId}/members/{profileId}")]
     public async Task<IActionResult> UpdateMember(
         string companyId,
@@ -239,14 +299,17 @@ public class AuthController : ControllerBase
         if (profile is null)
             return NotFound(new { error = "MEMBER_NOT_FOUND", message = "Member not found in this company." });
 
+        // If roleId is changing, look up the new role and sync permissions
         if (request.RoleId is not null)
-            profile.RoleId = request.RoleId;
+        {
+            Role? role = await _roleRepo.GetByIdAsync(request.RoleId, ct);
+            if (role is null || role.CompanyId != companyId)
+                return BadRequest(new { error = "INVALID_ROLE", message = "Role not found." });
 
-        if (request.RoleName is not null)
-            profile.RoleName = request.RoleName;
-
-        if (request.Permissions is not null)
-            profile.Permissions = request.Permissions;
+            profile.RoleId = role.Id;
+            profile.RoleName = role.Name;
+            profile.Permissions = role.Permissions;
+        }
 
         await _userProfileRepo.UpdateAsync(profile, ct);
 
@@ -270,7 +333,7 @@ public class AuthController : ControllerBase
     /// <summary>
     /// Deactivate a member (soft delete).
     /// </summary>
-    [Authorize(Policy = AuthConstants.PolicyChatAdmin)]
+    [Authorize(Policy = AuthConstants.PolicyMembersManage)]
     [HttpDelete("companies/{companyId}/members/{profileId}")]
     public async Task<IActionResult> DeactivateMember(
         string companyId,
@@ -310,14 +373,10 @@ public record RegisterRequest
 public record AddMemberRequest
 {
     public string Email { get; init; } = "";
-    public string? RoleId { get; init; }
-    public string? RoleName { get; init; }
-    public List<int>? Permissions { get; init; }
+    public string RoleId { get; init; } = "";
 }
 
 public record UpdateMemberRequest
 {
     public string? RoleId { get; init; }
-    public string? RoleName { get; init; }
-    public List<int>? Permissions { get; init; }
 }

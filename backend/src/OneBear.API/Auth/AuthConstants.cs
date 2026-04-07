@@ -24,10 +24,30 @@ public static class AuthConstants
     public const string ApiKeyScopeStorage = "storage";
     public const string ApiKeyScopeSystemBot = "system-bot";
 
-    // Policy names
+    // Policy names — Chat
     public const string PolicyChatView = "Chat.View";
     public const string PolicyChatResolve = "Chat.Resolve";
     public const string PolicyChatMention = "Chat.Mention";
     public const string PolicyChatAssignAll = "Chat.AssignAll";
     public const string PolicyChatAdmin = "Chat.Admin";
+
+    // Policy names — Customer
+    public const string PolicyCustomerView = "Customer.View";
+    public const string PolicyCustomerEdit = "Customer.Edit";
+    public const string PolicyCustomerExport = "Customer.Export";
+
+    // Policy names — Settings
+    public const string PolicySettingsView = "Settings.View";
+    public const string PolicySettingsManage = "Settings.Manage";
+
+    // Policy names — Members
+    public const string PolicyMembersView = "Members.View";
+    public const string PolicyMembersManage = "Members.Manage";
+
+    // Policy names — Dashboard
+    public const string PolicyDashboardView = "Dashboard.View";
+
+    // Policy names — AI
+    public const string PolicyAiConfig = "AI.Config";
+    public const string PolicyAiCredit = "AI.Credit";
 }
