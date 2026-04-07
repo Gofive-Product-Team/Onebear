@@ -297,6 +297,10 @@ export const api = {
 		topUp: (companyId: string, amount: number) =>
 			fetchApi(`/companies/${companyId}/chatbot/credit/topup`, { method: 'POST', body: JSON.stringify({ amount }) }),
 	},
+	dashboard: {
+		get: (companyId: string, from: string, to: string) =>
+			fetchApi(`/companies/${companyId}/dashboard?from=${from}&to=${to}`),
+	},
 	oauth: {
 		getAuthUrl: (companyId: string, platform: string) =>
 			fetchApi(`/companies/${companyId}/oauth/${platform}/auth-url`),

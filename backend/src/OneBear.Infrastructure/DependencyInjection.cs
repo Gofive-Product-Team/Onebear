@@ -60,6 +60,7 @@ public static class DependencyInjection
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
         services.AddScoped<ICompanyRepository, CompanyRepository>();
         services.AddScoped<IRoleRepository, RoleRepository>();
+        services.AddScoped<IDashboardRepository, DashboardRepository>();
 
         services.AddTransient<MongoSeeder>();
 
