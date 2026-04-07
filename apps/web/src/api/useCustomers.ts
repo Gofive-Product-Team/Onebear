@@ -228,6 +228,77 @@ export function usePromoteCustomer() {
 	})
 }
 
+// ─── Contact / duplicate types ────────────────────────────────────────────────
+
+export interface ContactListItem {
+	id: string
+	name: string
+	email: string | null
+	phone: string | null
+	avatar: string | null
+}
+
+export interface DuplicateMatch {
+	id: string
+	name: string
+	phone: string | null
+	email: string | null
+}
+
+export interface DuplicateCheckResult {
+	hasDuplicate: boolean
+	matches: DuplicateMatch[]
+}
+
+// ─── Contact & duplicate hooks ────────────────────────────────────────────────
+
+export function useLinkContact() {
+	const companyId = useCompanyId()
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: ({ id, contactCustomerId }: { id: string; contactCustomerId: string }) =>
+			api.customers.linkContact(companyId, id, contactCustomerId),
+		onSuccess: (_data, { id }) => {
+			queryClient.invalidateQueries({ queryKey: ['customers', companyId, id, 'contacts'] })
+			queryClient.invalidateQueries({ queryKey: ['customers', companyId, id] })
+		},
+	})
+}
+
+export function useUnlinkContact() {
+	const companyId = useCompanyId()
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: ({ id, contactId }: { id: string; contactId: string }) =>
+			api.customers.unlinkContact(companyId, id, contactId),
+		onSuccess: (_data, { id }) => {
+			queryClient.invalidateQueries({ queryKey: ['customers', companyId, id, 'contacts'] })
+			queryClient.invalidateQueries({ queryKey: ['customers', companyId, id] })
+		},
+	})
+}
+
+export function useCustomerContacts(customerId: string) {
+	const companyId = useCompanyId()
+
+	return useQuery({
+		queryKey: ['customers', companyId, customerId, 'contacts'],
+		queryFn: () => api.customers.contacts(companyId, customerId) as Promise<ContactListItem[]>,
+		enabled: !!companyId && !!customerId,
+	})
+}
+
+export function useCheckDuplicate() {
+	const companyId = useCompanyId()
+
+	return useMutation({
+		mutationFn: (params: Record<string, string>) =>
+			api.customers.checkDuplicate(companyId, params) as Promise<DuplicateCheckResult>,
+	})
+}
+
 // ─── Re-export legacy compat alias ────────────────────────────────────────────
 // CustomerPage previously typed customers as Customer; keep the union accessible
 export type Customer = CustomerListItem

@@ -199,4 +199,48 @@ public class CustomerRepository : MongoRepositoryBase<Customer>, ICustomerReposi
             .Limit(batchSize)
             .ToListAsync(ct);
     }
+
+    public async Task<List<Customer>> GetByOrganizationIdAsync(
+        string companyId, string organizationId, CancellationToken ct = default)
+    {
+        FilterDefinitionBuilder<Customer> fb = Builders<Customer>.Filter;
+        FilterDefinition<Customer> filter = fb.And(
+            fb.Eq(c => c.CompanyId, companyId),
+            fb.Eq(c => c.OrganizationId, organizationId),
+            fb.Eq(c => c.IsPromoted, true)
+        );
+        return await _collection.Find(filter).ToListAsync(ct);
+    }
+
+    public async Task<Customer?> GetByTaxIdAsync(string companyId, string taxId, CancellationToken ct = default)
+    {
+        FilterDefinitionBuilder<Customer> fb = Builders<Customer>.Filter;
+        FilterDefinition<Customer> filter = fb.And(
+            fb.Eq(c => c.CompanyId, companyId),
+            fb.Eq(c => c.TaxId, taxId)
+        );
+        return await _collection.Find(filter).FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<Customer?> GetByNationalIdAsync(string companyId, string nationalId, CancellationToken ct = default)
+    {
+        FilterDefinitionBuilder<Customer> fb = Builders<Customer>.Filter;
+        FilterDefinition<Customer> filter = fb.And(
+            fb.Eq(c => c.CompanyId, companyId),
+            fb.Eq(c => c.NationalId, nationalId)
+        );
+        return await _collection.Find(filter).FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<List<Customer>> SearchByNameFuzzyAsync(
+        string companyId, string name, int limit = 5, CancellationToken ct = default)
+    {
+        FilterDefinitionBuilder<Customer> fb = Builders<Customer>.Filter;
+        BsonRegularExpression regex = new(System.Text.RegularExpressions.Regex.Escape(name), "i");
+        FilterDefinition<Customer> filter = fb.And(
+            fb.Eq(c => c.CompanyId, companyId),
+            fb.Regex(c => c.Name, regex)
+        );
+        return await _collection.Find(filter).Limit(limit).ToListAsync(ct);
+    }
 }

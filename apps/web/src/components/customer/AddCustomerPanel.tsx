@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -6,7 +6,7 @@ import { cn } from '@one-bear/ui'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Sheet, SheetHeader, SheetTitle, SheetContent, SheetClose } from '@/components/ui/Sheet'
-import { useCreateCustomer } from '@/api/useCustomers'
+import { useCreateCustomer, useCheckDuplicate } from '@/api/useCustomers'
 
 const schema = z.object({
 	name: z.string().min(1, 'Name is required'),
@@ -24,8 +24,57 @@ interface Props {
 	initialName?: string
 }
 
+// ─── Duplicate warning state ──────────────────────────────────────────────────
+
+interface DuplicateWarning {
+	field: 'name' | 'email' | 'phone'
+	matchId: string
+	matchName: string
+}
+
+// ─── Duplicate warning banner ─────────────────────────────────────────────────
+
+interface DuplicateWarningBannerProps {
+	warning: DuplicateWarning
+	onViewProfile: (id: string) => void
+	onAddAnyway: () => void
+}
+
+function DuplicateWarningBanner({ warning, onViewProfile, onAddAnyway }: DuplicateWarningBannerProps) {
+	return (
+		<div className="flex flex-col gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm text-amber-800">
+			<p>
+				<span aria-hidden="true" className="mr-1">⚠️</span>
+				A customer with matching <strong>{warning.field}</strong> already exists —{' '}
+				<strong>{warning.matchName}</strong>
+			</p>
+			<div className="flex gap-2">
+				<button
+					type="button"
+					onClick={() => onViewProfile(warning.matchId)}
+					className="rounded px-2 py-0.5 text-xs font-semibold text-amber-900 underline underline-offset-2 hover:text-amber-700"
+				>
+					View Profile
+				</button>
+				<button
+					type="button"
+					onClick={onAddAnyway}
+					className="rounded px-2 py-0.5 text-xs font-medium text-amber-700 hover:text-amber-900"
+				>
+					Add Anyway
+				</button>
+			</div>
+		</div>
+	)
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export function AddCustomerPanel({ open, onOpenChange, initialName }: Props) {
 	const createCustomer = useCreateCustomer()
+	const checkDuplicate = useCheckDuplicate()
+	const [duplicateWarning, setDuplicateWarning] = useState<DuplicateWarning | null>(null)
+	const [addAnyway, setAddAnyway] = useState(false)
 
 	const {
 		register,
@@ -47,8 +96,33 @@ export function AddCustomerPanel({ open, onOpenChange, initialName }: Props) {
 
 	// Reset form on close
 	useEffect(() => {
-		if (!open) reset({ customerType: 'Individual' })
+		if (!open) {
+			reset({ customerType: 'Individual' })
+			setDuplicateWarning(null)
+			setAddAnyway(false)
+		}
 	}, [open, reset])
+
+	async function checkField(field: 'name' | 'email' | 'phone', value: string) {
+		if (!value.trim() || addAnyway) return
+		const result = await checkDuplicate.mutateAsync({ [field]: value.trim() })
+		if (result.hasDuplicate && result.matches.length > 0) {
+			const match = result.matches[0]
+			setDuplicateWarning({ field, matchId: match.id, matchName: match.name })
+		} else if (duplicateWarning?.field === field) {
+			setDuplicateWarning(null)
+		}
+	}
+
+	function handleViewProfile(id: string) {
+		// Navigate to customer profile — use window for simplicity since we don't have router access here
+		window.location.href = `/customer/${id}`
+	}
+
+	function handleAddAnyway() {
+		setDuplicateWarning(null)
+		setAddAnyway(true)
+	}
 
 	async function onSubmit(values: FormValues) {
 		await createCustomer.mutateAsync({
@@ -83,10 +157,19 @@ export function AddCustomerPanel({ open, onOpenChange, initialName }: Props) {
 							id="ac-name"
 							placeholder="Customer name"
 							aria-invalid={!!errors.name}
-							{...register('name')}
+							{...register('name', {
+								onBlur: (e) => checkField('name', e.target.value),
+							})}
 						/>
 						{errors.name && (
 							<p className="text-xs text-error">{errors.name.message}</p>
+						)}
+						{duplicateWarning?.field === 'name' && (
+							<DuplicateWarningBanner
+								warning={duplicateWarning}
+								onViewProfile={handleViewProfile}
+								onAddAnyway={handleAddAnyway}
+							/>
 						)}
 					</div>
 
@@ -100,10 +183,19 @@ export function AddCustomerPanel({ open, onOpenChange, initialName }: Props) {
 							type="email"
 							placeholder="customer@example.com"
 							aria-invalid={!!errors.email}
-							{...register('email')}
+							{...register('email', {
+								onBlur: (e) => checkField('email', e.target.value),
+							})}
 						/>
 						{errors.email && (
 							<p className="text-xs text-error">{errors.email.message}</p>
+						)}
+						{duplicateWarning?.field === 'email' && (
+							<DuplicateWarningBanner
+								warning={duplicateWarning}
+								onViewProfile={handleViewProfile}
+								onAddAnyway={handleAddAnyway}
+							/>
 						)}
 					</div>
 
@@ -116,8 +208,17 @@ export function AddCustomerPanel({ open, onOpenChange, initialName }: Props) {
 							id="ac-phone"
 							type="tel"
 							placeholder="+66 8x xxx xxxx"
-							{...register('phone')}
+							{...register('phone', {
+								onBlur: (e) => checkField('phone', e.target.value),
+							})}
 						/>
+						{duplicateWarning?.field === 'phone' && (
+							<DuplicateWarningBanner
+								warning={duplicateWarning}
+								onViewProfile={handleViewProfile}
+								onAddAnyway={handleAddAnyway}
+							/>
+						)}
 					</div>
 
 					{/* Customer Type */}

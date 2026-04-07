@@ -188,6 +188,23 @@ public class MongoSeeder
                 .Text("phone"),
             new CreateIndexOptions { Name = "ix_customers_company_search" }), ct);
 
+        // Organization contact management (Phase 3)
+        await CreateIndexAsync(_context.Customers, "ix_customers_company_orgid",
+            Builders<Customer>.IndexKeys
+                .Ascending(c => c.CompanyId)
+                .Ascending(c => c.OrganizationId), ct);
+
+        // Duplicate detection (Phase 3)
+        await CreateIndexAsync(_context.Customers, "ix_customers_company_taxid",
+            Builders<Customer>.IndexKeys
+                .Ascending(c => c.CompanyId)
+                .Ascending(c => c.TaxId), ct);
+
+        await CreateIndexAsync(_context.Customers, "ix_customers_company_nationalid",
+            Builders<Customer>.IndexKeys
+                .Ascending(c => c.CompanyId)
+                .Ascending(c => c.NationalId), ct);
+
         // ActivityLogs: 2 indexes
         await CreateIndexAsync(_context.ActivityLogs, "ix_activity_customer_ts",
             Builders<ActivityLog>.IndexKeys
@@ -199,7 +216,7 @@ public class MongoSeeder
                 .Ascending(a => a.CompanyId)
                 .Descending(a => a.Timestamp), ct);
 
-        _logger.LogInformation("MongoDB indexes created/verified (31 total)");
+        _logger.LogInformation("MongoDB indexes created/verified (34 total)");
     }
 
     private async Task CreateIndexAsync<T>(

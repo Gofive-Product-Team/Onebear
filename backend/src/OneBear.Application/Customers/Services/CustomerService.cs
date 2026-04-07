@@ -7,20 +7,24 @@ using OneBear.Domain.Common;
 using OneBear.Domain.Entities;
 using OneBear.Domain.Interfaces.Repositories;
 using OneBear.Domain.ValueObjects;
+using System.Collections.Generic;
 
 public class CustomerService
 {
     private readonly ICustomerRepository _customerRepo;
     private readonly TagRecalculationService _tagRecalcService;
+    private readonly ActivityLogService _activityLogService;
     private readonly ILogger<CustomerService> _logger;
 
     public CustomerService(
         ICustomerRepository customerRepo,
         TagRecalculationService tagRecalcService,
+        ActivityLogService activityLogService,
         ILogger<CustomerService> logger)
     {
         _customerRepo = customerRepo;
         _tagRecalcService = tagRecalcService;
+        _activityLogService = activityLogService;
         _logger = logger;
     }
 
@@ -277,6 +281,91 @@ public class CustomerService
             AlertMessage = alertMessage
         };
     }
+
+    // ─── Organization Contact Management (Phase 3) ───────────────────────────
+
+    /// <summary>Links an Individual customer as a contact of an Organization customer.</summary>
+    public async Task<Result<CustomerDetailDto>> LinkContactAsync(
+        string companyId, string orgCustomerId, string contactCustomerId, string userId, CancellationToken ct = default)
+    {
+        Customer? org = await _customerRepo.GetByIdAsync(orgCustomerId, companyId, ct);
+        if (org is null)
+            return new Result<CustomerDetailDto>.Failure(
+                new Error("CUSTOMER_NOT_FOUND", $"Organization {orgCustomerId} not found", ErrorType.NotFound));
+
+        if (org.CustomerType != "Organization")
+            return new Result<CustomerDetailDto>.Failure(
+                new Error("VALIDATION_ERROR", $"Customer {orgCustomerId} is not an Organization", ErrorType.Validation));
+
+        Customer? contact = await _customerRepo.GetByIdAsync(contactCustomerId, companyId, ct);
+        if (contact is null)
+            return new Result<CustomerDetailDto>.Failure(
+                new Error("CUSTOMER_NOT_FOUND", $"Contact {contactCustomerId} not found", ErrorType.NotFound));
+
+        if (contact.CustomerType != "Individual")
+            return new Result<CustomerDetailDto>.Failure(
+                new Error("VALIDATION_ERROR", $"Customer {contactCustomerId} is not an Individual", ErrorType.Validation));
+
+        contact.OrganizationId = orgCustomerId;
+        contact.UpdatedBy = userId;
+        contact.UpdatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        await _customerRepo.UpdateAsync(contact, ct);
+
+        await _activityLogService.LogActivityAsync(
+            companyId, orgCustomerId,
+            type: "contact_linked",
+            description: $"Contact {contact.Name} linked to organization",
+            actorId: userId,
+            referenceId: contactCustomerId,
+            referenceType: "Customer",
+            ct: ct);
+
+        _logger.LogInformation(
+            "Contact {ContactId} linked to org {OrgId} by {UserId}", contactCustomerId, orgCustomerId, userId);
+
+        return new Result<CustomerDetailDto>.Success(CustomerMapper.ToDetailDto(org));
+    }
+
+    /// <summary>Removes an Individual customer from an Organization (sets OrganizationId = null).</summary>
+    public async Task<Result<bool>> UnlinkContactAsync(
+        string companyId, string orgCustomerId, string contactCustomerId, string userId, CancellationToken ct = default)
+    {
+        Customer? contact = await _customerRepo.GetByIdAsync(contactCustomerId, companyId, ct);
+        if (contact is null)
+            return new Result<bool>.Failure(
+                new Error("CUSTOMER_NOT_FOUND", $"Contact {contactCustomerId} not found", ErrorType.NotFound));
+
+        contact.OrganizationId = null;
+        contact.UpdatedBy = userId;
+        contact.UpdatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        await _customerRepo.UpdateAsync(contact, ct);
+
+        await _activityLogService.LogActivityAsync(
+            companyId, orgCustomerId,
+            type: "contact_unlinked",
+            description: $"Contact {contact.Name} unlinked from organization",
+            actorId: userId,
+            referenceId: contactCustomerId,
+            referenceType: "Customer",
+            ct: ct);
+
+        _logger.LogInformation(
+            "Contact {ContactId} unlinked from org {OrgId} by {UserId}", contactCustomerId, orgCustomerId, userId);
+
+        return new Result<bool>.Success(true);
+    }
+
+    /// <summary>Returns all Individual customers linked to an Organization.</summary>
+    public async Task<List<CustomerListDto>> GetContactsAsync(
+        string companyId, string orgCustomerId, CancellationToken ct = default)
+    {
+        List<Customer> contacts = await _customerRepo.GetByOrganizationIdAsync(companyId, orgCustomerId, ct);
+        return contacts.Select(CustomerMapper.ToListDto).ToList();
+    }
+
+    // ─── Activity / Messaging ─────────────────────────────────────────────────
 
     /// <summary>
     /// Updates LastActivityTimestamp for a customer linked to a ChatUser, then recalculates tags.

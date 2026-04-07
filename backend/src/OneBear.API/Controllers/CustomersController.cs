@@ -15,11 +15,16 @@ public class CustomersController : ControllerBase
 {
     private readonly CustomerService _customerService;
     private readonly ActivityLogService _activityLogService;
+    private readonly DuplicateDetectionService _duplicateDetectionService;
 
-    public CustomersController(CustomerService customerService, ActivityLogService activityLogService)
+    public CustomersController(
+        CustomerService customerService,
+        ActivityLogService activityLogService,
+        DuplicateDetectionService duplicateDetectionService)
     {
         _customerService = customerService;
         _activityLogService = activityLogService;
+        _duplicateDetectionService = duplicateDetectionService;
     }
 
     /// <summary>List customers (paginated, filtered, sorted).</summary>
@@ -188,6 +193,66 @@ public class CustomersController : ControllerBase
             await _activityLogService.GetByCustomerAsync(customerId, type, pageSize, continuationToken, ct);
 
         return Ok(new { items, continuationToken = nextToken });
+    }
+
+    // ─── Organization Contact Management (Phase 3) ────────────────────────────
+
+    /// <summary>Link an existing Individual customer as a contact of this Organization.</summary>
+    [HttpPost("{customerId}/contacts")]
+    public async Task<IActionResult> LinkContact(
+        string companyId,
+        string customerId,
+        [FromBody] LinkContactRequest request,
+        CancellationToken ct = default)
+    {
+        string userId = User.GetUserId();
+        Result<CustomerDetailDto> result = await _customerService.LinkContactAsync(companyId, customerId, request.ContactCustomerId, userId, ct);
+        return result.ToActionResult();
+    }
+
+    /// <summary>Unlink a contact from this Organization (sets OrganizationId = null on the contact).</summary>
+    [HttpDelete("{customerId}/contacts/{contactId}")]
+    public async Task<IActionResult> UnlinkContact(
+        string companyId,
+        string customerId,
+        string contactId,
+        CancellationToken ct = default)
+    {
+        string userId = User.GetUserId();
+        Result<bool> result = await _customerService.UnlinkContactAsync(companyId, customerId, contactId, userId, ct);
+        return result.ToActionResult();
+    }
+
+    /// <summary>List all contacts (Individuals) linked to this Organization.</summary>
+    [HttpGet("{customerId}/contacts")]
+    public async Task<IActionResult> GetContacts(
+        string companyId,
+        string customerId,
+        CancellationToken ct = default)
+    {
+        List<CustomerListDto> contacts = await _customerService.GetContactsAsync(companyId, customerId, ct);
+        return Ok(contacts);
+    }
+
+    // ─── Duplicate Detection (Phase 3) ────────────────────────────────────────
+
+    /// <summary>
+    /// Check if a customer already exists by phone, email, name (fuzzy), taxId, or nationalId.
+    /// Priority: taxId → nationalId → phone → email → name.
+    /// </summary>
+    [HttpGet("check-duplicate")]
+    public async Task<IActionResult> CheckDuplicate(
+        string companyId,
+        [FromQuery] string? phone = null,
+        [FromQuery] string? email = null,
+        [FromQuery] string? name = null,
+        [FromQuery] string? taxId = null,
+        [FromQuery] string? nationalId = null,
+        CancellationToken ct = default)
+    {
+        DuplicateCheckResult result = await _duplicateDetectionService.CheckDuplicateAsync(
+            companyId, phone, email, name, taxId, nationalId, ct);
+        return Ok(result);
     }
 }
 

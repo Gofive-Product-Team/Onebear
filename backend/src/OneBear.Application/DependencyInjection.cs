@@ -45,6 +45,7 @@ public static class DependencyInjection
         services.AddScoped<CustomerService>();
         services.AddScoped<TagRecalculationService>();
         services.AddScoped<ActivityLogService>();
+        services.AddScoped<DuplicateDetectionService>();
 
         return services;
     }

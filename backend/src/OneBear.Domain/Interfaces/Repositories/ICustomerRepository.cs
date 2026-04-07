@@ -16,4 +16,12 @@ public interface ICustomerRepository
     Task<decimal> GetTotalLtvAsync(string companyId, CancellationToken ct = default);
     Task<int> GetNewThisWeekCountAsync(string companyId, CancellationToken ct = default);
     Task<List<Customer>> GetActivePromotedBatchAsync(int skip, int batchSize, CancellationToken ct = default);
+
+    // Organization contact management (Phase 3)
+    Task<List<Customer>> GetByOrganizationIdAsync(string companyId, string organizationId, CancellationToken ct = default);
+
+    // Duplicate detection (Phase 3)
+    Task<Customer?> GetByTaxIdAsync(string companyId, string taxId, CancellationToken ct = default);
+    Task<Customer?> GetByNationalIdAsync(string companyId, string nationalId, CancellationToken ct = default);
+    Task<List<Customer>> SearchByNameFuzzyAsync(string companyId, string name, int limit = 5, CancellationToken ct = default);
 }

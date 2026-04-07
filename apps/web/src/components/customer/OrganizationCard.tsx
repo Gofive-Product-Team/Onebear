@@ -2,21 +2,10 @@ import { useState } from 'react'
 import { cn } from '@one-bear/ui'
 import { Tooltip } from '@/components/ui/Tooltip'
 import { SegmentTag } from './SegmentTag'
-import { OrganizationCard } from './OrganizationCard'
-import { ChatDraftModal } from './ChatDraftModal'
+import { ContactAvatarStack } from './ContactAvatarStack'
+import { generateAvatarColor } from './CustomerCard'
+import { useCustomerContacts } from '@/api/useCustomers'
 import type { CustomerListItem, CustomerTag, SuggestedActionType } from '@/api/useCustomers'
-
-// ─── Avatar colour helper ─────────────────────────────────────────────────────
-
-export function generateAvatarColor(name: string): string {
-	let hash = 0
-	for (let i = 0; i < name.length; i++) {
-		hash = name.charCodeAt(i) + ((hash << 5) - hash)
-		hash |= 0
-	}
-	const h = Math.abs(hash) % 360
-	return `hsl(${h}, 55%, 45%)`
-}
 
 // ─── Priority sort for tags ───────────────────────────────────────────────────
 
@@ -38,29 +27,7 @@ function sortTags(tags: CustomerTag[]): CustomerTag[] {
 	})
 }
 
-// ─── Platform icon dots ───────────────────────────────────────────────────────
-
-const PLATFORM_COLORS: Record<string, string> = {
-	line: 'bg-[#06C755]',
-	facebook: 'bg-[#1877F2]',
-	instagram: 'bg-pink-500',
-	whatsapp: 'bg-emerald-500',
-	email: 'bg-gray-400',
-	tiktok: 'bg-black',
-	lazada: 'bg-orange-500',
-	shopee: 'bg-red-500',
-}
-
-function PlatformDot({ platform }: { platform: string }) {
-	const color = PLATFORM_COLORS[platform.toLowerCase()] ?? 'bg-gray-400'
-	return (
-		<Tooltip content={platform} side="top">
-			<span className={cn('h-2.5 w-2.5 rounded-full', color)} aria-label={platform} />
-		</Tooltip>
-	)
-}
-
-// ─── Currency / number formatters ─────────────────────────────────────────────
+// ─── Currency formatter ───────────────────────────────────────────────────────
 
 function formatCurrency(value: number): string {
 	if (value >= 1_000_000) return `฿${(value / 1_000_000).toFixed(1)}M`
@@ -79,7 +46,7 @@ function formatLastPurchase(timestamp: number | null): string {
 	return `${months}mo ago`
 }
 
-// ─── Suggested action chip ────────────────────────────────────────────────────
+// ─── Suggested action styles ──────────────────────────────────────────────────
 
 const SUGGESTED_ACTION_STYLES: Record<SuggestedActionType, string> = {
 	chat: 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200',
@@ -115,58 +82,93 @@ function SuggestedActionChip({ action, actionType, onAction }: SuggestedActionCh
 	)
 }
 
+// ─── Contacts dropdown ────────────────────────────────────────────────────────
+
+interface ContactsDropdownProps {
+	customerId: string
+	onClose: () => void
+}
+
+function ContactsDropdown({ customerId, onClose }: ContactsDropdownProps) {
+	const { data: contacts = [], isLoading } = useCustomerContacts(customerId)
+
+	return (
+		<div
+			className={cn(
+				'absolute right-0 top-full z-20 mt-1 w-56 rounded-xl border border-border bg-bg-card shadow-lg',
+				'animate-in fade-in-0 zoom-in-95',
+			)}
+			onClick={(e) => e.stopPropagation()}
+		>
+			<div className="border-b border-border px-3 py-2">
+				<p className="text-xs font-semibold text-t3">Contacts ({contacts.length})</p>
+			</div>
+			<div className="max-h-48 overflow-y-auto py-1">
+				{isLoading ? (
+					<p className="px-3 py-2 text-xs text-t3">Loading…</p>
+				) : contacts.length === 0 ? (
+					<p className="px-3 py-2 text-xs text-t3">No contacts linked</p>
+				) : (
+					contacts.map((c) => (
+						<div key={c.id} className="flex items-center gap-2 px-3 py-2 hover:bg-bg-hover">
+							<div
+								className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold text-white"
+								style={{ backgroundColor: generateAvatarColor(c.name) }}
+								aria-hidden="true"
+							>
+								{c.avatar ? (
+									<img src={c.avatar} alt={c.name} className="h-6 w-6 rounded-full object-cover" />
+								) : (
+									c.name.slice(0, 2).toUpperCase()
+								)}
+							</div>
+							<div className="min-w-0">
+								<p className="truncate text-xs font-medium text-t1">{c.name}</p>
+								{c.email && <p className="truncate text-[10px] text-t3">{c.email}</p>}
+							</div>
+						</div>
+					))
+				)}
+			</div>
+			<div className="border-t border-border px-3 py-2">
+				<button
+					type="button"
+					onClick={onClose}
+					className="w-full text-center text-xs text-t3 hover:text-t2"
+				>
+					Close
+				</button>
+			</div>
+		</div>
+	)
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props {
 	customer: CustomerListItem
 	onClick: () => void
 	onNavigateToProfile?: (id: string) => void
+	onSuggestedAction?: (type: SuggestedActionType) => void
 }
 
-export function CustomerCard({ customer, onClick, onNavigateToProfile }: Props) {
-	const [showChatDraft, setShowChatDraft] = useState(false)
-	const [chatDraftActionType, setChatDraftActionType] = useState<SuggestedActionType>('chat')
-
-	// Route Organization customers to dedicated card
-	if (customer.customerType === 'Organization') {
-		return (
-			<>
-				<OrganizationCard
-					customer={customer}
-					onClick={onClick}
-					onNavigateToProfile={onNavigateToProfile}
-					onSuggestedAction={(type) => {
-						setChatDraftActionType(type)
-						setShowChatDraft(true)
-					}}
-				/>
-				{showChatDraft && (
-					<ChatDraftModal
-						customer={customer}
-						actionType={chatDraftActionType}
-						onClose={() => setShowChatDraft(false)}
-					/>
-				)}
-			</>
-		)
-	}
-
+export function OrganizationCard({ customer, onClick, onNavigateToProfile, onSuggestedAction }: Props) {
+	const [showContacts, setShowContacts] = useState(false)
 	const initials = customer.name.slice(0, 2).toUpperCase()
 	const avatarBg = generateAvatarColor(customer.name)
 	const sortedTags = sortTags(customer.tags).slice(0, 2)
-
-	const hasHotTag = customer.tags.some((t) => t.name.toLowerCase() === 'hot')
-	const hasAtRisk = customer.tags.some(
-		(t) => t.name.toLowerCase() === 'at-risk' || t.name.toLowerCase() === 'atrisk',
-	)
+	const { data: contacts = [] } = useCustomerContacts(customer.id)
 
 	function handleSuggestedAction(type: SuggestedActionType) {
-		setChatDraftActionType(type)
-		setShowChatDraft(true)
+		onSuggestedAction?.(type)
+		if (type === 'chat') {
+			onNavigateToProfile?.(customer.id)
+		} else {
+			onClick()
+		}
 	}
 
 	return (
-		<>
 		<article
 			role="button"
 			tabIndex={0}
@@ -174,19 +176,19 @@ export function CustomerCard({ customer, onClick, onNavigateToProfile }: Props) 
 			onKeyDown={(e) => e.key === 'Enter' && onClick()}
 			className={cn(
 				'relative flex cursor-pointer flex-col gap-3 rounded-xl border border-border bg-bg-card p-4 shadow-sm',
-				'transition-all hover:border-blue-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+				'transition-all hover:border-purple-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
 			)}
 		>
-			{/* Top row: avatar + name + channels + pinned note icon */}
+			{/* Top row: avatar + name + badge */}
 			<div className="flex items-start gap-3">
-				{/* Avatar */}
+				{/* Rounded-square avatar (rounded-lg, not rounded-full) */}
 				<div
-					className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white"
+					className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-sm font-semibold text-white"
 					style={{ backgroundColor: customer.avatar ? undefined : avatarBg }}
 					aria-hidden="true"
 				>
 					{customer.avatar ? (
-						<img src={customer.avatar} alt="" className="h-10 w-10 rounded-full object-cover" />
+						<img src={customer.avatar} alt="" className="h-10 w-10 rounded-lg object-cover" />
 					) : (
 						initials
 					)}
@@ -194,14 +196,22 @@ export function CustomerCard({ customer, onClick, onNavigateToProfile }: Props) 
 
 				{/* Name + channels */}
 				<div className="min-w-0 flex-1">
-					<p className="truncate text-sm font-semibold text-t1">{customer.name}</p>
-					{customer.channels.length > 0 && (
-						<div className="mt-1 flex items-center gap-1">
-							{customer.channels.slice(0, 5).map((ch, i) => (
-								<PlatformDot key={`${ch.platform}-${i}`} platform={ch.platform} />
-							))}
-						</div>
-					)}
+					<div className="flex items-center gap-1.5">
+						<p className="truncate text-sm font-semibold text-t1">{customer.name}</p>
+						<span className="shrink-0 rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-semibold text-purple-700">
+							Organization
+						</span>
+					</div>
+					{/* Contact avatar stack */}
+					<div className="mt-1.5 flex items-center gap-2">
+						<ContactAvatarStack
+							contacts={contacts.map((c) => ({ name: c.name, avatar: c.avatar ?? undefined }))}
+							max={3}
+						/>
+						{contacts.length > 0 && (
+							<span className="text-[10px] text-t3">{contacts.length} contact{contacts.length !== 1 ? 's' : ''}</span>
+						)}
+					</div>
 				</div>
 
 				{/* Pinned note icon */}
@@ -251,14 +261,7 @@ export function CustomerCard({ customer, onClick, onNavigateToProfile }: Props) 
 				</div>
 			</div>
 
-			{/* At-risk banner */}
-			{customer.isAtRisk && customer.daysSinceLastPurchase !== null && (
-				<div className="rounded-md bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-700">
-					No purchase for {customer.daysSinceLastPurchase} days
-				</div>
-			)}
-
-			{/* Quick actions */}
+			{/* Quick actions: Chat | Contacts | Orders */}
 			<div className="flex gap-2">
 				<button
 					type="button"
@@ -267,26 +270,33 @@ export function CustomerCard({ customer, onClick, onNavigateToProfile }: Props) 
 				>
 					Chat
 				</button>
+
+				{/* Contacts button with dropdown */}
+				<div className="relative flex-1">
+					<button
+						type="button"
+						onClick={(e) => {
+							e.stopPropagation()
+							setShowContacts((prev) => !prev)
+						}}
+						className="min-h-[28px] w-full rounded-md bg-purple-100 px-2 py-1 text-xs font-medium text-purple-700 transition-colors hover:bg-purple-200"
+					>
+						Contacts
+					</button>
+					{showContacts && (
+						<ContactsDropdown
+							customerId={customer.id}
+							onClose={() => setShowContacts(false)}
+						/>
+					)}
+				</div>
+
 				<button
 					type="button"
 					onClick={(e) => e.stopPropagation()}
 					className="min-h-[28px] min-w-[44px] flex-1 rounded-md bg-bg-input px-2 py-1 text-xs font-medium text-t2 transition-colors hover:bg-bg-hover"
 				>
 					Orders
-				</button>
-				<button
-					type="button"
-					onClick={(e) => e.stopPropagation()}
-					className={cn(
-						'min-h-[28px] min-w-[44px] flex-1 rounded-md px-2 py-1 text-xs font-medium transition-colors',
-						hasHotTag
-							? 'bg-green-100 text-green-700 hover:bg-green-200'
-							: hasAtRisk
-								? 'bg-red-100 text-red-700 hover:bg-red-200'
-								: 'bg-bg-input text-t2 hover:bg-bg-hover',
-					)}
-				>
-					{hasHotTag ? 'Chat Now' : 'Follow-up'}
 				</button>
 			</div>
 
@@ -299,14 +309,5 @@ export function CustomerCard({ customer, onClick, onNavigateToProfile }: Props) 
 				/>
 			)}
 		</article>
-
-		{showChatDraft && (
-			<ChatDraftModal
-				customer={customer}
-				actionType={chatDraftActionType}
-				onClose={() => setShowChatDraft(false)}
-			/>
-		)}
-	</>
 	)
 }

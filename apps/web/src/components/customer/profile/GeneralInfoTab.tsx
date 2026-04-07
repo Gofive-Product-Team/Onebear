@@ -2,10 +2,14 @@ import { useState } from 'react'
 import { cn } from '@one-bear/ui'
 import { Badge } from '@/components/ui/Badge'
 import { Input } from '@/components/ui/Input'
+import { Button } from '@/components/ui/Button'
+import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogFooter, DialogClose } from '@/components/ui/Dialog'
 import { PinnedNoteEditor } from '@/components/customer/PinnedNoteEditor'
 import { SegmentTag } from '@/components/customer/SegmentTag'
-import { useAddCustomerTag, useRemoveCustomerTag } from '@/api/useCustomers'
-import type { CustomerDetail } from '@/api/useCustomers'
+import { generateAvatarColor } from '@/components/customer/CustomerCard'
+import { LinkContactDialog } from './LinkContactDialog'
+import { useAddCustomerTag, useRemoveCustomerTag, useCustomerContacts, useUnlinkContact } from '@/api/useCustomers'
+import type { CustomerDetail, ContactListItem } from '@/api/useCustomers'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -135,6 +139,134 @@ function TagEditor({ customerId, tags }: TagEditorProps) {
 	)
 }
 
+// ─── Unlink confirm dialog ────────────────────────────────────────────────────
+
+interface UnlinkConfirmProps {
+	contact: ContactListItem
+	onConfirm: () => void
+	onCancel: () => void
+	isPending: boolean
+}
+
+function UnlinkConfirmDialog({ contact, onConfirm, onCancel, isPending }: UnlinkConfirmProps) {
+	return (
+		<Dialog open onOpenChange={(open) => !open && onCancel()}>
+			<DialogHeader>
+				<DialogTitle>Unlink Contact</DialogTitle>
+				<DialogClose onClose={onCancel} />
+			</DialogHeader>
+			<DialogContent>
+				<p className="text-sm text-t2">
+					Remove <strong>{contact.name}</strong> as a contact from this organization? The customer record will remain intact.
+				</p>
+			</DialogContent>
+			<DialogFooter>
+				<Button type="button" variant="outline" onClick={onCancel}>
+					Cancel
+				</Button>
+				<Button type="button" onClick={onConfirm} loading={isPending}>
+					Unlink
+				</Button>
+			</DialogFooter>
+		</Dialog>
+	)
+}
+
+// ─── Contacts section (Organization only) ─────────────────────────────────────
+
+interface ContactsSectionProps {
+	customerId: string
+}
+
+function ContactsSection({ customerId }: ContactsSectionProps) {
+	const { data: contacts = [], isLoading } = useCustomerContacts(customerId)
+	const unlinkContact = useUnlinkContact()
+	const [showLinkDialog, setShowLinkDialog] = useState(false)
+	const [confirmUnlink, setConfirmUnlink] = useState<ContactListItem | null>(null)
+
+	function handleUnlinkConfirm() {
+		if (!confirmUnlink) return
+		unlinkContact.mutate(
+			{ id: customerId, contactId: confirmUnlink.id },
+			{ onSuccess: () => setConfirmUnlink(null) },
+		)
+	}
+
+	return (
+		<div>
+			<div className="mb-2 flex items-center justify-between">
+				<SectionLabel>Contacts</SectionLabel>
+				<button
+					type="button"
+					onClick={() => setShowLinkDialog(true)}
+					className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+				>
+					<span aria-hidden="true">+</span> Link Existing Contact
+				</button>
+			</div>
+
+			{isLoading ? (
+				<p className="text-xs text-t3">Loading contacts…</p>
+			) : contacts.length === 0 ? (
+				<p className="rounded-lg border border-dashed border-border px-4 py-3 text-sm text-t3">
+					No contacts linked. Click "Link Existing Contact" to add one.
+				</p>
+			) : (
+				<div className="divide-y divide-border rounded-lg border border-border">
+					{contacts.map((contact) => {
+						const initials = contact.name.slice(0, 2).toUpperCase()
+						const bg = generateAvatarColor(contact.name)
+
+						return (
+							<div key={contact.id} className="flex items-center gap-3 px-4 py-3">
+								<div
+									className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
+									style={{ backgroundColor: contact.avatar ? undefined : bg }}
+									aria-hidden="true"
+								>
+									{contact.avatar ? (
+										<img src={contact.avatar} alt={contact.name} className="h-8 w-8 rounded-full object-cover" />
+									) : (
+										initials
+									)}
+								</div>
+								<div className="min-w-0 flex-1">
+									<p className="truncate text-sm font-medium text-t1">{contact.name}</p>
+									{contact.email && <p className="truncate text-xs text-t3">{contact.email}</p>}
+								</div>
+								<button
+									type="button"
+									onClick={() => setConfirmUnlink(contact)}
+									className="shrink-0 rounded px-2 py-1 text-xs font-medium text-t3 transition-colors hover:bg-bg-hover hover:text-error"
+								>
+									Unlink
+								</button>
+							</div>
+						)
+					})}
+				</div>
+			)}
+
+			{showLinkDialog && (
+				<LinkContactDialog
+					organizationId={customerId}
+					onClose={() => setShowLinkDialog(false)}
+					onLinked={() => setShowLinkDialog(false)}
+				/>
+			)}
+
+			{confirmUnlink && (
+				<UnlinkConfirmDialog
+					contact={confirmUnlink}
+					onConfirm={handleUnlinkConfirm}
+					onCancel={() => setConfirmUnlink(null)}
+					isPending={unlinkContact.isPending}
+				/>
+			)}
+		</div>
+	)
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -217,6 +349,11 @@ export function GeneralInfoTab({ customer }: Props) {
 
 			{/* Tags */}
 			<TagEditor customerId={customer.id} tags={customer.tags} />
+
+			{/* Contacts (Organization only) */}
+			{customer.customerType === 'Organization' && (
+				<ContactsSection customerId={customer.id} />
+			)}
 
 			{/* Connected channels */}
 			{customer.channels.length > 0 && (

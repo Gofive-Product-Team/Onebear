@@ -184,6 +184,17 @@ export const api = {
 			fetchApi(`/companies/${companyId}/customers/kpi-snapshot`),
 		activity: (companyId: string, customerId: string, params?: Record<string, string>) =>
 			fetchApi(`/companies/${companyId}/customers/${customerId}/activity${params ? '?' + new URLSearchParams(params) : ''}`),
+		linkContact: (companyId: string, id: string, contactCustomerId: string) =>
+			fetchApi(`/companies/${companyId}/customers/${id}/contacts`, {
+				method: 'POST',
+				body: JSON.stringify({ contactCustomerId }),
+			}),
+		unlinkContact: (companyId: string, id: string, contactId: string) =>
+			fetchApi(`/companies/${companyId}/customers/${id}/contacts/${contactId}`, { method: 'DELETE' }),
+		contacts: (companyId: string, id: string) =>
+			fetchApi(`/companies/${companyId}/customers/${id}/contacts`),
+		checkDuplicate: (companyId: string, params: Record<string, string>) =>
+			fetchApi(`/companies/${companyId}/customers/check-duplicate?${new URLSearchParams(params)}`),
 	},
 	companies: {
 		featureSettings: (companyId: string) => fetchApi(`/companies/${companyId}/feature-settings`),
