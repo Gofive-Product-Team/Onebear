@@ -1,5 +1,5 @@
 name: "[onebear-api] Build & Update to GitOps 🚀"
-run-name: "[${{ inputs.deploy-environment }}] Build & Deploy 🚀 ${{ inputs.auto-deploy == true && '(Auto)' || '(PR)' }}"
+run-name: "[${{ inputs.deploy-environment }}][API] Build & Deploy 🚀 ${{ inputs.auto-deploy == true && '(Auto)' || '(PR)' }}"
 on:
   workflow_dispatch:
     inputs:
@@ -24,8 +24,8 @@ jobs:
       environment: "${{ github.event.inputs.deploy-environment }}"
       image: "onebear-api"
       tag: "${{ github.event.inputs.deploy-environment }}-${{ github.run_id }}"
-      working_directory: "."
-      dockerfile: backend/src/OneBear.API/Dockerfile
+      working_directory: "backend"
+      dockerfile: src/OneBear.API/Dockerfile
     secrets:
       AZURE_ARM_CERTIFICATE: ${{ secrets.AZURE_ARM_CERTIFICATE }}
       AZURE_ARM_CLIENT_ID: ${{ secrets.AZURE_ARM_CLIENT_ID }}
