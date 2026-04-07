@@ -1,57 +1,97 @@
 import { useEffect, useState } from 'react'
-import { useAuthStore } from '../stores/auth-store'
+import { useNavigate } from '@tanstack/react-router'
+import { exchangeCodeForTokens, parseJwt } from '@/lib/keycloak'
+import { useAuthStore } from '@/stores/auth-store'
 
-/**
- * OAuth2 PKCE callback handler.
- * In production, this receives the authorization code from GoFive IdP
- * and exchanges it for tokens. Currently a placeholder for the dev environment.
- */
-export function AuthCallbackPage({ onSuccess }: { onSuccess: () => void }) {
-	const login = useAuthStore((s) => s.login)
+const API_BASE = '/api/v1'
+
+export function AuthCallbackPage() {
 	const [error, setError] = useState<string | null>(null)
+	const navigate = useNavigate()
+	const login = useAuthStore((s) => s.login)
 
 	useEffect(() => {
 		const params = new URLSearchParams(window.location.search)
 		const code = params.get('code')
+		const state = params.get('state')
 		const errorParam = params.get('error')
 
 		if (errorParam) {
 			setError(`Authentication failed: ${errorParam}`)
 			return
 		}
-
 		if (!code) {
-			setError('Missing authorization code')
+			setError('No authorization code received.')
 			return
 		}
 
-		// TODO: Exchange authorization code for tokens via GoFive IdP token endpoint
-		// This will be implemented when production OAuth2 integration is built.
-		// For now, redirect back to login.
-		setError('OAuth2 callback not yet implemented. Use dev login.')
-	}, [login, onSuccess])
+		const savedState = sessionStorage.getItem('oauth_state')
+		if (state !== savedState) {
+			setError('Invalid state parameter.')
+			return
+		}
+
+		const verifier = sessionStorage.getItem('pkce_verifier')
+		if (!verifier) {
+			setError('Missing PKCE verifier. Please login again.')
+			return
+		}
+
+		exchangeCodeForTokens(code, verifier)
+			.then(async (tokens) => {
+				sessionStorage.removeItem('pkce_verifier')
+				sessionStorage.removeItem('oauth_state')
+
+				const idClaims = parseJwt(tokens.id_token)
+
+				// Fetch user profile from One Bear API
+				const profileResponse = await fetch(`${API_BASE}/auth/me`, {
+					headers: { Authorization: `Bearer ${tokens.access_token}` },
+				})
+
+				if (profileResponse.status === 403) {
+					setError('ไม่พบบัญชีในระบบ กรุณาติดต่อ Admin ของบริษัท')
+					return
+				}
+				if (!profileResponse.ok) {
+					setError('Failed to fetch user profile.')
+					return
+				}
+
+				const profile = await profileResponse.json()
+
+				login(tokens.access_token, tokens.refresh_token, tokens.expires_in, {
+					userId: (idClaims.sub as string) ?? '',
+					companyId: profile.companyId,
+					displayName: profile.displayName ?? (idClaims.preferred_username as string) ?? '',
+					email: (idClaims.email as string) ?? '',
+					permissions: profile.permissions ?? [],
+				})
+
+				navigate({ to: '/chat' })
+			})
+			.catch((err) => {
+				setError(`Token exchange failed: ${err.message}`)
+			})
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [])
+
+	if (error) {
+		return (
+			<div className="flex min-h-screen items-center justify-center bg-gray-50">
+				<div className="max-w-sm space-y-4 rounded-xl bg-white p-8 text-center shadow-lg">
+					<p className="text-sm text-error">{error}</p>
+					<a href="/" className="text-sm text-primary hover:underline">
+						กลับไปหน้า Login
+					</a>
+				</div>
+			</div>
+		)
+	}
 
 	return (
-		<div className="min-h-screen flex items-center justify-center bg-gray-50">
-			<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center max-w-md">
-				{error ? (
-					<>
-						<h2 className="text-xl font-semibold text-red-600 mb-2">Authentication Error</h2>
-						<p className="text-gray-500 text-sm">{error}</p>
-						<a
-							href="/"
-							className="inline-block mt-4 text-blue-600 hover:text-blue-800 text-sm font-medium"
-						>
-							Back to Login
-						</a>
-					</>
-				) : (
-					<>
-						<h2 className="text-xl font-semibold text-gray-900 mb-2">Authenticating...</h2>
-						<p className="text-gray-500 text-sm">Please wait while we complete sign-in.</p>
-					</>
-				)}
-			</div>
+		<div className="flex min-h-screen items-center justify-center bg-gray-50">
+			<p className="text-t2">กำลังเข้าสู่ระบบ...</p>
 		</div>
 	)
 }

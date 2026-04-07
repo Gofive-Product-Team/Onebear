@@ -6,12 +6,17 @@ export { ApiError } from './errors'
 const API_BASE = '/api/v1'
 
 async function fetchApi<T>(path: string, options?: RequestInit, retryCount = 0): Promise<T> {
-	const { token, isTokenExpired, logout } = useAuthStore.getState()
+	const { token, isTokenExpired, logout, tryRefreshToken } = useAuthStore.getState()
 
 	if (token && isTokenExpired()) {
-		logout()
-		throw new ApiError(401, 'Token expired', null)
+		const refreshed = await tryRefreshToken()
+		if (!refreshed) {
+			throw new ApiError(401, 'Token expired', null)
+		}
 	}
+
+	// Re-read token after potential refresh (the destructured `token` may be stale)
+	const currentToken = useAuthStore.getState().token
 
 	const correlationId = crypto.randomUUID()
 
@@ -23,7 +28,7 @@ async function fetchApi<T>(path: string, options?: RequestInit, retryCount = 0):
 			// Skip Content-Type for FormData — let the browser set multipart boundary
 			...(isFormData ? {} : { 'Content-Type': 'application/json' }),
 			'X-Correlation-Id': correlationId,
-			...(token ? { Authorization: `Bearer ${token}` } : {}),
+			...(currentToken ? { Authorization: `Bearer ${currentToken}` } : {}),
 			...options?.headers,
 		},
 	})

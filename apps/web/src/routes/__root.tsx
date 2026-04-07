@@ -1,10 +1,12 @@
-import { createRootRoute, createRoute, Outlet, useNavigate, useParams } from '@tanstack/react-router'
+import { createRootRoute, createRoute, Outlet, useParams, useRouterState } from '@tanstack/react-router'
 import { createContext, useContext } from 'react'
 import type { HubConnection } from '@microsoft/signalr'
 import { useAuthStore } from '../stores/auth-store'
 import { useSignalR } from '../hooks/useSignalR'
 import { useSignalREvents } from '../hooks/useSignalREvents'
 import { LoginPage } from '../pages/LoginPage'
+import { RegisterPage } from '../pages/RegisterPage'
+import { AuthCallbackPage } from '../pages/AuthCallbackPage'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { AppShell } from '../components/layout/AppShell'
 import { ChatLayout } from '../components/chat/ChatLayout'
@@ -26,17 +28,26 @@ export function useSignalRContext() {
 	return useContext(SignalRContext)
 }
 
+// Public routes that don't require authentication
+const PUBLIC_PATHS = ['/register', '/auth/callback']
+
 // Root layout with auth guard + SignalR provider
 function RootLayout() {
 	const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-	const navigate = useNavigate()
+	const currentPath = useRouterState().location.pathname
 
 	// SignalR lives here — never unmounts while authenticated
 	const { connection, isConnected } = useSignalR()
 	useSignalREvents(connection)
 
+	// Allow public routes without authentication
+	const isPublicRoute = PUBLIC_PATHS.some((p) => currentPath.startsWith(p))
+	if (isPublicRoute) {
+		return <Outlet />
+	}
+
 	if (!isAuthenticated) {
-		return <LoginPage onSuccess={() => navigate({ to: '/chat' })} />
+		return <LoginPage />
 	}
 
 	return (
@@ -54,18 +65,6 @@ const rootRoute = createRootRoute({
 	component: RootLayout,
 })
 
-// Placeholder component factory
-function TodoPage({ name }: { name: string }) {
-	return (
-		<div className="max-w-2xl mx-auto mt-12 text-center">
-			<div className="bg-bg-card rounded-2xl shadow-md border border-border p-8">
-				<h1 className="text-2xl font-bold text-t1 mb-2">TODO: {name}</h1>
-				<p className="text-t2">This page is a placeholder. Feature implementation pending.</p>
-			</div>
-		</div>
-	)
-}
-
 // Routes
 const indexRoute = createRoute({
 	getParentRoute: () => rootRoute,
@@ -77,6 +76,18 @@ const indexRoute = createRoute({
 			<p className="text-sm text-t3">Scaffold v1.0.0</p>
 		</div>
 	),
+})
+
+const registerRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: '/register',
+	component: RegisterPage,
+})
+
+const authCallbackRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: '/auth/callback',
+	component: AuthCallbackPage,
 })
 
 const chatRoute = createRoute({
@@ -182,6 +193,8 @@ const oauthCallbackRoute = createRoute({
 // Build route tree
 export const routeTree = rootRoute.addChildren([
 	indexRoute,
+	registerRoute,
+	authCallbackRoute,
 	chatRoute,
 	chatRoomRoute,
 	customerRoute,

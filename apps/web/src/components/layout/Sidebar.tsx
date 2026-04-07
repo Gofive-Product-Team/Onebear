@@ -1,4 +1,5 @@
 import { useAuthStore } from '@/stores/auth-store'
+import { getLogoutUrl } from '@/lib/keycloak'
 import { SidebarNavItem } from './SidebarNavItem'
 
 function ChatIcon() {
@@ -57,9 +58,24 @@ function SatisfactionIcon() {
   )
 }
 
+function LogoutIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  )
+}
+
 export function Sidebar() {
   const user = useAuthStore((s) => s.user)
   const initials = user?.displayName?.slice(0, 2)?.toUpperCase() ?? 'OB'
+
+  const handleLogout = () => {
+    useAuthStore.getState().logout()
+    window.location.href = getLogoutUrl()
+  }
 
   return (
     <aside className="w-[62px] bg-bg-app flex flex-col items-center py-4 pb-5 shrink-0 border-r border-border z-20 transition-[background] duration-350">
@@ -80,6 +96,17 @@ export function Sidebar() {
 
       {/* Spacer */}
       <div className="flex-1" />
+
+      {/* Logout button */}
+      <button
+        onClick={handleLogout}
+        title="ออกจากระบบ"
+        className="w-10 h-10 flex items-center justify-center rounded-xl text-t3 hover:text-error hover:bg-error/10 transition-colors mb-3"
+      >
+        <div className="w-[18px] h-[18px]">
+          <LogoutIcon />
+        </div>
+      </button>
 
       {/* User avatar */}
       <div className="relative w-8 h-8 rounded-full bg-gradient-to-br from-[#a78bfa] to-[#7c3aed] flex items-center justify-center text-[11px] font-bold text-white cursor-pointer shadow-[0_0_0_2.5px_rgba(167,139,250,0.3)]">

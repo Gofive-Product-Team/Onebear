@@ -63,7 +63,7 @@ describe('useSignalR', () => {
 		const mockConn = makeMockConnection()
 		;(startSignalR as Mock).mockResolvedValue(mockConn)
 
-		useAuthStore.getState().login('test-token', 3600, mockUser)
+		useAuthStore.getState().login('test-token', 'test-refresh-token', 3600, mockUser)
 
 		const { result } = renderHook(() => useSignalR())
 
@@ -80,7 +80,7 @@ describe('useSignalR', () => {
 		const mockConn = makeMockConnection()
 		;(startSignalR as Mock).mockResolvedValue(mockConn)
 
-		useAuthStore.getState().login('test-token', 3600, mockUser)
+		useAuthStore.getState().login('test-token', 'test-refresh-token', 3600, mockUser)
 
 		const { result } = renderHook(() => useSignalR())
 
@@ -97,7 +97,7 @@ describe('useSignalR', () => {
 		const mockConn = makeMockConnection()
 		;(startSignalR as Mock).mockResolvedValue(mockConn)
 
-		useAuthStore.getState().login('test-token', 3600, mockUser)
+		useAuthStore.getState().login('test-token', 'test-refresh-token', 3600, mockUser)
 
 		const { result } = renderHook(() => useSignalR())
 
@@ -118,7 +118,7 @@ describe('useSignalR', () => {
 		const mockConn = makeMockConnection(HubConnectionState.Reconnecting)
 		;(startSignalR as Mock).mockResolvedValue(mockConn)
 
-		useAuthStore.getState().login('test-token', 3600, mockUser)
+		useAuthStore.getState().login('test-token', 'test-refresh-token', 3600, mockUser)
 
 		const { result } = renderHook(() => useSignalR())
 
@@ -138,7 +138,7 @@ describe('useSignalR', () => {
 		const mockConn = makeMockConnection()
 		;(startSignalR as Mock).mockResolvedValue(mockConn)
 
-		useAuthStore.getState().login('test-token', 3600, mockUser)
+		useAuthStore.getState().login('test-token', 'test-refresh-token', 3600, mockUser)
 
 		const { result } = renderHook(() => useSignalR())
 
@@ -159,7 +159,7 @@ describe('useSignalR', () => {
 		const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
 		;(startSignalR as Mock).mockRejectedValue(new Error('Connection failed'))
 
-		useAuthStore.getState().login('test-token', 3600, mockUser)
+		useAuthStore.getState().login('test-token', 'test-refresh-token', 3600, mockUser)
 
 		const { result } = renderHook(() => useSignalR())
 
@@ -176,7 +176,7 @@ describe('useSignalR', () => {
 		const mockConn = makeMockConnection()
 		;(startSignalR as Mock).mockResolvedValue(mockConn)
 
-		useAuthStore.getState().login('test-token', 3600, mockUser)
+		useAuthStore.getState().login('test-token', 'test-refresh-token', 3600, mockUser)
 
 		const { unmount } = renderHook(() => useSignalR())
 
@@ -193,7 +193,7 @@ describe('useSignalR', () => {
 		const mockConn = makeMockConnection()
 		;(startSignalR as Mock).mockResolvedValue(mockConn)
 
-		useAuthStore.getState().login('test-token', 3600, mockUser)
+		useAuthStore.getState().login('test-token', 'test-refresh-token', 3600, mockUser)
 
 		const { result } = renderHook(() => useSignalR())
 

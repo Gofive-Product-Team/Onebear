@@ -36,7 +36,7 @@ describe('api-client', () => {
 
 	describe('fetchApi', () => {
 		it('should set Authorization header when token exists', async () => {
-			useAuthStore.getState().login('my-token', 3600, mockUser)
+			useAuthStore.getState().login('my-token', 'test-refresh-token', 3600, mockUser)
 
 			const mockResponse = new Response(JSON.stringify({ data: 'test' }), {
 				status: 200,
@@ -69,7 +69,7 @@ describe('api-client', () => {
 		})
 
 		it('should throw ApiError on non-ok response', async () => {
-			useAuthStore.getState().login('my-token', 3600, mockUser)
+			useAuthStore.getState().login('my-token', 'test-refresh-token', 3600, mockUser)
 
 			const mockResponse = new Response(JSON.stringify({ error: 'Not found' }), {
 				status: 404,
@@ -97,7 +97,7 @@ describe('api-client', () => {
 		})
 
 		it('should trigger logout on 401 response', async () => {
-			useAuthStore.getState().login('my-token', 3600, mockUser)
+			useAuthStore.getState().login('my-token', 'test-refresh-token', 3600, mockUser)
 			expect(useAuthStore.getState().isAuthenticated).toBe(true)
 
 			const mockResponse = new Response(null, {
@@ -118,14 +118,14 @@ describe('api-client', () => {
 
 		it('should throw ApiError with Token expired when token is expired', async () => {
 			// Login with already-expired token
-			useAuthStore.getState().login('expired-token', -120, mockUser)
+			useAuthStore.getState().login('expired-token', 'test-refresh-token', -120, mockUser)
 
 			await expect(api.users.me('company-1')).rejects.toThrow('API 401: Token expired')
 			expect(useAuthStore.getState().isAuthenticated).toBe(false)
 		})
 
 		it('should include X-Correlation-Id header', async () => {
-			useAuthStore.getState().login('my-token', 3600, mockUser)
+			useAuthStore.getState().login('my-token', 'test-refresh-token', 3600, mockUser)
 
 			const mockResponse = new Response(JSON.stringify({}), { status: 200 })
 			vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(mockResponse)
@@ -143,7 +143,7 @@ describe('api-client', () => {
 		})
 
 		it('should handle empty response body', async () => {
-			useAuthStore.getState().login('my-token', 3600, mockUser)
+			useAuthStore.getState().login('my-token', 'test-refresh-token', 3600, mockUser)
 
 			const mockResponse = new Response('', { status: 200 })
 			vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(mockResponse)
@@ -154,7 +154,7 @@ describe('api-client', () => {
 
 		it('should retry once on 5xx response and succeed on second attempt', async () => {
 			vi.useFakeTimers()
-			useAuthStore.getState().login('my-token', 3600, mockUser)
+			useAuthStore.getState().login('my-token', 'test-refresh-token', 3600, mockUser)
 
 			const errorResponse = new Response(JSON.stringify({ detail: 'Server Error' }), {
 				status: 500,
@@ -178,7 +178,7 @@ describe('api-client', () => {
 
 		it('should throw ApiError after exhausting retries on persistent 5xx', async () => {
 			vi.useFakeTimers()
-			useAuthStore.getState().login('my-token', 3600, mockUser)
+			useAuthStore.getState().login('my-token', 'test-refresh-token', 3600, mockUser)
 
 			const errorResponse1 = new Response(null, { status: 500, statusText: 'Internal Server Error' })
 			const errorResponse2 = new Response(null, { status: 500, statusText: 'Internal Server Error' })
@@ -199,7 +199,7 @@ describe('api-client', () => {
 		})
 
 		it('should not retry on 4xx errors', async () => {
-			useAuthStore.getState().login('my-token', 3600, mockUser)
+			useAuthStore.getState().login('my-token', 'test-refresh-token', 3600, mockUser)
 
 			const errorResponse = new Response(JSON.stringify({ detail: 'Not Found' }), {
 				status: 404,
