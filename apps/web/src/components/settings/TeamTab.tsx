@@ -182,7 +182,7 @@ function RoleRow({
 	onEdit: (role: RoleItem) => void
 	onDelete: (role: RoleItem) => void
 }) {
-	const permCount = `${role.permissions.length}/${ALL_PERMISSION_IDS.length}`
+	const permCount = `${(role.permissions?.length ?? 0)}/${ALL_PERMISSION_IDS.length}`
 
 	return (
 		<div className="flex items-center gap-3 px-4 py-3">

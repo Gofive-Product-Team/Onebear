@@ -49,7 +49,7 @@ export function RoleEditor({ mode, role, open, onOpenChange }: Props) {
 			if (mode === 'edit' && role) {
 				setName(role.name)
 				setDescription(role.description ?? '')
-				setSelectedPermissions(new Set(role.permissions))
+				setSelectedPermissions(new Set(role.permissions ?? []))
 			} else {
 				setName('')
 				setDescription('')
