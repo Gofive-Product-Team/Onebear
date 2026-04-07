@@ -58,6 +58,14 @@ builder.Services.AddQuartz(q =>
         .ForJob(slaJobKey)
         .WithIdentity("SlaEscalation-trigger")
         .WithCronSchedule("0 * * * * ?"));
+
+    // AI follow-up — every 5 minutes (skeleton)
+    JobKey followUpJobKey = new("FollowUp");
+    q.AddJob<FollowUpJob>(opts => opts.WithIdentity(followUpJobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(followUpJobKey)
+        .WithIdentity("FollowUp-trigger")
+        .WithSimpleSchedule(s => s.WithIntervalInMinutes(5).RepeatForever()));
 });
 builder.Services.AddQuartzHostedService(opt => opt.WaitForJobsToComplete = true);
 

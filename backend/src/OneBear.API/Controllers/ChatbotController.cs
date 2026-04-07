@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -28,6 +29,9 @@ public class ChatbotController : ControllerBase
     private readonly ISignalRNotifier _signalRNotifier;
     private readonly IAiActivityLogger _activityLogger;
     private readonly ICreditService _creditService;
+    private readonly IUnansweredQuestionRepository _unansweredRepo;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IConfiguration _configuration;
 
     public ChatbotController(
         IChatbotConfigurationRepository chatbotRepo,
@@ -37,7 +41,10 @@ public class ChatbotController : ControllerBase
         IServiceProvider sp,
         ISignalRNotifier signalRNotifier,
         IAiActivityLogger activityLogger,
-        ICreditService creditService)
+        ICreditService creditService,
+        IUnansweredQuestionRepository unansweredRepo,
+        IHttpClientFactory httpClientFactory,
+        IConfiguration configuration)
     {
         _chatbotRepo = chatbotRepo;
         _chatbotService = chatbotService;
@@ -47,6 +54,9 @@ public class ChatbotController : ControllerBase
         _signalRNotifier = signalRNotifier;
         _activityLogger = activityLogger;
         _creditService = creditService;
+        _unansweredRepo = unansweredRepo;
+        _httpClientFactory = httpClientFactory;
+        _configuration = configuration;
     }
 
     // ──────────────────────────────────────────────
@@ -98,6 +108,8 @@ public class ChatbotController : ControllerBase
             CompanyId = companyId
         };
 
+        bool wasDisabled = !config.IsEnabled;
+
         if (request.IsEnabled.HasValue)
             config.IsEnabled = request.IsEnabled.Value;
         if (request.ScheduleMode is not null)
@@ -115,6 +127,12 @@ public class ChatbotController : ControllerBase
         config.UpdatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
         await _chatbotRepo.UpsertAsync(config, ct);
+
+        // Seed default FAQ when chatbot is first enabled
+        if (wasDisabled && config.IsEnabled)
+        {
+            await _chatbotService.SeedDefaultKnowledgeBaseAsync(config, ct);
+        }
 
         return Ok(new
         {
@@ -188,6 +206,365 @@ public class ChatbotController : ControllerBase
         await _chatbotRepo.UpsertAsync(config, ct);
 
         return NoContent();
+    }
+
+    // ──────────────────────────────────────────────
+    // FAQ CRUD
+    // ──────────────────────────────────────────────
+
+    [HttpGet("api/v1/companies/{companyId}/chatbot/faq")]
+    public async Task<IActionResult> ListFaq(string companyId, CancellationToken ct)
+    {
+        ChatbotConfiguration? config = await _chatbotRepo.GetByCompanyIdAsync(companyId, ct);
+        return Ok(new { data = config?.FaqEntries ?? new List<FaqEntry>() });
+    }
+
+    [HttpPost("api/v1/companies/{companyId}/chatbot/faq")]
+    public async Task<IActionResult> AddFaq(
+        string companyId,
+        [FromBody] AddFaqRequest request,
+        CancellationToken ct)
+    {
+        ChatbotConfiguration? config = await _chatbotRepo.GetByCompanyIdAsync(companyId, ct);
+        if (config is null)
+            return NotFound(new { error = "Chatbot configuration not found. Create it first." });
+
+        FaqEntry entry = new()
+        {
+            Question = request.Question,
+            Answer = request.Answer,
+            IsDefault = false,
+            CreatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+        };
+
+        config.FaqEntries.Add(entry);
+        config.UpdatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        await _chatbotRepo.UpsertAsync(config, ct);
+
+        await _activityLogger.LogAsync(new AiActivityLog
+        {
+            CompanyId = companyId,
+            EventType = "kb_change",
+            Details = $"Added FAQ: {request.Question}"
+        }, ct);
+
+        return StatusCode(201, entry);
+    }
+
+    [HttpPut("api/v1/companies/{companyId}/chatbot/faq/{faqId}")]
+    public async Task<IActionResult> UpdateFaq(
+        string companyId,
+        string faqId,
+        [FromBody] AddFaqRequest request,
+        CancellationToken ct)
+    {
+        ChatbotConfiguration? config = await _chatbotRepo.GetByCompanyIdAsync(companyId, ct);
+        if (config is null)
+            return NotFound(new { error = "Chatbot configuration not found." });
+
+        FaqEntry? existing = config.FaqEntries.FirstOrDefault(f => f.Id == faqId);
+        if (existing is null)
+            return NotFound(new { error = "FAQ entry not found." });
+
+        existing.Question = request.Question;
+        existing.Answer = request.Answer;
+        existing.UpdatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        config.UpdatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        await _chatbotRepo.UpsertAsync(config, ct);
+
+        await _activityLogger.LogAsync(new AiActivityLog
+        {
+            CompanyId = companyId,
+            EventType = "kb_change",
+            Details = $"Updated FAQ {faqId}: {request.Question}"
+        }, ct);
+
+        return Ok(existing);
+    }
+
+    [HttpDelete("api/v1/companies/{companyId}/chatbot/faq/{faqId}")]
+    public async Task<IActionResult> DeleteFaq(
+        string companyId,
+        string faqId,
+        CancellationToken ct)
+    {
+        ChatbotConfiguration? config = await _chatbotRepo.GetByCompanyIdAsync(companyId, ct);
+        if (config is null)
+            return NotFound();
+
+        int removed = config.FaqEntries.RemoveAll(f => f.Id == faqId);
+        if (removed == 0)
+            return NotFound(new { error = "FAQ entry not found." });
+
+        config.UpdatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        await _chatbotRepo.UpsertAsync(config, ct);
+
+        await _activityLogger.LogAsync(new AiActivityLog
+        {
+            CompanyId = companyId,
+            EventType = "kb_change",
+            Details = $"Deleted FAQ {faqId}"
+        }, ct);
+
+        return NoContent();
+    }
+
+    // ──────────────────────────────────────────────
+    // FAQ CSV Import
+    // ──────────────────────────────────────────────
+
+    [HttpPost("api/v1/companies/{companyId}/chatbot/faq/import-csv")]
+    public async Task<IActionResult> ImportFaqCsv(
+        string companyId,
+        IFormFile file,
+        CancellationToken ct)
+    {
+        if (file is null || file.Length == 0)
+            return BadRequest(new { error = "CSV file is required." });
+
+        ChatbotConfiguration? config = await _chatbotRepo.GetByCompanyIdAsync(companyId, ct);
+        if (config is null)
+            return NotFound(new { error = "Chatbot configuration not found. Create it first." });
+
+        List<string> errors = new();
+        int imported = 0;
+        long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        using StreamReader reader = new(file.OpenReadStream());
+        string? headerLine = await reader.ReadLineAsync(ct);
+        if (headerLine is null)
+        {
+            return BadRequest(new { error = "CSV file is empty." });
+        }
+
+        int lineNumber = 1;
+        while (!reader.EndOfStream)
+        {
+            lineNumber++;
+            string? line = await reader.ReadLineAsync(ct);
+            if (string.IsNullOrWhiteSpace(line))
+                continue;
+
+            // Simple CSV parsing: split by comma (supports quoted values)
+            string[] parts = ParseCsvLine(line);
+            if (parts.Length < 2)
+            {
+                errors.Add($"Line {lineNumber}: Expected at least 2 columns (Question, Answer).");
+                continue;
+            }
+
+            string question = parts[0].Trim();
+            string answer = parts[1].Trim();
+
+            if (string.IsNullOrWhiteSpace(question) || string.IsNullOrWhiteSpace(answer))
+            {
+                errors.Add($"Line {lineNumber}: Question and Answer must not be empty.");
+                continue;
+            }
+
+            config.FaqEntries.Add(new FaqEntry
+            {
+                Question = question,
+                Answer = answer,
+                IsDefault = false,
+                CreatedTimestamp = now
+            });
+            imported++;
+        }
+
+        if (imported > 0)
+        {
+            config.UpdatedTimestamp = now;
+            await _chatbotRepo.UpsertAsync(config, ct);
+
+            await _activityLogger.LogAsync(new AiActivityLog
+            {
+                CompanyId = companyId,
+                EventType = "kb_change",
+                Details = $"CSV import: {imported} entries imported, {errors.Count} errors"
+            }, ct);
+        }
+
+        return Ok(new { imported, errors });
+    }
+
+    // ──────────────────────────────────────────────
+    // Test Mode
+    // ──────────────────────────────────────────────
+
+    [HttpPost("api/v1/companies/{companyId}/chatbot/test")]
+    public async Task<IActionResult> TestChatbot(
+        string companyId,
+        [FromBody] TestChatbotRequest request,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(request.Message))
+            return BadRequest(new { error = "message is required." });
+
+        ChatbotConfiguration? config = await _chatbotRepo.GetByCompanyIdAsync(companyId, ct);
+        if (config is null)
+            return NotFound(new { error = "Chatbot configuration not found." });
+
+        string? aiServiceUrl = _configuration["AiService:BaseUrl"];
+        if (string.IsNullOrEmpty(aiServiceUrl))
+            return StatusCode(503, new { error = "AI service URL not configured." });
+
+        // Build a test payload compatible with the AI service
+        object payload = new
+        {
+            companyId,
+            roomId = "test-room",
+            messageId = Guid.NewGuid().ToString(),
+            content = request.Message,
+            mode = "test",
+            businessOverview = config.BusinessOverview,
+            responseStyle = config.ResponseStyle,
+            instructions = config.Instructions,
+            tone = config.Tone,
+            faqEntries = config.FaqEntries.Select(f => new { f.Question, f.Answer })
+        };
+
+        HttpClient client = _httpClientFactory.CreateClient();
+        string payloadJson = JsonSerializer.Serialize(payload);
+
+        try
+        {
+            HttpResponseMessage response = await client.PostAsync(
+                $"{aiServiceUrl.TrimEnd('/')}/api/v1/chat",
+                new StringContent(payloadJson, System.Text.Encoding.UTF8, "application/json"),
+                ct);
+
+            string responseBody = await response.Content.ReadAsStringAsync(ct);
+
+            await _activityLogger.LogAsync(new AiActivityLog
+            {
+                CompanyId = companyId,
+                EventType = "test",
+                RequestPayload = payloadJson,
+                ResponsePayload = responseBody,
+                Details = $"Test mode: {request.Message}"
+            }, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return StatusCode((int)response.StatusCode, new { error = "AI service error", details = responseBody });
+            }
+
+            return Ok(JsonSerializer.Deserialize<JsonElement>(responseBody));
+        }
+        catch (HttpRequestException ex)
+        {
+            return StatusCode(502, new { error = "Failed to reach AI service.", details = ex.Message });
+        }
+    }
+
+    // ──────────────────────────────────────────────
+    // Insights (Unanswered Questions)
+    // ──────────────────────────────────────────────
+
+    [HttpGet("api/v1/companies/{companyId}/chatbot/insights/unanswered")]
+    public async Task<IActionResult> ListUnanswered(
+        string companyId,
+        [FromQuery] int limit = 50,
+        CancellationToken ct = default)
+    {
+        List<UnansweredQuestion> items = await _unansweredRepo.GetByCompanyAsync(companyId, limit, ct);
+        return Ok(new { data = items });
+    }
+
+    [HttpPost("api/v1/companies/{companyId}/chatbot/insights/{id}/add-to-faq")]
+    public async Task<IActionResult> AddInsightToFaq(
+        string companyId,
+        string id,
+        [FromBody] AddInsightToFaqRequest request,
+        CancellationToken ct)
+    {
+        UnansweredQuestion? insight = await _unansweredRepo.GetByIdAsync(id, ct);
+        if (insight is null || insight.CompanyId != companyId)
+            return NotFound(new { error = "Insight not found." });
+
+        ChatbotConfiguration? config = await _chatbotRepo.GetByCompanyIdAsync(companyId, ct);
+        if (config is null)
+            return NotFound(new { error = "Chatbot configuration not found." });
+
+        long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        FaqEntry entry = new()
+        {
+            Question = insight.Question,
+            Answer = request.Answer,
+            IsDefault = false,
+            CreatedTimestamp = now
+        };
+
+        config.FaqEntries.Add(entry);
+        config.UpdatedTimestamp = now;
+        await _chatbotRepo.UpsertAsync(config, ct);
+
+        await _unansweredRepo.DeleteAsync(id, ct);
+
+        await _activityLogger.LogAsync(new AiActivityLog
+        {
+            CompanyId = companyId,
+            EventType = "kb_change",
+            Details = $"Added FAQ from insight: {insight.Question}"
+        }, ct);
+
+        return Ok(entry);
+    }
+
+    [HttpDelete("api/v1/companies/{companyId}/chatbot/insights/{id}")]
+    public async Task<IActionResult> DismissInsight(
+        string companyId,
+        string id,
+        CancellationToken ct)
+    {
+        UnansweredQuestion? insight = await _unansweredRepo.GetByIdAsync(id, ct);
+        if (insight is null || insight.CompanyId != companyId)
+            return NotFound(new { error = "Insight not found." });
+
+        await _unansweredRepo.DeleteAsync(id, ct);
+        return NoContent();
+    }
+
+    // ──────────────────────────────────────────────
+    // Credit API
+    // ──────────────────────────────────────────────
+
+    [HttpGet("api/v1/companies/{companyId}/chatbot/credit")]
+    public async Task<IActionResult> GetCreditStatus(string companyId, CancellationToken ct)
+    {
+        CreditStatusDto status = await _creditService.GetStatusAsync(companyId, ct);
+        return Ok(new
+        {
+            creditLimit = status.CreditLimit,
+            creditUsed = status.CreditUsed,
+            creditRemaining = status.CreditRemaining,
+            planId = status.PlanId,
+            warning = status.Warning.ToString()
+        });
+    }
+
+    [HttpPost("api/v1/companies/{companyId}/chatbot/credit/topup")]
+    public async Task<IActionResult> TopUpCredit(
+        string companyId,
+        [FromBody] TopUpCreditRequest request,
+        CancellationToken ct)
+    {
+        if (request.Amount <= 0)
+            return BadRequest(new { error = "Amount must be greater than 0." });
+
+        CreditStatusDto status = await _creditService.TopUpAsync(
+            companyId, request.Amount, request.Reason ?? "manual_topup", ct);
+
+        return Ok(new
+        {
+            creditLimit = status.CreditLimit,
+            creditUsed = status.CreditUsed,
+            creditRemaining = status.CreditRemaining,
+            planId = status.PlanId,
+            warning = status.Warning.ToString()
+        });
     }
 
     // ──────────────────────────────────────────────
@@ -333,6 +710,44 @@ public class ChatbotController : ControllerBase
             timestamp = now
         });
     }
+
+    // ── Helpers ──────────────────────────────────────────
+
+    /// <summary>
+    /// Simple CSV line parser that handles quoted values containing commas.
+    /// </summary>
+    private static string[] ParseCsvLine(string line)
+    {
+        List<string> fields = new();
+        bool inQuotes = false;
+        int fieldStart = 0;
+
+        for (int i = 0; i < line.Length; i++)
+        {
+            if (line[i] == '"')
+            {
+                inQuotes = !inQuotes;
+            }
+            else if (line[i] == ',' && !inQuotes)
+            {
+                fields.Add(UnquoteCsvField(line[fieldStart..i]));
+                fieldStart = i + 1;
+            }
+        }
+
+        fields.Add(UnquoteCsvField(line[fieldStart..]));
+        return fields.ToArray();
+    }
+
+    private static string UnquoteCsvField(string field)
+    {
+        string trimmed = field.Trim();
+        if (trimmed.Length >= 2 && trimmed[0] == '"' && trimmed[^1] == '"')
+        {
+            return trimmed[1..^1].Replace("\"\"", "\"");
+        }
+        return trimmed;
+    }
 }
 
 public record UpdateChatbotConfigRequest
@@ -374,4 +789,22 @@ public record AiHandoffCallbackRequest
     public string CompanyId { get; init; } = default!;
     public string? Reason { get; init; }
     public double? Confidence { get; init; }
+}
+
+public record AddFaqRequest(string Question, string Answer);
+
+public record TestChatbotRequest
+{
+    public string Message { get; init; } = default!;
+}
+
+public record AddInsightToFaqRequest
+{
+    public string Answer { get; init; } = default!;
+}
+
+public record TopUpCreditRequest
+{
+    public int Amount { get; init; }
+    public string? Reason { get; init; }
 }

@@ -66,6 +66,7 @@ public class ChatHubTests
             activityLoggerMock.Object,
             messageRepoMock.Object,
             autoAssignMock.Object,
+            new Mock<IUnansweredQuestionRepository>().Object,
             new Mock<ILogger<ChatbotService>>().Object);
 
         _orchestrator = new MessageOrchestrator(

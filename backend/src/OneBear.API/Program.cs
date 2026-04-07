@@ -109,18 +109,25 @@ authBuilder.AddJwtBearer(options =>
     options.Authority = authOptions.Authority;
     options.Audience = authOptions.Audience;
     options.RequireHttpsMetadata = authOptions.RequireHttpsMetadata;
+    options.MapInboundClaims = false; // Keep "sub" as "sub", not remapped to long URI
     options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
     {
         ValidateIssuer = true,
         ValidateAudience = true,
+        ValidAudience = authOptions.Audience,
         ValidateLifetime = true,
         ClockSkew = TimeSpan.FromMinutes(1),
         NameClaimType = "preferred_username"
     };
 
-    // SignalR: allow token in query string
+    // JWT events: debug logging + SignalR token
     options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
     {
+        OnAuthenticationFailed = context =>
+        {
+            Console.WriteLine($"[JWT AUTH FAILED] {context.Exception.GetType().Name}: {context.Exception.Message}");
+            return Task.CompletedTask;
+        },
         OnMessageReceived = context =>
         {
             string? accessToken = context.Request.Query["access_token"];

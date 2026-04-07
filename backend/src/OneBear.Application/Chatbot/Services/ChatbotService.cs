@@ -19,6 +19,7 @@ public class ChatbotService
     private readonly IAiActivityLogger _activityLogger;
     private readonly IChatMessageRepository _messageRepo;
     private readonly IAutoAssignmentService _autoAssignmentService;
+    private readonly IUnansweredQuestionRepository _unansweredRepo;
     private readonly ILogger<ChatbotService> _logger;
 
     public ChatbotService(
@@ -29,6 +30,7 @@ public class ChatbotService
         IAiActivityLogger activityLogger,
         IChatMessageRepository messageRepo,
         IAutoAssignmentService autoAssignmentService,
+        IUnansweredQuestionRepository unansweredRepo,
         ILogger<ChatbotService> logger)
     {
         _chatbotRepo = chatbotRepo;
@@ -38,6 +40,7 @@ public class ChatbotService
         _activityLogger = activityLogger;
         _messageRepo = messageRepo;
         _autoAssignmentService = autoAssignmentService;
+        _unansweredRepo = unansweredRepo;
         _logger = logger;
     }
 
@@ -189,11 +192,80 @@ public class ChatbotService
             Details = $"AI handed off room to admin. Reason: {reason ?? "unknown"}, Confidence: {confidence}"
         }, ct);
 
+        // Track unanswered question for insights
+        if (!string.IsNullOrEmpty(reason))
+        {
+            try
+            {
+                await _unansweredRepo.UpsertAsync(room.CompanyId, reason, room.Id, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to upsert unanswered question for room {RoomId}", room.Id);
+            }
+        }
+
         _logger.LogInformation(
             "AI handed off room {RoomId} to admin at {Timestamp}. Reason: {Reason}, Confidence: {Confidence}",
             room.Id, now, reason, confidence);
 
         return new Result<ChatRoom>.Success(updated);
+    }
+
+    /// <summary>
+    /// Seeds default FAQ entries when a chatbot is first enabled and has no existing FAQ.
+    /// </summary>
+    public async Task SeedDefaultKnowledgeBaseAsync(ChatbotConfiguration config, CancellationToken ct)
+    {
+        if (config.FaqEntries.Count > 0)
+            return;
+
+        long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        config.FaqEntries.AddRange(new List<FaqEntry>
+        {
+            new()
+            {
+                Question = "สั่งซื้อสินค้าอย่างไร",
+                Answer = "คุณสามารถสั่งซื้อได้โดยแจ้งชื่อสินค้าและจำนวนที่ต้องการ ทีมงานจะจัดเตรียมคำสั่งซื้อให้ค่ะ",
+                IsDefault = true,
+                CreatedTimestamp = now
+            },
+            new()
+            {
+                Question = "ชำระเงินผ่านช่องทางไหนได้บ้าง",
+                Answer = "รับชำระผ่านโอนเงินธนาคาร, พร้อมเพย์, บัตรเครดิต และ COD (เก็บเงินปลายทาง) ค่ะ",
+                IsDefault = true,
+                CreatedTimestamp = now
+            },
+            new()
+            {
+                Question = "จัดส่งสินค้ากี่วัน",
+                Answer = "สินค้าจัดส่งภายใน 1-3 วันทำการหลังจากยืนยันการชำระเงิน โดยจัดส่งผ่านขนส่งเอกชนค่ะ",
+                IsDefault = true,
+                CreatedTimestamp = now
+            },
+            new()
+            {
+                Question = "ติดต่อเจ้าหน้าที่ได้อย่างไร",
+                Answer = "คุณสามารถพิมพ์ข้อความไว้ได้เลยค่ะ ทีมงานจะตอบกลับโดยเร็วที่สุด หรือพิมพ์ว่า 'ขอคุยกับเจ้าหน้าที่' เพื่อส่งต่อค่ะ",
+                IsDefault = true,
+                CreatedTimestamp = now
+            }
+        });
+
+        config.UpdatedTimestamp = now;
+        await _chatbotRepo.UpsertAsync(config, ct);
+
+        await _activityLogger.LogAsync(new AiActivityLog
+        {
+            CompanyId = config.CompanyId,
+            EventType = "kb_seed",
+            Details = $"Seeded {config.FaqEntries.Count} default FAQ entries"
+        }, ct);
+
+        _logger.LogInformation("Seeded {Count} default FAQ entries for company {CompanyId}",
+            config.FaqEntries.Count, config.CompanyId);
     }
 
     // ── Schedule evaluation ──────────────────────────────────────────

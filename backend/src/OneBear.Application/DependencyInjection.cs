@@ -49,6 +49,12 @@ public static class DependencyInjection
         services.AddScoped<ICreditService, MongoCreditService>();
         services.AddScoped<NotificationService>();
 
+        // Phase 3: Order flow stubs (to be replaced with real implementations)
+        services.AddScoped<IOrderService, StubOrderService>();
+        services.AddScoped<IPaymentLinkService, StubPaymentLinkService>();
+        services.AddScoped<ISlipVerificationService, StubSlipVerificationService>();
+        services.AddScoped<IProductCatalogService, StubProductCatalogService>();
+
         // CRM
         services.AddScoped<CustomerService>();
         services.AddScoped<TagRecalculationService>();

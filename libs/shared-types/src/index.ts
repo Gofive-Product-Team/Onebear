@@ -88,6 +88,8 @@ export interface ChatMessage {
 	// Pin fields
 	isPinnedByUser?: boolean
 	pinnedTimestamp?: number | null
+	// AI fields
+	isAiMessage?: boolean
 }
 
 export interface PagedResponse<T> {

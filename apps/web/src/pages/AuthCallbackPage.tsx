@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { exchangeCodeForTokens, parseJwt } from '@/lib/keycloak'
 import { useAuthStore } from '@/stores/auth-store'
@@ -9,8 +9,13 @@ export function AuthCallbackPage() {
 	const [error, setError] = useState<string | null>(null)
 	const navigate = useNavigate()
 	const login = useAuthStore((s) => s.login)
+	const exchangeStarted = useRef(false)
 
 	useEffect(() => {
+		// Prevent double execution in React StrictMode (code can only be exchanged once)
+		if (exchangeStarted.current) return
+		exchangeStarted.current = true
+
 		const params = new URLSearchParams(window.location.search)
 		const code = params.get('code')
 		const state = params.get('state')

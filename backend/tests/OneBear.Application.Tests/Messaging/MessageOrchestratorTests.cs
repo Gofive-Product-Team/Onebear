@@ -171,6 +171,7 @@ public class MessageOrchestratorTests
             activityLoggerMock.Object,
             messageRepoMock.Object,
             autoAssignmentServiceMock.Object,
+            new Mock<IUnansweredQuestionRepository>().Object,
             new Mock<ILogger<ChatbotService>>().Object);
 
         MessageOrchestrator sut = new(
