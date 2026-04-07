@@ -1,6 +1,336 @@
 namespace OneBear.Application.Chatbot.Services;
 
+using Microsoft.Extensions.Logging;
+using OneBear.Application.Common.Interfaces;
+using OneBear.Application.Events;
+using OneBear.Domain.Common;
+using OneBear.Domain.Entities;
+using OneBear.Domain.Enums;
+using OneBear.Domain.Interfaces;
+using OneBear.Domain.Interfaces.Repositories;
+using OneBear.Domain.ValueObjects;
+
 public class ChatbotService
 {
-    // TODO: implement
+    private readonly IChatbotConfigurationRepository _chatbotRepo;
+    private readonly IChatRoomRepository _roomRepo;
+    private readonly IEventPublisher _eventPublisher;
+    private readonly ICreditService _creditService;
+    private readonly IAiActivityLogger _activityLogger;
+    private readonly IChatMessageRepository _messageRepo;
+    private readonly IAutoAssignmentService _autoAssignmentService;
+    private readonly IUnansweredQuestionRepository _unansweredRepo;
+    private readonly ILogger<ChatbotService> _logger;
+
+    public ChatbotService(
+        IChatbotConfigurationRepository chatbotRepo,
+        IChatRoomRepository roomRepo,
+        IEventPublisher eventPublisher,
+        ICreditService creditService,
+        IAiActivityLogger activityLogger,
+        IChatMessageRepository messageRepo,
+        IAutoAssignmentService autoAssignmentService,
+        IUnansweredQuestionRepository unansweredRepo,
+        ILogger<ChatbotService> logger)
+    {
+        _chatbotRepo = chatbotRepo;
+        _roomRepo = roomRepo;
+        _eventPublisher = eventPublisher;
+        _creditService = creditService;
+        _activityLogger = activityLogger;
+        _messageRepo = messageRepo;
+        _autoAssignmentService = autoAssignmentService;
+        _unansweredRepo = unansweredRepo;
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// Evaluates 4 eligibility checks and publishes SendAiChatbotMessage if all pass.
+    /// </summary>
+    public async Task<Result<bool>> TryEngageAsync(
+        ChatRoom room, ChatMessage message, string integrationId, CancellationToken ct)
+    {
+        // Check 1: Chatbot enabled for company
+        ChatbotConfiguration? config = await _chatbotRepo.GetByCompanyIdAsync(room.CompanyId, ct);
+        if (config is null || !config.IsEnabled)
+        {
+            _logger.LogDebug("AI chatbot not enabled for company {CompanyId}", room.CompanyId);
+            return new Result<bool>.Success(false);
+        }
+
+        // Check 2: Schedule check — is the chatbot active right now?
+        if (!IsWithinSchedule(config))
+        {
+            _logger.LogDebug("AI chatbot outside schedule for company {CompanyId}", room.CompanyId);
+            return new Result<bool>.Success(false);
+        }
+
+        // Check 3: Room not AI-muted (agent manually muted AI for this room)
+        if (room.IsAiMuted)
+        {
+            _logger.LogDebug("AI chatbot muted for room {RoomId}", room.Id);
+            return new Result<bool>.Success(false);
+        }
+
+        // Check 4: No agent currently attending the room
+        if (room.AttendedUserIds.Count > 0)
+        {
+            _logger.LogDebug("Agent attending room {RoomId}, skipping AI chatbot", room.Id);
+            return new Result<bool>.Success(false);
+        }
+
+        // Check 5: Credit available
+        bool hasCredit = await _creditService.HasCreditAsync(room.CompanyId, ct);
+        if (!hasCredit)
+        {
+            _logger.LogInformation("AI credit exhausted for company {CompanyId}", room.CompanyId);
+            await _activityLogger.LogAsync(new AiActivityLog
+            {
+                CompanyId = room.CompanyId,
+                RoomId = room.Id,
+                EventType = "credit_exhausted",
+                Details = "AI engagement skipped — credit exhausted"
+            }, ct);
+            return new Result<bool>.Success(false);
+        }
+
+        // All checks passed — publish event for AI processing
+        await _eventPublisher.PublishAsync(new SendAiChatbotMessage
+        {
+            RoomId = room.Id,
+            CompanyId = room.CompanyId,
+            IntegrationId = integrationId,
+            MessageId = message.Id,
+            Content = message.Content ?? "",
+            Platform = room.Platform,
+            RecipientExternalId = room.Customer?.ExternalId ?? ""
+        }, ct);
+
+        _logger.LogInformation("AI chatbot engaged for room {RoomId}, message {MessageId}",
+            room.Id, message.Id);
+
+        return new Result<bool>.Success(true);
+    }
+
+    /// <summary>
+    /// Process AI callback — the AI service responded with a message.
+    /// Returns the AI response content for the caller to send via platform adapter.
+    /// </summary>
+    public async Task<Result<string>> ProcessAiCallbackAsync(
+        string companyId, string roomId, string responseContent, CancellationToken ct)
+    {
+        ChatbotConfiguration? config = await _chatbotRepo.GetByCompanyIdAsync(companyId, ct);
+        if (config is null || !config.IsEnabled)
+        {
+            return new Result<string>.Failure(
+                new Error("CHATBOT_DISABLED", "Chatbot is no longer enabled.", ErrorType.Validation));
+        }
+
+        if (string.IsNullOrWhiteSpace(responseContent))
+        {
+            return new Result<string>.Failure(
+                new Error("EMPTY_RESPONSE", "AI returned empty response.", ErrorType.Validation));
+        }
+
+        _logger.LogInformation("Processing AI callback for room {RoomId} in company {CompanyId}",
+            roomId, companyId);
+
+        return new Result<string>.Success(responseContent);
+    }
+
+    /// <summary>
+    /// Handle AI handoff — called when the AI decides it cannot handle the conversation
+    /// (e.g. confidence below threshold). Mutes AI for the room, creates a private note,
+    /// auto-assigns an agent, and logs the handoff.
+    /// </summary>
+    public async Task<Result<ChatRoom>> HandleHandoffAsync(
+        ChatRoom room, string? reason, double? confidence, CancellationToken ct)
+    {
+        long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        room.IsAiMuted = true;
+        room.HandoffSource = "ai";
+        room.HandoffSourceName = "AI";
+        room.HandoffTimestamp = now;
+
+        ChatRoom updated = await _roomRepo.UpdateAsync(room, ct);
+
+        // Create private note so admin sees handoff context
+        string noteContent = !string.IsNullOrEmpty(reason)
+            ? $"[AI] ลูกค้าถามเรื่อง '{reason}' — ไม่พบในฐานความรู้"
+            : "[AI] Handoff — AI ไม่สามารถตอบได้";
+        ChatMessage privateNote = new()
+        {
+            Id = Guid.NewGuid().ToString(),
+            RoomId = room.Id,
+            UserId = "ai-chatbot",
+            Content = noteContent,
+            Type = MessageType.PrivateNote,
+            Platform = room.Platform,
+            Timestamp = now,
+            CompanyId = room.CompanyId,
+            IsAiMessage = true,
+            CreatedBy = "ai",
+            CreatedTimestamp = now,
+            DeliveryStatus = MessageDeliveryState.Delivered
+        };
+        await _messageRepo.CreateAsync(privateNote, ct);
+
+        // Auto-assign an agent to handle the room
+        Result<ChatRoom> assignResult = await _autoAssignmentService.TryAssignAsync(updated, room.CompanyId, ct);
+        if (assignResult is Result<ChatRoom>.Success assignSuccess)
+            updated = assignSuccess.Value;
+
+        // Log handoff activity
+        await _activityLogger.LogAsync(new AiActivityLog
+        {
+            CompanyId = room.CompanyId,
+            RoomId = room.Id,
+            EventType = "ai_handoff",
+            HandoffReason = reason,
+            Confidence = confidence,
+            Details = $"AI handed off room to admin. Reason: {reason ?? "unknown"}, Confidence: {confidence}"
+        }, ct);
+
+        // Track unanswered question for insights
+        if (!string.IsNullOrEmpty(reason))
+        {
+            try
+            {
+                await _unansweredRepo.UpsertAsync(room.CompanyId, reason, room.Id, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to upsert unanswered question for room {RoomId}", room.Id);
+            }
+        }
+
+        _logger.LogInformation(
+            "AI handed off room {RoomId} to admin at {Timestamp}. Reason: {Reason}, Confidence: {Confidence}",
+            room.Id, now, reason, confidence);
+
+        return new Result<ChatRoom>.Success(updated);
+    }
+
+    /// <summary>
+    /// Seeds default FAQ entries when a chatbot is first enabled and has no existing FAQ.
+    /// </summary>
+    public async Task SeedDefaultKnowledgeBaseAsync(ChatbotConfiguration config, CancellationToken ct)
+    {
+        if (config.FaqEntries.Count > 0)
+            return;
+
+        long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        config.FaqEntries.AddRange(new List<FaqEntry>
+        {
+            new()
+            {
+                Question = "สั่งซื้อสินค้าอย่างไร",
+                Answer = "คุณสามารถสั่งซื้อได้โดยแจ้งชื่อสินค้าและจำนวนที่ต้องการ ทีมงานจะจัดเตรียมคำสั่งซื้อให้ค่ะ",
+                IsDefault = true,
+                CreatedTimestamp = now
+            },
+            new()
+            {
+                Question = "ชำระเงินผ่านช่องทางไหนได้บ้าง",
+                Answer = "รับชำระผ่านโอนเงินธนาคาร, พร้อมเพย์, บัตรเครดิต และ COD (เก็บเงินปลายทาง) ค่ะ",
+                IsDefault = true,
+                CreatedTimestamp = now
+            },
+            new()
+            {
+                Question = "จัดส่งสินค้ากี่วัน",
+                Answer = "สินค้าจัดส่งภายใน 1-3 วันทำการหลังจากยืนยันการชำระเงิน โดยจัดส่งผ่านขนส่งเอกชนค่ะ",
+                IsDefault = true,
+                CreatedTimestamp = now
+            },
+            new()
+            {
+                Question = "ติดต่อเจ้าหน้าที่ได้อย่างไร",
+                Answer = "คุณสามารถพิมพ์ข้อความไว้ได้เลยค่ะ ทีมงานจะตอบกลับโดยเร็วที่สุด หรือพิมพ์ว่า 'ขอคุยกับเจ้าหน้าที่' เพื่อส่งต่อค่ะ",
+                IsDefault = true,
+                CreatedTimestamp = now
+            }
+        });
+
+        config.UpdatedTimestamp = now;
+        await _chatbotRepo.UpsertAsync(config, ct);
+
+        await _activityLogger.LogAsync(new AiActivityLog
+        {
+            CompanyId = config.CompanyId,
+            EventType = "kb_seed",
+            Details = $"Seeded {config.FaqEntries.Count} default FAQ entries"
+        }, ct);
+
+        _logger.LogInformation("Seeded {Count} default FAQ entries for company {CompanyId}",
+            config.FaqEntries.Count, config.CompanyId);
+    }
+
+    // ── Schedule evaluation ──────────────────────────────────────────
+
+    private static bool IsWithinSchedule(ChatbotConfiguration config)
+    {
+        if (config.ScheduleMode == "always")
+            return true;
+
+        if (config.ScheduleMode == "never")
+            return false;
+
+        // "scheduled" mode — check day schedules
+        if (config.ScheduleMode == "scheduled" && config.DaySchedules.Count > 0)
+        {
+            DateTimeOffset now = DateTimeOffset.UtcNow;
+            int todayDow = (int)now.DayOfWeek; // Sunday=0, Monday=1, ...
+
+            DaySchedule? todaySchedule = config.DaySchedules
+                .FirstOrDefault(d => d.DayOfWeek == todayDow);
+
+            if (todaySchedule is null || !todaySchedule.IsEnabled)
+                return false;
+
+            // If start/end time not set, treat as all-day enabled
+            if (string.IsNullOrEmpty(todaySchedule.StartTime) || string.IsNullOrEmpty(todaySchedule.EndTime))
+                return true;
+
+            // Parse HH:mm format
+            if (TimeOnly.TryParse(todaySchedule.StartTime, out TimeOnly start)
+                && TimeOnly.TryParse(todaySchedule.EndTime, out TimeOnly end))
+            {
+                TimeOnly currentTime = TimeOnly.FromDateTime(now.UtcDateTime);
+                return currentTime >= start && currentTime <= end;
+            }
+
+            return true;
+        }
+
+        // "outside_hours" mode — chatbot active OUTSIDE business hours
+        if (config.ScheduleMode == "outside_hours" && config.DaySchedules.Count > 0)
+        {
+            DateTimeOffset now = DateTimeOffset.UtcNow;
+            int todayDow = (int)now.DayOfWeek;
+
+            DaySchedule? todaySchedule = config.DaySchedules
+                .FirstOrDefault(d => d.DayOfWeek == todayDow);
+
+            // No schedule for today = outside hours → chatbot active
+            if (todaySchedule is null || !todaySchedule.IsEnabled)
+                return true;
+
+            if (string.IsNullOrEmpty(todaySchedule.StartTime) || string.IsNullOrEmpty(todaySchedule.EndTime))
+                return false; // All-day business hours → chatbot inactive
+
+            if (TimeOnly.TryParse(todaySchedule.StartTime, out TimeOnly start)
+                && TimeOnly.TryParse(todaySchedule.EndTime, out TimeOnly end))
+            {
+                TimeOnly currentTime = TimeOnly.FromDateTime(now.UtcDateTime);
+                return currentTime < start || currentTime > end;
+            }
+
+            return false;
+        }
+
+        return true;
+    }
 }

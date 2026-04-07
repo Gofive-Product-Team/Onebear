@@ -1,14 +1,21 @@
-using System.Text;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication;
+using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.OpenApi.Models;
 using OneBear.API.Auth;
 using OneBear.API.Hubs;
 using OneBear.API.Middleware;
 using OneBear.API.Services;
+using OneBear.Application.Common.Interfaces;
 using OneBear.Domain.Enums;
 using OneBear.Domain.Interfaces;
+using OneBear.Application;
+using OneBear.Infrastructure;
+using OneBear.Infrastructure.Persistence.Mongo;
+using OneBear.Infrastructure.Persistence.Mongo.Seeding;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,29 +34,58 @@ builder.Services.AddControllers(options =>
     options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
 });
 
+// Bind and register options
+AuthOptions authOptions = builder.Configuration
+    .GetSection(AuthOptions.SectionName).Get<AuthOptions>() ?? new AuthOptions();
+builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.SectionName));
+builder.Services.Configure<ApiKeyOptions>(builder.Configuration.GetSection(ApiKeyOptions.SectionName));
+builder.Services.Configure<OneBear.Application.Auth.KeycloakAdminOptions>(
+    builder.Configuration.GetSection(OneBear.Application.Auth.KeycloakAdminOptions.SectionName));
+
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
+builder.Services.AddSwaggerGen(options =>
 {
-    c.SwaggerDoc("v1", new() { Title = "One Bear API", Version = "v1" });
-    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "One Bear API", Version = "v1" });
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT token. Get one from POST /api/v1/dev/token in development.",
+        Description = "JWT token from Keycloak.",
         Name = "Authorization",
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
         Scheme = "bearer",
         BearerFormat = "JWT"
     });
-    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+
+    options.AddSecurityDefinition(AuthConstants.ApiKeyScheme, new OpenApiSecurityScheme
+    {
+        Description = "API key for internal service-to-service calls. Pass in the X-Api-Key header.",
+        Name = "X-Api-Key",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
-            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            new OpenApiSecurityScheme
             {
-                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                Reference = new OpenApiReference
                 {
-                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Type = ReferenceType.SecurityScheme,
                     Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        },
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = AuthConstants.ApiKeyScheme
                 }
             },
             Array.Empty<string>()
@@ -64,87 +100,78 @@ AuthenticationBuilder authBuilder = builder.Services.AddAuthentication(options =
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 });
 
-if (builder.Environment.IsDevelopment())
-{
-    // Dev mode: validate tokens signed with symmetric key
-    string devKey = builder.Configuration["Auth:DevSigningKey"] ?? "OneBear-Dev-Signing-Key-Min-32-Chars!!";
-    authBuilder.AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidIssuer = builder.Configuration["Auth:DevIssuer"] ?? "onebear-dev",
-            ValidateAudience = true,
-            ValidAudience = builder.Configuration["Auth:Audience"] ?? "onebear-api",
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(devKey)),
-            ClockSkew = TimeSpan.FromMinutes(1)
-        };
+// Disable default claim type mapping so "sub" stays as "sub" (not remapped to long URI)
+JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
-        // Allow token from query string for SignalR
-        options.Events = new JwtBearerEvents
-        {
-            OnMessageReceived = context =>
-            {
-                Microsoft.Extensions.Primitives.StringValues accessToken = context.Request.Query["access_token"];
-                PathString path = context.HttpContext.Request.Path;
-                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
-                {
-                    context.Token = accessToken;
-                }
-                return Task.CompletedTask;
-            }
-        };
-    });
-}
-else
+// JWT Bearer — Keycloak JWKS validation for all environments
+authBuilder.AddJwtBearer(options =>
 {
-    // Production: validate tokens from GoFive IdP via JWKS
-    authBuilder.AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+    options.Authority = authOptions.Authority;
+    options.Audience = authOptions.Audience;
+    options.RequireHttpsMetadata = authOptions.RequireHttpsMetadata;
+    options.MapInboundClaims = false; // Keep "sub" as "sub", not remapped to long URI
+    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
     {
-        options.Authority = builder.Configuration["Auth:Authority"] ?? "https://login.gofive.co.th";
-        options.Audience = builder.Configuration["Auth:Audience"] ?? "onebear-api";
-        options.RequireHttpsMetadata = true;
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidAudience = authOptions.Audience,
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.FromMinutes(1),
+        NameClaimType = "preferred_username"
+    };
 
-        options.Events = new JwtBearerEvents
+    // JWT events: debug logging + SignalR token
+    options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+    {
+        OnAuthenticationFailed = context =>
         {
-            OnMessageReceived = context =>
-            {
-                Microsoft.Extensions.Primitives.StringValues accessToken = context.Request.Query["access_token"];
-                PathString path = context.HttpContext.Request.Path;
-                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
-                {
-                    context.Token = accessToken;
-                }
-                return Task.CompletedTask;
-            }
-        };
-    });
-}
+            Console.WriteLine($"[JWT AUTH FAILED] {context.Exception.GetType().Name}: {context.Exception.Message}");
+            return Task.CompletedTask;
+        },
+        OnMessageReceived = context =>
+        {
+            string? accessToken = context.Request.Query["access_token"];
+            PathString path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                context.Token = accessToken;
+            return Task.CompletedTask;
+        }
+    };
+});
 
 // API Key authentication
-authBuilder.AddScheme<ApiKeyAuthOptions, ApiKeyAuthHandler>(ApiKeyAuthOptions.SchemeName, null);
+authBuilder.AddScheme<AuthenticationSchemeOptions, ApiKeyAuthHandler>(
+    AuthConstants.ApiKeyScheme, options => { });
 
 // Authorization - real permission checks
 builder.Services.AddSingleton<IAuthorizationHandler, PermissionHandler>();
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("Chat.View", policy => policy.Requirements.Add(new PermissionRequirement(Permission.ChatView)));
-    options.AddPolicy("Chat.Resolve", policy => policy.Requirements.Add(new PermissionRequirement(Permission.ChatResolved)));
-    options.AddPolicy("Chat.Mention", policy => policy.Requirements.Add(new PermissionRequirement(Permission.ChatMention)));
-    options.AddPolicy("Chat.AssignAll", policy => policy.Requirements.Add(new PermissionRequirement(Permission.ChatAssignAllCompany)));
-    options.AddPolicy("Chat.Admin", policy => policy.Requirements.Add(new PermissionRequirement(Permission.ChatAccessAllData)));
-    options.AddPolicy("ApiKey", policy => policy.AddAuthenticationSchemes(ApiKeyAuthOptions.SchemeName).RequireAuthenticatedUser());
+    options.AddPolicy(AuthConstants.PolicyChatView, policy => policy.Requirements.Add(new PermissionRequirement(Permission.ChatView)));
+    options.AddPolicy(AuthConstants.PolicyChatResolve, policy => policy.Requirements.Add(new PermissionRequirement(Permission.ChatResolve)));
+    options.AddPolicy(AuthConstants.PolicyChatMention, policy => policy.Requirements.Add(new PermissionRequirement(Permission.ChatMention)));
+    options.AddPolicy(AuthConstants.PolicyChatAssignAll, policy => policy.Requirements.Add(new PermissionRequirement(Permission.ChatAssign)));
+    options.AddPolicy(AuthConstants.PolicyChatAdmin, policy => policy.Requirements.Add(new PermissionRequirement(Permission.ChatAccessAll)));
+
+    options.AddPolicy(AuthConstants.PolicyCustomerView, policy => policy.Requirements.Add(new PermissionRequirement(Permission.CustomerView)));
+    options.AddPolicy(AuthConstants.PolicyCustomerEdit, policy => policy.Requirements.Add(new PermissionRequirement(Permission.CustomerEdit)));
+    options.AddPolicy(AuthConstants.PolicyCustomerExport, policy => policy.Requirements.Add(new PermissionRequirement(Permission.CustomerExport)));
+    options.AddPolicy(AuthConstants.PolicySettingsView, policy => policy.Requirements.Add(new PermissionRequirement(Permission.SettingsView)));
+    options.AddPolicy(AuthConstants.PolicySettingsManage, policy => policy.Requirements.Add(new PermissionRequirement(Permission.SettingsManage)));
+    options.AddPolicy(AuthConstants.PolicyMembersView, policy => policy.Requirements.Add(new PermissionRequirement(Permission.MembersView)));
+    options.AddPolicy(AuthConstants.PolicyMembersManage, policy => policy.Requirements.Add(new PermissionRequirement(Permission.MembersManage)));
+    options.AddPolicy(AuthConstants.PolicyDashboardView, policy => policy.Requirements.Add(new PermissionRequirement(Permission.DashboardView)));
+    options.AddPolicy(AuthConstants.PolicyAiConfig, policy => policy.Requirements.Add(new PermissionRequirement(Permission.AiConfig)));
+    options.AddPolicy(AuthConstants.PolicyAiCredit, policy => policy.Requirements.Add(new PermissionRequirement(Permission.AiCredit)));
 });
 
 // CORS
+string[] corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("Default", policy =>
+    options.AddPolicy("OneBear", policy =>
     {
-        policy.WithOrigins(
-                builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? new[] { "http://localhost:5173" })
+        policy.WithOrigins(corsOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -165,8 +192,61 @@ else
 // SignalR notifier (server-side push service for controllers and services)
 builder.Services.AddScoped<ISignalRNotifier, SignalRNotifierService>();
 
+// SignalR real-time infrastructure services
+builder.Services.AddSingleton<IAttendanceService, AttendanceService>();
+builder.Services.AddSingleton<ITypingTracker, TypingTracker>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IRoomAuthorizationService, RoomAuthorizationService>();
+
+// Application layer (services, validators, orchestrator)
+builder.Services.AddApplication();
+
+// Infrastructure (MongoDB, Redis, Repositories, MassTransit, Platform Adapters)
+builder.Services.AddInfrastructure(builder.Configuration);
+
 // Health checks
 builder.Services.AddHealthChecks();
+
+// Rate limiting
+builder.Services.AddRateLimiter(options =>
+{
+    // webhook: 500 requests/minute per IP
+    options.AddFixedWindowLimiter("webhook", opt =>
+    {
+        opt.PermitLimit = 500;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 50;
+    });
+
+    // api: 300 requests/minute per tenant (partition by companyId from JWT)
+    options.AddFixedWindowLimiter("api", opt =>
+    {
+        opt.PermitLimit = 300;
+        opt.Window = TimeSpan.FromMinutes(1);
+    });
+
+    // auth: 20 requests/minute per IP
+    options.AddFixedWindowLimiter("auth", opt =>
+    {
+        opt.PermitLimit = 20;
+        opt.Window = TimeSpan.FromMinutes(1);
+    });
+
+    options.RejectionStatusCode = 429;
+    options.OnRejected = async (context, ct) =>
+    {
+        context.HttpContext.Response.Headers["Retry-After"] = "60";
+        Microsoft.AspNetCore.Mvc.ProblemDetails problemDetails = new()
+        {
+            Status = 429,
+            Title = "Too Many Requests",
+            Detail = "Rate limit exceeded. Try again later.",
+            Instance = context.HttpContext.Request.Path
+        };
+        await context.HttpContext.Response.WriteAsJsonAsync(problemDetails, ct);
+    };
+});
 
 var app = builder.Build();
 
@@ -176,15 +256,34 @@ app.UseExceptionHandling(); // Global error handler first
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "One Bear API v1"));
+    app.UseSwaggerUI(options => options.SwaggerEndpoint("/swagger/v1/swagger.json", "One Bear API v1"));
 }
 
-app.UseCors("Default");
+app.UseCors("OneBear");
+app.UseRateLimiter();
+
 app.UseAuthentication();
+app.UseUserProfile();
+app.UseSubscriptionCheck(app.Environment.IsDevelopment());
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
 app.MapHealthChecks("/api/v1/health");
+
+if (app.Environment.IsDevelopment())
+{
+    try
+    {
+        using IServiceScope scope = app.Services.CreateScope();
+        MongoSeeder seeder = scope.ServiceProvider.GetRequiredService<MongoSeeder>();
+        await seeder.EnsureIndexesAsync();
+        await seeder.SeedDevelopmentDataAsync();
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "MongoDB not available — skipping database seeding. App will run but database operations will fail.");
+    }
+}
 
 app.Run();
 

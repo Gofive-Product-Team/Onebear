@@ -10,12 +10,12 @@ public class Shortcut
     [JsonPropertyName("categoryId")]
     public string? CategoryId { get; set; }
 
-    [JsonPropertyName("name")]
-    public string Name { get; set; } = default!;
+    [JsonPropertyName("keyword")]
+    public string Keyword { get; set; } = default!;
 
     [JsonPropertyName("content")]
     public string Content { get; set; } = default!;
 
-    [JsonPropertyName("shortcutKey")]
-    public string? ShortcutKey { get; set; }
+    [JsonPropertyName("attachmentUrl")]
+    public string? AttachmentUrl { get; set; }
 }

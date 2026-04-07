@@ -8,7 +8,7 @@ public class ChatRoomTests
     [Fact]
     public void NewRoom_ShouldHaveDefaultValues()
     {
-        var room = new ChatRoom
+        ChatRoom room = new()
         {
             CompanyId = "company-1",
             UserId = "user-1",
@@ -17,7 +17,7 @@ public class ChatRoomTests
         };
 
         Assert.NotNull(room.Id);
-        Assert.Equal(ChatState.New, room.State);
+        Assert.Equal("New", room.State);
         Assert.Equal(1, room.SchemaVersion);
         Assert.Equal(0, room.Unread);
         Assert.False(room.IsAiMuted);

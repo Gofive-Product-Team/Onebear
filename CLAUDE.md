@@ -25,7 +25,7 @@ This file provides guidance to Claude Code when working with the One Bear codeba
 | Frontend testing | Vitest + Testing Library + Playwright | latest stable |
 | Backend | .NET (C#) | 9 |
 | Real-time | Azure SignalR Service + ASP.NET Core SignalR Hub | managed |
-| Primary database | Azure Cosmos DB (NoSQL) | improved indexes |
+| Primary database | MongoDB (Azure DocumentDB-compatible) | MongoDB.Driver 3.x |
 | Cache | Azure Cache for Redis (StackExchange.Redis) | distributed |
 | Message broker | RabbitMQ via MassTransit | MassTransit latest |
 | API style | REST + OpenAPI (code-first via Swashbuckle/NSwag) | OpenAPI 3.x |
@@ -76,7 +76,7 @@ OneBear.sln
     OneBear.API/                  # Controllers, SignalR Hub, Middleware, DI wiring
     OneBear.Application/          # Use cases, services, commands/queries, validators, DTOs
     OneBear.Domain/               # Entities, value objects, enums, interfaces, Result<T>
-    OneBear.Infrastructure/       # Cosmos repos, Redis cache, platform adapters, MassTransit, blob storage
+    OneBear.Infrastructure/       # MongoDB repos, Redis cache, platform adapters, MassTransit, blob storage
     OneBear.Worker/               # RabbitMQ consumers, Quartz.NET scheduled jobs
   tests/
     OneBear.API.Tests/
@@ -310,9 +310,8 @@ docker build -t onebear-worker -f src/OneBear.Worker/Dockerfile .
 ### Infrastructure / Database
 
 ```bash
-# Cosmos DB -- no migrations (schemaless), but indexing policy changes:
-# Indexing policies are defined in OneBear.Infrastructure/Persistence/Cosmos/IndexPolicies/
-# Applied via a startup initializer or a dedicated CLI tool
+# MongoDB -- no migrations (schemaless), indexes created idempotently on startup
+# Index definitions are in OneBear.Infrastructure/Persistence/Mongo/Seeding/MongoSeeder.cs
 
 # Redis
 redis-cli PING                            # Health check
@@ -346,7 +345,7 @@ OneBear.Domain         -->  (nothing -- innermost layer, zero external dependenc
 - Domain referencing Application, Infrastructure, or API
 - Application referencing Infrastructure or API
 - Infrastructure referencing API
-- Any layer importing a NuGet package that belongs to another layer's concern (e.g., Cosmos SDK in Application)
+- Any layer importing a NuGet package that belongs to another layer's concern (e.g., MongoDB.Driver in Application)
 
 ### State Management Rules (Frontend)
 
@@ -390,7 +389,7 @@ const res = await fetch('/api/chats/rooms') // Never do this
 
 **API response wrapper:** All backend responses use `{ data, success, message }`. The generated client handles unwrapping.
 
-**Pagination:** Cosmos DB cursor-based pagination via `continuationToken`. TanStack Query's `useInfiniteQuery` for message history.
+**Pagination:** MongoDB offset-based pagination via `continuationToken` (offset string). TanStack Query's `useInfiniteQuery` for message history.
 
 ### Error Handling Patterns
 
@@ -420,7 +419,7 @@ return result switch
 };
 ```
 
-**Exceptions are for unexpected infrastructure failures only** (Cosmos SDK timeout, Redis down, etc.). These are caught by `ExceptionHandlingMiddleware` and mapped to ProblemDetails (500).
+**Exceptions are for unexpected infrastructure failures only** (MongoDB timeout, Redis down, etc.). These are caught by `ExceptionHandlingMiddleware` and mapped to ProblemDetails (500).
 
 **Frontend -- TanStack Query error handling:**
 - `onError` callbacks per query/mutation for toast notifications
@@ -554,7 +553,7 @@ See `docs/architecture/08-dependencies.md` for full map. Key integrations:
 
 - **No CSS files or SCSS.** Use Tailwind utility classes only. Component-level styles use Tailwind's `cn()` merge utility with Shadcn/ui.
 
-- **No default Cosmos DB indexing.** Every container must have a custom indexing policy that only indexes queried paths.
+- **No missing MongoDB indexes.** Every collection must have indexes covering queried fields, defined in MongoSeeder.
 
 ### Coverage Targets
 
@@ -581,17 +580,48 @@ See `docs/architecture/08-dependencies.md` for full map. Key integrations:
 | Exceptionless + Sentry (fragmented) | OpenTelemetry + Azure Monitor (unified) |
 | Azure Functions (timer triggers) | .NET Worker Service + Quartz.NET |
 
-### Cosmos DB Partition Keys
+### Platform Integration Architecture
 
-| Container | Partition Key |
-|-----------|--------------|
-| Rooms | `/companyId` |
-| Messages | `/roomId` |
-| Users | `/companyId` |
-| IntegrationSettings | `/companyId` |
-| Attachments | `/roomId` |
-| FollowupSchedules | `/companyId` |
-| ChatbotConfigurations | `/companyId` |
+One Bear handles all platform OAuth internally (no GoFive Core dependency).
+
+**OAuth Controller** (`OAuthController.cs`): Generates auth URLs, handles callbacks, exchanges tokens.
+
+**OAuth Service** (`OAuthService.cs`): Business logic for OAuth flows, state validation via Redis.
+
+**Platform Connect Flow:**
+
+| Platform | OAuth Type | Connect Method |
+|----------|-----------|----------------|
+| LINE | Module Auth (server redirect) | OAuth redirect OR manual token input |
+| Facebook | FB JS SDK (client-side popup) | `FB.login()` → exchange for page token |
+| Instagram | Auto from Facebook | Auto-created when Facebook connected |
+| WhatsApp | FB JS SDK embedded signup | `FB.login()` → extract phone number |
+| Shopee | Open Platform (server redirect) | OAuth redirect → callback with shop_id |
+| TikTok | TikTok Shop (server redirect) | OAuth redirect → callback |
+| Lazada | Open Platform (server redirect) | OAuth redirect → callback |
+| Email | Google/Microsoft OAuth (server redirect) | OAuth redirect OR manual SMTP |
+
+**Token Refresh** (`IntegrationTokenValidationJob`): Quartz.NET job checks expiring tokens every 15 minutes. Per-adapter refresh logic: Shopee (4h cycle), TikTok, Lazada (30d cycle), Gmail (1h), Outlook (1h). LINE/Facebook/WhatsApp use long-lived tokens.
+
+**OAuth State**: Stored in Redis with 10-minute TTL (key: `oauth:state:{stateToken}`).
+
+**OAuth Config**: Platform app credentials in appsettings.json `OAuth` section, sourced from Azure Key Vault in production.
+
+**Credentials Security**: `PlatformCredentialSummaryDto` never exposes secrets — only identifiers (channelId, pageName, shopId) and token status.
+
+### MongoDB Collections & Key Indexes
+
+| Collection | Primary Query Field | Key Indexes |
+|------------|-------------------|-------------|
+| Rooms | `companyId` | company+state+ts, company+state+platform+ts, company+state+assign+ts, company+followup |
+| Messages | `roomId` | room+deleted+ts, room+mid |
+| Users | `companyId` | company+external+platform (UNIQUE), company+type+active |
+| IntegrationChannels | `companyId` | company+platform, company+active |
+| Attachments | `roomId` | room+message |
+| FollowupSchedules | `companyId` | company+processed+ts, room |
+| ChatbotConfigurations | `companyId` | company (UNIQUE) |
+| CompanyFeatureSettings | `companyId` | company (UNIQUE) |
+| UserVerifications | `companyId` | company+user |
 
 ### Redis Cache TTLs
 
@@ -719,7 +749,7 @@ curl -X POST http://localhost:5000/api/v1/dev/token \
 
 | Utility | Location | Purpose |
 |---------|----------|---------|
-| `PagedResult<T>` | Application/Common/DTOs | Cosmos cursor-based pagination envelope |
+| `PagedResult<T>` | Application/Common/DTOs | MongoDB offset-based pagination envelope |
 | `DateTimeHelper` | Application/Common | Unix ms <-> DateTimeOffset conversion |
 | `ValidationHelper` | Application/Common | `EnsureNotNull`, `EnsureNotEmpty` returning `Result<T>` |
 | `ResultExtensions` | API/Extensions | `Result<T>` -> `IActionResult` mapping |

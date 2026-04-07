@@ -1,18 +1,13 @@
 namespace OneBear.Domain.Entities;
 
 using System.Text.Json.Serialization;
+using OneBear.Domain.Common;
 using OneBear.Domain.ValueObjects;
 
-public class ChatRoom : CosmosEntity
+public class ChatRoom : MongoEntity, IAuditableEntity
 {
-    [JsonPropertyName("id")]
-    public string Id { get; set; } = Guid.NewGuid().ToString();
-
     [JsonPropertyName("companyId")]
     public string CompanyId { get; set; } = default!;
-
-    [JsonPropertyName("_schemaVersion")]
-    public int SchemaVersion { get; set; } = 1;
 
     [JsonPropertyName("userId")]
     public string UserId { get; set; } = default!;
@@ -25,9 +20,6 @@ public class ChatRoom : CosmosEntity
 
     [JsonPropertyName("platform")]
     public string Platform { get; set; } = default!;
-
-    [JsonPropertyName("kind")]
-    public string? Kind { get; set; }
 
     [JsonPropertyName("integrationId")]
     public string IntegrationId { get; set; } = default!;
@@ -68,11 +60,68 @@ public class ChatRoom : CosmosEntity
     [JsonPropertyName("isAiMuted")]
     public bool IsAiMuted { get; set; }
 
-    [JsonPropertyName("customerId")]
-    public string? CustomerId { get; set; }
+    [JsonPropertyName("isPinned")]
+    public bool IsPinned { get; set; }
 
-    [JsonPropertyName("contactId")]
-    public string? ContactId { get; set; }
+    [JsonPropertyName("pinnedTimestamp")]
+    public long? PinnedTimestamp { get; set; }
+
+    [JsonPropertyName("pinnedByUserId")]
+    public string? PinnedByUserId { get; set; }
+
+    [JsonPropertyName("handoffSource")]
+    public string? HandoffSource { get; set; }
+
+    [JsonPropertyName("handoffSourceName")]
+    public string? HandoffSourceName { get; set; }
+
+    [JsonPropertyName("handoffTimestamp")]
+    public long? HandoffTimestamp { get; set; }
+
+    [JsonPropertyName("frtStartTimestamp")]
+    public long? FrtStartTimestamp { get; set; }
+
+    [JsonPropertyName("frtEndTimestamp")]
+    public long? FrtEndTimestamp { get; set; }
+
+    [JsonPropertyName("frtDurationMs")]
+    public long? FrtDurationMs { get; set; }
+
+    [JsonPropertyName("rtEndTimestamp")]
+    public long? RtEndTimestamp { get; set; }
+
+    [JsonPropertyName("rtDurationMs")]
+    public long? RtDurationMs { get; set; }
+
+    [JsonPropertyName("isFrtStopped")]
+    public bool IsFrtStopped { get; set; }
+
+    [JsonPropertyName("isResolved")]
+    public bool IsResolved { get; set; }
+
+    [JsonPropertyName("frtStoppedBy")]
+    public string? FrtStoppedBy { get; set; }
+
+    [JsonPropertyName("sessionTimings")]
+    public List<SessionTiming> SessionTimings { get; set; } = new();
+
+    [JsonPropertyName("hasPurchaseIntent")]
+    public bool HasPurchaseIntent { get; set; }
+
+    [JsonPropertyName("followUpAttempts")]
+    public int FollowUpAttempts { get; set; }
+
+    [JsonPropertyName("lastFollowUpTimestamp")]
+    public long? LastFollowUpTimestamp { get; set; }
+
+    [JsonPropertyName("followUpStopped")]
+    public bool FollowUpStopped { get; set; }
+
+    [JsonPropertyName("isSpam")]
+    public bool IsSpam { get; set; }
+
+    [JsonPropertyName("spamScore")]
+    public double? SpamScore { get; set; }
 
     [JsonPropertyName("createdBy")]
     public string? CreatedBy { get; set; }

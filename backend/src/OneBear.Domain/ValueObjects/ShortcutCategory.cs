@@ -9,7 +9,4 @@ public class ShortcutCategory
 
     [JsonPropertyName("name")]
     public string Name { get; set; } = default!;
-
-    [JsonPropertyName("sortOrder")]
-    public int SortOrder { get; set; }
 }

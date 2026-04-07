@@ -4,21 +4,18 @@ using System.Text.Json.Serialization;
 
 public class MessageAttachment
 {
-    [JsonPropertyName("attachmentId")]
-    public string? AttachmentId { get; set; }
-
     [JsonPropertyName("fileName")]
-    public string? FileName { get; set; }
+    public string FileName { get; set; } = default!;
 
-    [JsonPropertyName("contentType")]
-    public string? ContentType { get; set; }
-
-    [JsonPropertyName("fileSize")]
-    public long? FileSize { get; set; }
-
-    [JsonPropertyName("url")]
-    public string? Url { get; set; }
+    [JsonPropertyName("fileUrl")]
+    public string FileUrl { get; set; } = default!;
 
     [JsonPropertyName("thumbnailUrl")]
     public string? ThumbnailUrl { get; set; }
+
+    [JsonPropertyName("contentType")]
+    public string ContentType { get; set; } = default!;
+
+    [JsonPropertyName("size")]
+    public long Size { get; set; }
 }

@@ -3,62 +3,61 @@ import type { HubConnection } from '@microsoft/signalr'
 import { useAuthStore } from '../stores/auth-store'
 
 let connection: HubConnection | null = null
+let starting: Promise<HubConnection> | null = null
 
-export function getSignalRConnection(): HubConnection {
-	if (connection && connection.state !== HubConnectionState.Disconnected) {
-		return connection
-	}
-
-	const { token } = useAuthStore.getState()
-	if (!token) throw new Error('Cannot create SignalR connection without auth token')
-
-	connection = new HubConnectionBuilder()
+function createConnection(): HubConnection {
+	return new HubConnectionBuilder()
 		.withUrl('/hubs/chat', {
-			accessTokenFactory: () => {
-				// Always get fresh token from store
-				return useAuthStore.getState().token ?? ''
-			},
+			accessTokenFactory: () => useAuthStore.getState().token ?? '',
 		})
-		.withAutomaticReconnect({
-			nextRetryDelayInMilliseconds: (retryContext) => {
-				// Exponential backoff: 0, 1s, 2s, 5s, 10s, 30s max
-				const delays = [0, 1000, 2000, 5000, 10000, 30000]
-				return delays[Math.min(retryContext.previousRetryCount, delays.length - 1)] ?? 30000
-			},
-		})
+		.withAutomaticReconnect([0, 1000, 2000, 5000, 10000, 30000])
 		.configureLogging(LogLevel.Information)
 		.build()
-
-	// Connection lifecycle logging
-	connection.onreconnecting((error) => {
-		console.warn('[SignalR] Reconnecting...', error?.message)
-	})
-
-	connection.onreconnected((connectionId) => {
-		console.info('[SignalR] Reconnected:', connectionId)
-	})
-
-	connection.onclose((error) => {
-		console.warn('[SignalR] Connection closed:', error?.message)
-		connection = null
-	})
-
-	return connection
 }
 
 export async function startSignalR(): Promise<HubConnection> {
-	const conn = getSignalRConnection()
-	if (conn.state === HubConnectionState.Disconnected) {
-		await conn.start()
-		console.info('[SignalR] Connected:', conn.connectionId)
+	// If already starting, return the same promise (dedup)
+	if (starting) return starting
+
+	// Reuse existing connection if still alive
+	if (connection && connection.state === HubConnectionState.Connected) {
+		return connection
 	}
-	return conn
+
+	// If connection exists but disconnected, start it again
+	if (connection && connection.state === HubConnectionState.Disconnected) {
+		starting = connection.start().then(() => {
+			console.info('[SignalR] Reconnected (same object):', connection!.connectionId)
+			starting = null
+			return connection!
+		}).catch((err) => {
+			starting = null
+			throw err
+		})
+		return starting
+	}
+
+	// Create new connection
+	connection = createConnection()
+	starting = connection.start().then(() => {
+		console.info('[SignalR] Connected:', connection!.connectionId)
+		starting = null
+		return connection!
+	}).catch((err) => {
+		starting = null
+		connection = null
+		throw err
+	})
+
+	return starting
 }
 
 export async function stopSignalR(): Promise<void> {
+	starting = null
 	if (connection) {
-		await connection.stop()
+		const conn = connection
 		connection = null
+		try { await conn.stop() } catch { /* ignore */ }
 	}
 }
 

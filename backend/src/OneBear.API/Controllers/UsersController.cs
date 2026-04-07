@@ -1,77 +1,79 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using OneBear.API.Auth;
+using OneBear.Domain.Entities;
+using OneBear.Domain.Interfaces.Repositories;
 
 namespace OneBear.API.Controllers;
 
 [ApiController]
 [Route("api/v1/companies/{companyId}/users")]
 [Authorize]
+[EnableRateLimiting("api")]
 public class UsersController : ControllerBase
 {
-    /// <summary>Upsert a user (create or update).</summary>
-    [HttpPost]
-    public IActionResult UpsertUser(string companyId)
+    private readonly IChatUserRepository _userRepo;
+
+    public UsersController(IChatUserRepository userRepo)
     {
-        return Ok(new
-        {
-            id = Guid.NewGuid().ToString(),
-            companyId,
-            displayName = "",
-            email = "",
-            role = "agent",
-            status = "active",
-            createdAt = DateTimeOffset.UtcNow,
-            updatedAt = DateTimeOffset.UtcNow
-        });
+        _userRepo = userRepo;
     }
 
     /// <summary>Get current authenticated user profile.</summary>
     [HttpGet("me")]
-    public IActionResult GetMe(string companyId)
+    public async Task<IActionResult> GetMe(string companyId, CancellationToken ct)
     {
+        string userId = User.GetUserId();
+        ChatUser? user = await _userRepo.GetByIdAsync(userId, companyId, ct);
+
+        if (user is null)
+        {
+            // Return basic info from JWT claims
+            return Ok(new
+            {
+                id = userId,
+                companyId,
+                displayName = User.GetDisplayName() ?? "Unknown",
+                email = User.GetEmail(),
+                type = "Agent",
+                isActive = true
+            });
+        }
+
         return Ok(new
         {
-            id = "stub-user-id",
-            companyId,
-            displayName = "Stub User",
-            email = "stub@example.com",
-            role = "agent",
-            status = "active",
-            avatarUrl = (string?)null,
-            createdAt = DateTimeOffset.UtcNow
+            id = user.Id,
+            companyId = user.CompanyId,
+            displayName = user.DisplayName,
+            pictureUrl = user.PictureUrl,
+            type = user.Type,
+            isActive = user.IsActive,
+            createdTimestamp = user.CreatedTimestamp
         });
     }
 
-    /// <summary>Get notification preferences for current user.</summary>
-    [HttpGet("me/notifications")]
-    public IActionResult GetNotifications(string companyId)
+    /// <summary>List agents in the company.</summary>
+    [HttpGet]
+    public async Task<IActionResult> ListUsers(
+        string companyId,
+        [FromQuery] string? type = "Agent",
+        [FromQuery] int pageSize = 50,
+        [FromQuery] string? continuationToken = null,
+        CancellationToken ct = default)
     {
-        return Ok(new
-        {
-            companyId,
-            email = true,
-            push = true,
-            sound = true,
-            newMessage = true,
-            newRoom = true,
-            mention = true
-        });
-    }
+        (List<ChatUser> users, string? nextToken) =
+            await _userRepo.QueryByTypeAsync(companyId, type ?? "Agent", pageSize, continuationToken, ct);
 
-    /// <summary>Update notification preferences for current user.</summary>
-    [HttpPut("me/notifications")]
-    public IActionResult UpdateNotifications(string companyId)
-    {
-        return Ok(new
+        var dtos = users.Select(u => new
         {
-            companyId,
-            email = true,
-            push = true,
-            sound = true,
-            newMessage = true,
-            newRoom = true,
-            mention = true,
-            updatedAt = DateTimeOffset.UtcNow
-        });
+            id = u.Id,
+            displayName = u.DisplayName,
+            pictureUrl = u.PictureUrl,
+            type = u.Type,
+            isActive = u.IsActive
+        }).ToList();
+
+        return Ok(new { data = dtos, continuationToken = nextToken, hasMore = !string.IsNullOrEmpty(nextToken) });
     }
 }

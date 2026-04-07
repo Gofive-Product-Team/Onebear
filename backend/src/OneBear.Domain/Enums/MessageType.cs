@@ -21,4 +21,8 @@ public static class MessageType
     public const string Product = "Product";
     public const string Flex = "Flex";
     public const string Comment = "Comment";
+    public const string PrivateNote = "PrivateNote";
+
+    public static readonly string[] All = [Text, Image, Video, Audio, File, Sticker, Location, System,
+        TemplateMessage, Carousel, ReactionAdded, ReactionRemoved, Note, EmailMessage, Story, Order, Product, Flex, Comment, PrivateNote];
 }

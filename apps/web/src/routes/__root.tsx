@@ -1,85 +1,62 @@
-import { createRootRoute, createRoute, Outlet, Link, useNavigate } from '@tanstack/react-router'
+import { createRootRoute, createRoute, Outlet, useParams, useRouterState } from '@tanstack/react-router'
+import { createContext, useContext } from 'react'
+import type { HubConnection } from '@microsoft/signalr'
 import { useAuthStore } from '../stores/auth-store'
+import { useSignalR } from '../hooks/useSignalR'
+import { useSignalREvents } from '../hooks/useSignalREvents'
 import { LoginPage } from '../pages/LoginPage'
+import { RegisterPage } from '../pages/RegisterPage'
+import { AuthCallbackPage } from '../pages/AuthCallbackPage'
 import { ErrorBoundary } from '../components/ErrorBoundary'
+import { AppShell } from '../components/layout/AppShell'
+import { ChatLayout } from '../components/chat/ChatLayout'
+import { DashboardPage } from '../pages/DashboardPage'
+import { CustomerPage } from '../pages/CustomerPage'
+import { CustomerProfilePage } from '../pages/CustomerProfilePage'
+import { SettingsPage } from '../pages/SettingsPage'
+import { PaymentPage } from '../pages/PaymentPage'
+import { SatisfactionPage } from '../pages/SatisfactionPage'
+import { OAuthCallbackPage } from '../pages/OAuthCallbackPage'
 
-// Root layout with auth guard
+// SignalR context — connection lives at root level, survives route changes
+interface SignalRContextValue {
+	connection: HubConnection | null
+	isConnected: boolean
+}
+const SignalRContext = createContext<SignalRContextValue>({ connection: null, isConnected: false })
+export function useSignalRContext() {
+	return useContext(SignalRContext)
+}
+
+// Public routes that don't require authentication
+const PUBLIC_PATHS = ['/register', '/auth/callback']
+
+// Root layout with auth guard + SignalR provider
 function RootLayout() {
 	const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-	const user = useAuthStore((s) => s.user)
-	const logout = useAuthStore((s) => s.logout)
-	const navigate = useNavigate()
+	const currentPath = useRouterState().location.pathname
+
+	// SignalR lives here — never unmounts while authenticated
+	const { connection, isConnected } = useSignalR()
+	useSignalREvents(connection)
+
+	// Allow public routes without authentication
+	const isPublicRoute = PUBLIC_PATHS.some((p) => currentPath.startsWith(p))
+	if (isPublicRoute) {
+		return <Outlet />
+	}
 
 	if (!isAuthenticated) {
-		return <LoginPage onSuccess={() => navigate({ to: '/chat' })} />
+		return <LoginPage />
 	}
 
 	return (
 		<ErrorBoundary>
-			<div className="min-h-screen bg-gray-50">
-				<nav className="bg-white border-b border-gray-200 px-4 py-3">
-					<div className="flex items-center gap-6">
-						<span className="font-bold text-lg">One Bear</span>
-						<Link
-							to="/"
-							className="text-sm text-gray-600 hover:text-gray-900 [&.active]:text-blue-600 [&.active]:font-medium"
-						>
-							Home
-						</Link>
-						<Link
-							to="/chat"
-							className="text-sm text-gray-600 hover:text-gray-900 [&.active]:text-blue-600 [&.active]:font-medium"
-						>
-							Chat
-						</Link>
-						<Link
-							to="/customer"
-							className="text-sm text-gray-600 hover:text-gray-900 [&.active]:text-blue-600 [&.active]:font-medium"
-						>
-							Customer
-						</Link>
-						<Link
-							to="/dashboard"
-							className="text-sm text-gray-600 hover:text-gray-900 [&.active]:text-blue-600 [&.active]:font-medium"
-						>
-							Dashboard
-						</Link>
-						<Link
-							to="/settings"
-							className="text-sm text-gray-600 hover:text-gray-900 [&.active]:text-blue-600 [&.active]:font-medium"
-						>
-							Settings
-						</Link>
-						<Link
-							to="/payment"
-							className="text-sm text-gray-600 hover:text-gray-900 [&.active]:text-blue-600 [&.active]:font-medium"
-						>
-							Payment
-						</Link>
-						<Link
-							to="/satisfaction"
-							className="text-sm text-gray-600 hover:text-gray-900 [&.active]:text-blue-600 [&.active]:font-medium"
-						>
-							Satisfaction
-						</Link>
-						<div className="ml-auto flex items-center gap-3">
-							{user && <span className="text-sm text-gray-500">{user.displayName}</span>}
-							<button
-								onClick={() => {
-									logout()
-									navigate({ to: '/' })
-								}}
-								className="text-sm text-gray-500 hover:text-red-600"
-							>
-								Logout
-							</button>
-						</div>
-					</div>
-				</nav>
-				<main className="p-6">
+			<SignalRContext.Provider value={{ connection, isConnected }}>
+				<AppShell>
 					<Outlet />
-				</main>
-			</div>
+				</AppShell>
+			</SignalRContext.Provider>
 		</ErrorBoundary>
 	)
 }
@@ -88,115 +65,140 @@ const rootRoute = createRootRoute({
 	component: RootLayout,
 })
 
-// Placeholder component factory
-function TodoPage({ name }: { name: string }) {
-	return (
-		<div className="max-w-2xl mx-auto mt-12 text-center">
-			<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-				<h1 className="text-2xl font-bold text-gray-900 mb-2">TODO: {name}</h1>
-				<p className="text-gray-500">This page is a placeholder. Feature implementation pending.</p>
-			</div>
-		</div>
-	)
-}
-
 // Routes
 const indexRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/',
 	component: () => (
 		<div className="max-w-2xl mx-auto mt-12 text-center">
-			<h1 className="text-4xl font-bold text-gray-900 mb-4">One Bear Platform</h1>
-			<p className="text-lg text-gray-600 mb-2">Multi-platform social messaging SaaS</p>
-			<p className="text-sm text-gray-400">Scaffold v1.0.0 — All features are TODO</p>
+			<h1 className="text-4xl font-bold text-t1 mb-4">One Bear Platform</h1>
+			<p className="text-lg text-t2 mb-2">Multi-platform social messaging SaaS</p>
+			<p className="text-sm text-t3">Scaffold v1.0.0</p>
 		</div>
 	),
+})
+
+const registerRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: '/register',
+	component: RegisterPage,
+})
+
+const authCallbackRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: '/auth/callback',
+	component: AuthCallbackPage,
 })
 
 const chatRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/chat',
-	component: () => <TodoPage name="Chat — Room List" />,
+	component: () => <ChatLayout />,
 })
+
+function ChatRoomPage() {
+	const { roomId } = useParams({ from: '/chat/$roomId' })
+	return <ChatLayout roomId={roomId} />
+}
 
 const chatRoomRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/chat/$roomId',
-	component: () => <TodoPage name="Chat — Conversation View" />,
+	component: ChatRoomPage,
 })
 
 const customerRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/customer',
-	component: () => <TodoPage name="Customer Management" />,
+	component: CustomerPage,
+})
+
+function CustomerProfileRoutePage() {
+	const { customerId } = useParams({ from: '/customer/$customerId' })
+	return <CustomerProfilePage customerId={customerId} />
+}
+
+const customerProfileRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: '/customer/$customerId',
+	component: CustomerProfileRoutePage,
 })
 
 const dashboardRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/dashboard',
-	component: () => <TodoPage name="Dashboard — Analytics" />,
+	component: DashboardPage,
 })
 
 const settingsRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/settings',
-	component: () => <TodoPage name="Settings" />,
+	component: SettingsPage,
 })
 
 const settingsIntegrationsRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/settings/integrations',
-	component: () => <TodoPage name="Settings — Integrations" />,
+	component: SettingsPage,
 })
 
 const settingsGreetingRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/settings/greeting',
-	component: () => <TodoPage name="Settings — Greeting Messages" />,
+	component: SettingsPage,
 })
 
 const settingsAutoReplyRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/settings/auto-reply',
-	component: () => <TodoPage name="Settings — Auto Reply" />,
+	component: SettingsPage,
 })
 
 const settingsAutoAssignmentRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/settings/auto-assignment',
-	component: () => <TodoPage name="Settings — Auto Assignment" />,
+	component: SettingsPage,
 })
 
 const settingsShortcutsRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/settings/shortcuts',
-	component: () => <TodoPage name="Settings — Shortcuts" />,
+	component: SettingsPage,
 })
 
 const settingsChatbotRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/settings/chatbot',
-	component: () => <TodoPage name="Settings — AI Chatbot" />,
+	component: SettingsPage,
 })
 
 const paymentRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/payment',
-	component: () => <TodoPage name="Payment" />,
+	component: PaymentPage,
 })
 
 const satisfactionRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/satisfaction',
-	component: () => <TodoPage name="Satisfaction Survey" />,
+	component: SatisfactionPage,
+})
+
+const oauthCallbackRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: '/oauth/callback/$platform',
+	component: OAuthCallbackPage,
 })
 
 // Build route tree
 export const routeTree = rootRoute.addChildren([
 	indexRoute,
+	registerRoute,
+	authCallbackRoute,
 	chatRoute,
 	chatRoomRoute,
 	customerRoute,
+	customerProfileRoute,
 	dashboardRoute,
 	settingsRoute,
 	settingsIntegrationsRoute,
@@ -207,4 +209,5 @@ export const routeTree = rootRoute.addChildren([
 	settingsChatbotRoute,
 	paymentRoute,
 	satisfactionRoute,
+	oauthCallbackRoute,
 ])

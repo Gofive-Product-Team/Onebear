@@ -13,143 +13,123 @@ public class CompanyIdValidationFilterTests
     private readonly CompanyIdValidationFilter _filter = new();
 
     private static ActionExecutingContext CreateContext(
-        string? routeCompanyId,
+        string? companyIdArgValue,
         ClaimsPrincipal? user = null)
     {
-        var httpContext = new DefaultHttpContext();
+        DefaultHttpContext httpContext = new();
         if (user != null)
         {
             httpContext.User = user;
         }
 
-        var routeData = new RouteData();
-        if (routeCompanyId != null)
+        RouteData routeData = new();
+        ActionContext actionContext = new(httpContext, routeData, new ActionDescriptor());
+
+        Dictionary<string, object?> arguments = new();
+        if (companyIdArgValue != null)
         {
-            routeData.Values["companyId"] = routeCompanyId;
+            arguments["companyId"] = companyIdArgValue;
         }
 
-        var actionContext = new ActionContext(httpContext, routeData, new ActionDescriptor());
-        var context = new ActionExecutingContext(
+        return new ActionExecutingContext(
             actionContext,
             new List<IFilterMetadata>(),
-            new Dictionary<string, object?>(),
+            arguments,
             new object());
-
-        return context;
     }
 
-    private static ClaimsPrincipal CreateUser(string? companyId, string authMethod = "Bearer")
+    private static ClaimsPrincipal CreateJwtUser(string? companyId)
     {
-        var claims = new List<Claim>();
+        List<Claim> claims = [];
         if (companyId != null)
         {
-            claims.Add(new Claim("company_id", companyId));
-        }
-        if (authMethod == "ApiKey")
-        {
-            claims.Add(new Claim(ClaimTypes.AuthenticationMethod, "ApiKey"));
+            claims.Add(new Claim(AuthConstants.ClaimCompanyId, companyId));
         }
         return new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"));
     }
 
-    [Fact]
-    public void OnActionExecuting_ShouldPass_WhenCompanyIdMatches()
+    private static ClaimsPrincipal CreateApiKeyUser()
     {
-        // Arrange
-        ClaimsPrincipal user = CreateUser("company-001");
-        ActionExecutingContext context = CreateContext("company-001", user);
-
-        // Act
-        _filter.OnActionExecuting(context);
-
-        // Assert
-        Assert.Null(context.Result); // No result = pass
+        Claim[] claims = [new(AuthConstants.ClaimAuthMethod, AuthConstants.ClaimAuthMethodApiKey)];
+        return new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"));
     }
 
     [Fact]
-    public void OnActionExecuting_ShouldReturn403_WhenCompanyIdMismatch()
+    public async Task ShouldPass_WhenCompanyIdMatchesClaim()
     {
-        // Arrange
-        ClaimsPrincipal user = CreateUser("company-001");
+        ClaimsPrincipal user = CreateJwtUser("company-001");
+        ActionExecutingContext context = CreateContext("company-001", user);
+
+        await _filter.OnActionExecutionAsync(context, () => Task.FromResult(new ActionExecutedContext(
+            new ActionContext(context.HttpContext, context.RouteData, context.ActionDescriptor),
+            new List<IFilterMetadata>(), new object())));
+
+        Assert.Null(context.Result);
+    }
+
+    [Fact]
+    public async Task ShouldReturn403_WhenCompanyIdMismatch()
+    {
+        ClaimsPrincipal user = CreateJwtUser("company-001");
         ActionExecutingContext context = CreateContext("company-999", user);
 
-        // Act
-        _filter.OnActionExecuting(context);
+        await _filter.OnActionExecutionAsync(context, () => Task.FromResult(new ActionExecutedContext(
+            new ActionContext(context.HttpContext, context.RouteData, context.ActionDescriptor),
+            new List<IFilterMetadata>(), new object())));
 
-        // Assert
-        Assert.NotNull(context.Result);
-        ObjectResult objectResult = Assert.IsType<ObjectResult>(context.Result);
-        Assert.Equal(403, objectResult.StatusCode);
-    }
-
-    [Fact]
-    public void OnActionExecuting_ShouldSkip_WhenNoCompanyIdInRoute()
-    {
-        // Arrange
-        ClaimsPrincipal user = CreateUser("company-001");
-        ActionExecutingContext context = CreateContext(null, user);
-
-        // Act
-        _filter.OnActionExecuting(context);
-
-        // Assert
-        Assert.Null(context.Result);
-    }
-
-    [Fact]
-    public void OnActionExecuting_ShouldSkip_WhenApiKeyAuth()
-    {
-        // Arrange
-        ClaimsPrincipal user = CreateUser(null, "ApiKey");
-        ActionExecutingContext context = CreateContext("any-company", user);
-
-        // Act
-        _filter.OnActionExecuting(context);
-
-        // Assert
-        Assert.Null(context.Result);
-    }
-
-    [Fact]
-    public void OnActionExecuting_ShouldReturnForbid_WhenNoCompanyIdClaim()
-    {
-        // Arrange
-        ClaimsPrincipal user = CreateUser(null);
-        ActionExecutingContext context = CreateContext("company-001", user);
-
-        // Act
-        _filter.OnActionExecuting(context);
-
-        // Assert
         Assert.NotNull(context.Result);
         Assert.IsType<ForbidResult>(context.Result);
     }
 
     [Fact]
-    public void OnActionExecuting_ShouldPass_WhenCompanyIdMatchesCaseInsensitive()
+    public async Task ShouldReturn403_WhenMissingCompanyIdClaim()
     {
-        // Arrange
-        ClaimsPrincipal user = CreateUser("Company-001");
+        ClaimsPrincipal user = CreateJwtUser(null);
         ActionExecutingContext context = CreateContext("company-001", user);
 
-        // Act
-        _filter.OnActionExecuting(context);
+        await _filter.OnActionExecutionAsync(context, () => Task.FromResult(new ActionExecutedContext(
+            new ActionContext(context.HttpContext, context.RouteData, context.ActionDescriptor),
+            new List<IFilterMetadata>(), new object())));
 
-        // Assert
-        Assert.Null(context.Result);
+        Assert.NotNull(context.Result);
+        Assert.IsType<ForbidResult>(context.Result);
     }
 
     [Fact]
-    public void OnActionExecuting_ShouldSkip_WhenUserNotAuthenticated()
+    public async Task ShouldBypass_WhenApiKeyAuth()
     {
-        // Arrange - user with no identity (unauthenticated)
-        ClaimsPrincipal user = new ClaimsPrincipal();
-        ActionExecutingContext context = CreateContext("company-001", user);
+        bool nextCalled = false;
+        ClaimsPrincipal user = CreateApiKeyUser();
+        ActionExecutingContext context = CreateContext("any-company", user);
 
-        // Act
-        _filter.OnActionExecuting(context);
+        await _filter.OnActionExecutionAsync(context, () =>
+        {
+            nextCalled = true;
+            return Task.FromResult(new ActionExecutedContext(
+                new ActionContext(context.HttpContext, context.RouteData, context.ActionDescriptor),
+                new List<IFilterMetadata>(), new object()));
+        });
 
-        // Assert
         Assert.Null(context.Result);
+        Assert.True(nextCalled);
+    }
+
+    [Fact]
+    public async Task ShouldPass_WhenNoCompanyIdInArguments()
+    {
+        bool nextCalled = false;
+        ClaimsPrincipal user = CreateJwtUser("company-001");
+        ActionExecutingContext context = CreateContext(null, user);
+
+        await _filter.OnActionExecutionAsync(context, () =>
+        {
+            nextCalled = true;
+            return Task.FromResult(new ActionExecutedContext(
+                new ActionContext(context.HttpContext, context.RouteData, context.ActionDescriptor),
+                new List<IFilterMetadata>(), new object()));
+        });
+
+        Assert.Null(context.Result);
+        Assert.True(nextCalled);
     }
 }

@@ -2,43 +2,25 @@ namespace OneBear.Domain.Entities;
 
 using System.Text.Json.Serialization;
 
-public class CompanyFeatureSettings : CosmosEntity
+public class CompanyFeatureSettings : MongoEntity
 {
-    [JsonPropertyName("id")]
-    public string Id { get; set; } = Guid.NewGuid().ToString();
-
     [JsonPropertyName("companyId")]
     public string CompanyId { get; set; } = default!;
 
-    [JsonPropertyName("_schemaVersion")]
-    public int SchemaVersion { get; set; } = 1;
+    [JsonPropertyName("features")]
+    public Dictionary<string, bool> Features { get; set; } = new();
 
-    [JsonPropertyName("isChatbotEnabled")]
-    public bool IsChatbotEnabled { get; set; }
+    [JsonPropertyName("settings")]
+    public Dictionary<string, string> Settings { get; set; } = new();
 
-    [JsonPropertyName("isAutoAssignEnabled")]
-    public bool IsAutoAssignEnabled { get; set; }
+    [JsonPropertyName("slaLevel1Minutes")]
+    public int SlaLevel1Minutes { get; set; } = 15;
 
-    [JsonPropertyName("isFollowupEnabled")]
-    public bool IsFollowupEnabled { get; set; }
+    [JsonPropertyName("slaLevel2Minutes")]
+    public int SlaLevel2Minutes { get; set; } = 30;
 
-    [JsonPropertyName("isSatisfactionSurveyEnabled")]
-    public bool IsSatisfactionSurveyEnabled { get; set; }
-
-    [JsonPropertyName("maxAgents")]
-    public int MaxAgents { get; set; }
-
-    [JsonPropertyName("maxIntegrations")]
-    public int MaxIntegrations { get; set; }
-
-    [JsonPropertyName("enabledPlatforms")]
-    public List<string> EnabledPlatforms { get; set; } = new();
-
-    [JsonPropertyName("createdTimestamp")]
-    public long CreatedTimestamp { get; set; }
-
-    [JsonPropertyName("createdBy")]
-    public string? CreatedBy { get; set; }
+    [JsonPropertyName("slaLevel3Minutes")]
+    public int SlaLevel3Minutes { get; set; } = 60;
 
     [JsonPropertyName("updatedTimestamp")]
     public long? UpdatedTimestamp { get; set; }

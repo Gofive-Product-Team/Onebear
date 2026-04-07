@@ -24,7 +24,7 @@ describe('useAuthStore', () => {
 	})
 
 	it('should login with token, expiry, and user profile', () => {
-		useAuthStore.getState().login('test-token', 3600, mockUser)
+		useAuthStore.getState().login('test-token', 'test-refresh-token', 3600, mockUser)
 		const state = useAuthStore.getState()
 
 		expect(state.isAuthenticated).toBe(true)
@@ -36,7 +36,7 @@ describe('useAuthStore', () => {
 
 	it('should set tokenExpiry based on expiresIn seconds', () => {
 		const before = Date.now()
-		useAuthStore.getState().login('test-token', 3600, mockUser)
+		useAuthStore.getState().login('test-token', 'test-refresh-token', 3600, mockUser)
 		const after = Date.now()
 		const state = useAuthStore.getState()
 
@@ -46,7 +46,7 @@ describe('useAuthStore', () => {
 	})
 
 	it('should logout and clear all state', () => {
-		useAuthStore.getState().login('test-token', 3600, mockUser)
+		useAuthStore.getState().login('test-token', 'test-refresh-token', 3600, mockUser)
 		useAuthStore.getState().logout()
 		const state = useAuthStore.getState()
 
@@ -71,26 +71,26 @@ describe('useAuthStore', () => {
 		})
 
 		it('should return false when token is still valid', () => {
-			useAuthStore.getState().login('test-token', 3600, mockUser)
+			useAuthStore.getState().login('test-token', 'test-refresh-token', 3600, mockUser)
 			expect(useAuthStore.getState().isTokenExpired()).toBe(false)
 		})
 
 		it('should return true when token is expired', () => {
 			// Login with a negative expiresIn to simulate an expired token
-			useAuthStore.getState().login('test-token', -120, mockUser)
+			useAuthStore.getState().login('test-token', 'test-refresh-token', -120, mockUser)
 			expect(useAuthStore.getState().isTokenExpired()).toBe(true)
 		})
 
 		it('should return true within the 1-minute buffer before expiry', () => {
 			// expiresIn of 30 seconds means expiry is 30s from now,
 			// but with 60s buffer, it should be considered expired
-			useAuthStore.getState().login('test-token', 30, mockUser)
+			useAuthStore.getState().login('test-token', 'test-refresh-token', 30, mockUser)
 			expect(useAuthStore.getState().isTokenExpired()).toBe(true)
 		})
 
 		it('should return false when token expires well beyond the buffer', () => {
 			// expiresIn of 300 seconds (5 min) - well beyond the 60s buffer
-			useAuthStore.getState().login('test-token', 300, mockUser)
+			useAuthStore.getState().login('test-token', 'test-refresh-token', 300, mockUser)
 			expect(useAuthStore.getState().isTokenExpired()).toBe(false)
 		})
 	})
@@ -101,20 +101,20 @@ describe('useAuthStore', () => {
 		})
 
 		it('should return true when user has the permission', () => {
-			useAuthStore.getState().login('test-token', 3600, mockUser)
+			useAuthStore.getState().login('test-token', 'test-refresh-token', 3600, mockUser)
 			expect(useAuthStore.getState().hasPermission(Permission.ChatView)).toBe(true)
-			expect(useAuthStore.getState().hasPermission(Permission.ChatResolve)).toBe(true)
+			expect(useAuthStore.getState().hasPermission(Permission.ChatResolved)).toBe(true)
 			expect(useAuthStore.getState().hasPermission(Permission.ChatMention)).toBe(true)
 		})
 
 		it('should return false when user does not have the permission', () => {
-			useAuthStore.getState().login('test-token', 3600, mockUser)
-			expect(useAuthStore.getState().hasPermission(Permission.ChatAssignAll)).toBe(false)
-			expect(useAuthStore.getState().hasPermission(Permission.ChatAdmin)).toBe(false)
+			useAuthStore.getState().login('test-token', 'test-refresh-token', 3600, mockUser)
+			expect(useAuthStore.getState().hasPermission(Permission.ChatAssignAllCompany)).toBe(false)
+			expect(useAuthStore.getState().hasPermission(Permission.ChatAccessAllData)).toBe(false)
 		})
 
 		it('should return false for a permission id not in the list', () => {
-			useAuthStore.getState().login('test-token', 3600, mockUser)
+			useAuthStore.getState().login('test-token', 'test-refresh-token', 3600, mockUser)
 			expect(useAuthStore.getState().hasPermission(9999)).toBe(false)
 		})
 	})
@@ -122,10 +122,10 @@ describe('useAuthStore', () => {
 	describe('Permission constants', () => {
 		it('should have the correct permission values', () => {
 			expect(Permission.ChatView).toBe(3001)
-			expect(Permission.ChatResolve).toBe(3002)
+			expect(Permission.ChatResolved).toBe(3002)
 			expect(Permission.ChatMention).toBe(3003)
-			expect(Permission.ChatAssignAll).toBe(3004)
-			expect(Permission.ChatAdmin).toBe(3005)
+			expect(Permission.ChatAssignAllCompany).toBe(3004)
+			expect(Permission.ChatAccessAllData).toBe(3005)
 		})
 	})
 })

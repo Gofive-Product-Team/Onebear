@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 
 namespace OneBear.API.Auth;
@@ -15,16 +16,25 @@ public class PermissionHandler : AuthorizationHandler<PermissionRequirement>
         AuthorizationHandlerContext context,
         PermissionRequirement requirement)
     {
-        var permissionClaims = context.User.FindAll("permissions");
-        foreach (Claim claim in permissionClaims)
+        // API key auth bypasses permission checks (service-to-service)
+        if (context.User.HasClaim(AuthConstants.ClaimAuthMethod, AuthConstants.ClaimAuthMethodApiKey))
         {
-            if (int.TryParse(claim.Value, out int permId) && permId == requirement.PermissionId)
-            {
-                context.Succeed(requirement);
-                return Task.CompletedTask;
-            }
+            context.Succeed(requirement);
+            return Task.CompletedTask;
         }
 
-        return Task.CompletedTask; // Not succeeded = forbidden
+        // Check JWT permissions claim (JSON array)
+        Claim? permissionsClaim = context.User.FindFirst(AuthConstants.ClaimPermissions);
+        if (permissionsClaim is null)
+            return Task.CompletedTask; // Fail — no permissions claim
+
+        int[] permissions = JsonSerializer.Deserialize<int[]>(permissionsClaim.Value) ?? [];
+
+        if (permissions.Contains(requirement.PermissionId))
+        {
+            context.Succeed(requirement);
+        }
+
+        return Task.CompletedTask;
     }
 }

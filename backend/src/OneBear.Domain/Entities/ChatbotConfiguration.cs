@@ -3,62 +3,78 @@ namespace OneBear.Domain.Entities;
 using System.Text.Json.Serialization;
 using OneBear.Domain.ValueObjects;
 
-public class ChatbotConfiguration : CosmosEntity
+public class ChatbotConfiguration : MongoEntity
 {
-    [JsonPropertyName("id")]
-    public string Id { get; set; } = Guid.NewGuid().ToString();
-
     [JsonPropertyName("companyId")]
     public string CompanyId { get; set; } = default!;
 
-    [JsonPropertyName("_schemaVersion")]
-    public int SchemaVersion { get; set; } = 1;
+    [JsonPropertyName("isEnabled")]
+    public bool IsEnabled { get; set; }
 
-    [JsonPropertyName("integrationId")]
-    public string? IntegrationId { get; set; }
+    [JsonPropertyName("scheduleMode")]
+    public string ScheduleMode { get; set; } = "always";
 
-    [JsonPropertyName("name")]
-    public string Name { get; set; } = default!;
+    [JsonPropertyName("daySchedules")]
+    public List<DaySchedule> DaySchedules { get; set; } = new();
 
-    [JsonPropertyName("isActive")]
-    public bool IsActive { get; set; } = true;
+    [JsonPropertyName("businessOverview")]
+    public string? BusinessOverview { get; set; }
 
-    [JsonPropertyName("systemPrompt")]
-    public string? SystemPrompt { get; set; }
+    [JsonPropertyName("responseStyle")]
+    public string? ResponseStyle { get; set; }
 
-    [JsonPropertyName("model")]
-    public string? Model { get; set; }
-
-    [JsonPropertyName("temperature")]
-    public double Temperature { get; set; } = 0.7;
-
-    [JsonPropertyName("maxTokens")]
-    public int MaxTokens { get; set; } = 1024;
+    [JsonPropertyName("instructions")]
+    public string? Instructions { get; set; }
 
     [JsonPropertyName("knowledgeSources")]
     public List<KnowledgeSource> KnowledgeSources { get; set; } = new();
 
-    [JsonPropertyName("shortcuts")]
-    public List<Shortcut> Shortcuts { get; set; } = new();
+    // AI Tone/Persona
+    [JsonPropertyName("tone")]
+    public string Tone { get; set; } = "casual"; // casual | formal | cute
 
-    [JsonPropertyName("shortcutCategories")]
-    public List<ShortcutCategory> ShortcutCategories { get; set; } = new();
+    // FAQ entries
+    [JsonPropertyName("faqEntries")]
+    public List<FaqEntry> FaqEntries { get; set; } = new();
 
-    [JsonPropertyName("businessHours")]
-    public List<DaySchedule> BusinessHours { get; set; } = new();
+    // Upsell/Cross-sell config
+    [JsonPropertyName("upsellEnabled")]
+    public bool UpsellEnabled { get; set; } = true;
 
-    [JsonPropertyName("offlineMessage")]
-    public string? OfflineMessage { get; set; }
+    [JsonPropertyName("upsellMaxPricePercent")]
+    public int UpsellMaxPricePercent { get; set; } = 50;
 
-    [JsonPropertyName("createdTimestamp")]
-    public long CreatedTimestamp { get; set; }
+    [JsonPropertyName("crossSellEnabled")]
+    public bool CrossSellEnabled { get; set; } = true;
 
-    [JsonPropertyName("createdBy")]
-    public string? CreatedBy { get; set; }
+    [JsonPropertyName("crossSellMaxItems")]
+    public int CrossSellMaxItems { get; set; } = 2;
 
-    [JsonPropertyName("updatedTimestamp")]
-    public long? UpdatedTimestamp { get; set; }
+    [JsonPropertyName("paymentLinkExpiryHours")]
+    public int PaymentLinkExpiryHours { get; set; } = 24;
+
+    // Follow-up config
+    [JsonPropertyName("followUpEnabled")]
+    public bool FollowUpEnabled { get; set; }
+
+    [JsonPropertyName("followUpDelayMinutes")]
+    public int FollowUpDelayMinutes { get; set; } = 120;
+
+    [JsonPropertyName("followUpWindowStart")]
+    public string FollowUpWindowStart { get; set; } = "09:00";
+
+    [JsonPropertyName("followUpWindowEnd")]
+    public string FollowUpWindowEnd { get; set; } = "21:00";
+
+    [JsonPropertyName("followUpMaxAttempts")]
+    public int FollowUpMaxAttempts { get; set; } = 2;
+
+    [JsonPropertyName("followUpTemplate")]
+    public string? FollowUpTemplate { get; set; }
 
     [JsonPropertyName("updatedBy")]
     public string? UpdatedBy { get; set; }
+
+    [JsonPropertyName("updatedTimestamp")]
+    public long? UpdatedTimestamp { get; set; }
 }

@@ -1,70 +1,91 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using OneBear.API.Auth;
+using OneBear.Application.Common.DTOs;
+using OneBear.Application.Integrations.Mappings;
+using OneBear.Domain.Entities;
+using OneBear.Domain.Interfaces.Repositories;
+using OneBear.Domain.ValueObjects;
 
 namespace OneBear.API.Controllers;
 
 [ApiController]
 [Route("api/v1/companies/{companyId}/integrations")]
 [Authorize]
+[EnableRateLimiting("api")]
 public class IntegrationsController : ControllerBase
 {
+    private readonly IIntegrationChannelRepository _integrationRepo;
+
+    public IntegrationsController(IIntegrationChannelRepository integrationRepo)
+    {
+        _integrationRepo = integrationRepo;
+    }
+
     // ──────────────────────────────────────────────
     // Core CRUD
     // ──────────────────────────────────────────────
 
     /// <summary>List all integrations for a company.</summary>
     [HttpGet]
-    public IActionResult ListIntegrations(string companyId)
+    public async Task<IActionResult> ListIntegrations(string companyId, CancellationToken ct)
     {
-        return Ok(new { data = Array.Empty<object>() });
+        List<IntegrationChannel> integrations = await _integrationRepo.GetByCompanyIdAsync(companyId, ct);
+        List<IntegrationChannelDto> dtos = integrations.Select(IntegrationMapper.ToDto).ToList();
+        return Ok(new { data = dtos });
     }
 
-    /// <summary>Connect LINE integration.</summary>
-    [HttpPost("line")]
-    public IActionResult ConnectLine(string companyId)
+    /// <summary>Connect a platform integration.</summary>
+    [HttpPost("{platform}")]
+    public async Task<IActionResult> ConnectPlatform(
+        string companyId, string platform,
+        [FromBody] ConnectPlatformRequest request,
+        CancellationToken ct)
     {
-        return StatusCode(201, new { id = Guid.NewGuid().ToString(), platform = "line", companyId, status = "connected", createdAt = DateTimeOffset.UtcNow });
-    }
+        string userId = User.GetUserId();
+        long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        string id = Guid.NewGuid().ToString();
+        string webhookUrl = $"/api/v1/webhooks/{platform.ToLower()}/{companyId}/{id}";
 
-    /// <summary>Connect Facebook integration.</summary>
-    [HttpPost("facebook")]
-    public IActionResult ConnectFacebook(string companyId)
-    {
-        return StatusCode(201, new { id = Guid.NewGuid().ToString(), platform = "facebook", companyId, status = "connected", createdAt = DateTimeOffset.UtcNow });
-    }
+        IntegrationChannel channel = new()
+        {
+            Id = id,
+            CompanyId = companyId,
+            Platform = platform.ToLowerInvariant(),
+            Name = request.Name,
+            IsActive = true,
+            HasChatFeature = true,
+            WebhookUrl = webhookUrl,
+            Credentials = new PlatformCredentials
+            {
+                ChannelId = request.ChannelId,
+                ChannelSecret = request.ChannelSecret,
+                AccessToken = request.ChannelAccessToken ?? request.AccessToken,
+                RefreshToken = request.RefreshToken,
+                AppSecret = request.AppSecret,
+                PhoneNumberId = request.PhoneNumberId,
+                BusinessAccountId = request.BusinessAccountId,
+                EmailAddress = request.EmailAddress,
+                EmailPassword = request.EmailPassword,
+                SmtpHost = request.SmtpHost,
+                SmtpPort = request.SmtpPort,
+                ImapHost = request.ImapHost,
+                ImapPort = request.ImapPort,
+            },
+            CreatedBy = userId,
+            CreatedTimestamp = now
+        };
 
-    /// <summary>Connect WhatsApp integration.</summary>
-    [HttpPost("whatsapp")]
-    public IActionResult ConnectWhatsApp(string companyId)
-    {
-        return StatusCode(201, new { id = Guid.NewGuid().ToString(), platform = "whatsapp", companyId, status = "connected", createdAt = DateTimeOffset.UtcNow });
-    }
-
-    /// <summary>Connect Lazada integration.</summary>
-    [HttpPost("lazada")]
-    public IActionResult ConnectLazada(string companyId)
-    {
-        return StatusCode(201, new { id = Guid.NewGuid().ToString(), platform = "lazada", companyId, status = "connected", createdAt = DateTimeOffset.UtcNow });
-    }
-
-    /// <summary>Connect Shopee integration.</summary>
-    [HttpPost("shopee")]
-    public IActionResult ConnectShopee(string companyId)
-    {
-        return StatusCode(201, new { id = Guid.NewGuid().ToString(), platform = "shopee", companyId, status = "connected", createdAt = DateTimeOffset.UtcNow });
-    }
-
-    /// <summary>Connect TikTok integration.</summary>
-    [HttpPost("tiktok")]
-    public IActionResult ConnectTikTok(string companyId)
-    {
-        return StatusCode(201, new { id = Guid.NewGuid().ToString(), platform = "tiktok", companyId, status = "connected", createdAt = DateTimeOffset.UtcNow });
+        IntegrationChannel created = await _integrationRepo.CreateAsync(channel, ct);
+        return StatusCode(201, IntegrationMapper.ToDto(created));
     }
 
     /// <summary>Disconnect (delete) an integration.</summary>
     [HttpDelete("{integrationId}")]
-    public IActionResult DeleteIntegration(string companyId, string integrationId)
+    public async Task<IActionResult> DeleteIntegration(string companyId, string integrationId, CancellationToken ct)
     {
+        await _integrationRepo.DeleteAsync(integrationId, companyId, ct);
         return NoContent();
     }
 
@@ -72,103 +93,143 @@ public class IntegrationsController : ControllerBase
     // Greeting Messages
     // ──────────────────────────────────────────────
 
-    [HttpGet("greeting-messages")]
-    public IActionResult GetGreetingMessages(string companyId)
+    [HttpGet("{integrationId}/greeting-messages")]
+    public async Task<IActionResult> GetGreetingMessages(string companyId, string integrationId, CancellationToken ct)
     {
-        return Ok(new { data = Array.Empty<object>() });
+        IntegrationChannel? integration = await _integrationRepo.GetByIdAsync(integrationId, companyId, ct);
+        if (integration is null) return NotFound();
+        return Ok(new { data = integration.GreetingMessages });
     }
 
-    [HttpPut("greeting-messages")]
-    public IActionResult UpdateGreetingMessages(string companyId)
+    [HttpPut("{integrationId}/greeting-messages")]
+    public async Task<IActionResult> UpdateGreetingMessages(
+        string companyId, string integrationId,
+        [FromBody] UpdateGreetingMessagesRequest request,
+        CancellationToken ct)
     {
-        return Ok(new { data = Array.Empty<object>(), updatedAt = DateTimeOffset.UtcNow });
+        IntegrationChannel? integration = await _integrationRepo.GetByIdAsync(integrationId, companyId, ct);
+        if (integration is null) return NotFound();
+
+        integration.GreetingMessages = request.Messages;
+        integration.UpdatedBy = User.GetUserId();
+        integration.UpdatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        await _integrationRepo.UpdateAsync(integration, ct);
+        return Ok(new { data = integration.GreetingMessages });
     }
 
     // ──────────────────────────────────────────────
     // Auto-Replies
     // ──────────────────────────────────────────────
 
-    [HttpGet("auto-replies")]
-    public IActionResult GetAutoReplies(string companyId)
+    [HttpGet("{integrationId}/auto-replies")]
+    public async Task<IActionResult> GetAutoReplies(string companyId, string integrationId, CancellationToken ct)
     {
-        return Ok(new { data = Array.Empty<object>() });
+        IntegrationChannel? integration = await _integrationRepo.GetByIdAsync(integrationId, companyId, ct);
+        if (integration is null) return NotFound();
+        return Ok(new { data = integration.AutoReplies });
     }
 
-    [HttpPut("auto-replies")]
-    public IActionResult UpdateAutoReplies(string companyId)
+    [HttpPut("{integrationId}/auto-replies")]
+    public async Task<IActionResult> UpdateAutoReplies(
+        string companyId, string integrationId,
+        [FromBody] UpdateAutoRepliesRequest request,
+        CancellationToken ct)
     {
-        return Ok(new { data = Array.Empty<object>(), updatedAt = DateTimeOffset.UtcNow });
-    }
+        IntegrationChannel? integration = await _integrationRepo.GetByIdAsync(integrationId, companyId, ct);
+        if (integration is null) return NotFound();
 
-    [HttpGet("auto-replies/comments")]
-    public IActionResult GetCommentAutoReplies(string companyId)
-    {
-        return Ok(new { data = Array.Empty<object>() });
-    }
-
-    [HttpPut("auto-replies/comments")]
-    public IActionResult UpdateCommentAutoReplies(string companyId)
-    {
-        return Ok(new { data = Array.Empty<object>(), updatedAt = DateTimeOffset.UtcNow });
-    }
-
-    // ──────────────────────────────────────────────
-    // Platform Settings
-    // ──────────────────────────────────────────────
-
-    [HttpGet("platform-settings")]
-    public IActionResult GetPlatformSettings(string companyId)
-    {
-        return Ok(new { data = Array.Empty<object>() });
-    }
-
-    [HttpPut("platform-settings")]
-    public IActionResult UpdatePlatformSettings(string companyId)
-    {
-        return Ok(new { data = Array.Empty<object>(), updatedAt = DateTimeOffset.UtcNow });
+        integration.AutoReplies = request.Rules;
+        integration.UpdatedBy = User.GetUserId();
+        integration.UpdatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        await _integrationRepo.UpdateAsync(integration, ct);
+        return Ok(new { data = integration.AutoReplies });
     }
 
     // ──────────────────────────────────────────────
     // Auto-Assignment
     // ──────────────────────────────────────────────
 
-    [HttpGet("auto-assignment")]
-    public IActionResult GetAutoAssignment(string companyId)
+    [HttpGet("{integrationId}/auto-assignment")]
+    public async Task<IActionResult> GetAutoAssignment(string companyId, string integrationId, CancellationToken ct)
     {
-        return Ok(new { enabled = false, strategy = "round-robin", rules = Array.Empty<object>() });
+        IntegrationChannel? integration = await _integrationRepo.GetByIdAsync(integrationId, companyId, ct);
+        if (integration is null) return NotFound();
+        return Ok(integration.AutoAssignment ?? new AutoAssignmentSettings());
     }
 
-    [HttpPut("auto-assignment")]
-    public IActionResult UpdateAutoAssignment(string companyId)
+    [HttpPut("{integrationId}/auto-assignment")]
+    public async Task<IActionResult> UpdateAutoAssignment(
+        string companyId, string integrationId,
+        [FromBody] AutoAssignmentSettings settings,
+        CancellationToken ct)
     {
-        return Ok(new { enabled = false, strategy = "round-robin", rules = Array.Empty<object>(), updatedAt = DateTimeOffset.UtcNow });
+        IntegrationChannel? integration = await _integrationRepo.GetByIdAsync(integrationId, companyId, ct);
+        if (integration is null) return NotFound();
+
+        integration.AutoAssignment = settings;
+        integration.UpdatedBy = User.GetUserId();
+        integration.UpdatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        await _integrationRepo.UpdateAsync(integration, ct);
+        return Ok(integration.AutoAssignment);
     }
 
     // ──────────────────────────────────────────────
     // Shortcuts (Quick Replies)
     // ──────────────────────────────────────────────
 
-    [HttpGet("shortcuts")]
-    public IActionResult ListShortcuts(string companyId)
+    [HttpGet("{integrationId}/shortcuts")]
+    public async Task<IActionResult> ListShortcuts(string companyId, string integrationId, CancellationToken ct)
     {
-        return Ok(new { data = Array.Empty<object>() });
+        IntegrationChannel? integration = await _integrationRepo.GetByIdAsync(integrationId, companyId, ct);
+        if (integration is null) return NotFound();
+        return Ok(new { data = integration.Shortcuts, categories = integration.ShortcutCategories });
     }
 
-    [HttpPost("shortcuts")]
-    public IActionResult CreateShortcut(string companyId)
+    [HttpPost("{integrationId}/shortcuts")]
+    public async Task<IActionResult> CreateShortcut(
+        string companyId, string integrationId,
+        [FromBody] Shortcut shortcut,
+        CancellationToken ct)
     {
-        return StatusCode(201, new { id = Guid.NewGuid().ToString(), companyId, name = "", content = "", categoryId = (string?)null, createdAt = DateTimeOffset.UtcNow });
+        IntegrationChannel? integration = await _integrationRepo.GetByIdAsync(integrationId, companyId, ct);
+        if (integration is null) return NotFound();
+
+        shortcut.Id = Guid.NewGuid().ToString();
+        integration.Shortcuts.Add(shortcut);
+        integration.UpdatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        await _integrationRepo.UpdateAsync(integration, ct);
+        return StatusCode(201, shortcut);
     }
 
-    [HttpPut("shortcuts/{shortcutId}")]
-    public IActionResult UpdateShortcut(string companyId, string shortcutId)
+    [HttpPut("{integrationId}/shortcuts/{shortcutId}")]
+    public async Task<IActionResult> UpdateShortcut(
+        string companyId, string integrationId, string shortcutId,
+        [FromBody] Shortcut updated,
+        CancellationToken ct)
     {
-        return Ok(new { id = shortcutId, companyId, name = "", content = "", categoryId = (string?)null, updatedAt = DateTimeOffset.UtcNow });
+        IntegrationChannel? integration = await _integrationRepo.GetByIdAsync(integrationId, companyId, ct);
+        if (integration is null) return NotFound();
+
+        int idx = integration.Shortcuts.FindIndex(s => s.Id == shortcutId);
+        if (idx < 0) return NotFound();
+
+        updated.Id = shortcutId;
+        integration.Shortcuts[idx] = updated;
+        integration.UpdatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        await _integrationRepo.UpdateAsync(integration, ct);
+        return Ok(updated);
     }
 
-    [HttpDelete("shortcuts/{shortcutId}")]
-    public IActionResult DeleteShortcut(string companyId, string shortcutId)
+    [HttpDelete("{integrationId}/shortcuts/{shortcutId}")]
+    public async Task<IActionResult> DeleteShortcut(
+        string companyId, string integrationId, string shortcutId, CancellationToken ct)
     {
+        IntegrationChannel? integration = await _integrationRepo.GetByIdAsync(integrationId, companyId, ct);
+        if (integration is null) return NotFound();
+
+        integration.Shortcuts.RemoveAll(s => s.Id == shortcutId);
+        integration.UpdatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        await _integrationRepo.UpdateAsync(integration, ct);
         return NoContent();
     }
 
@@ -176,27 +237,72 @@ public class IntegrationsController : ControllerBase
     // Shortcut Categories
     // ──────────────────────────────────────────────
 
-    [HttpGet("shortcut-categories")]
-    public IActionResult ListShortcutCategories(string companyId)
+    [HttpGet("{integrationId}/shortcut-categories")]
+    public async Task<IActionResult> ListShortcutCategories(
+        string companyId, string integrationId, CancellationToken ct)
     {
-        return Ok(new { data = Array.Empty<object>() });
+        IntegrationChannel? integration = await _integrationRepo.GetByIdAsync(integrationId, companyId, ct);
+        if (integration is null) return NotFound();
+        return Ok(new { data = integration.ShortcutCategories });
     }
 
-    [HttpPost("shortcut-categories")]
-    public IActionResult CreateShortcutCategory(string companyId)
+    [HttpPost("{integrationId}/shortcut-categories")]
+    public async Task<IActionResult> CreateShortcutCategory(
+        string companyId, string integrationId,
+        [FromBody] ShortcutCategory category,
+        CancellationToken ct)
     {
-        return StatusCode(201, new { id = Guid.NewGuid().ToString(), companyId, name = "", createdAt = DateTimeOffset.UtcNow });
+        IntegrationChannel? integration = await _integrationRepo.GetByIdAsync(integrationId, companyId, ct);
+        if (integration is null) return NotFound();
+
+        category.Id = Guid.NewGuid().ToString();
+        integration.ShortcutCategories.Add(category);
+        integration.UpdatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        await _integrationRepo.UpdateAsync(integration, ct);
+        return StatusCode(201, category);
     }
 
-    [HttpPut("shortcut-categories/{categoryId}")]
-    public IActionResult UpdateShortcutCategory(string companyId, string categoryId)
+    [HttpDelete("{integrationId}/shortcut-categories/{categoryId}")]
+    public async Task<IActionResult> DeleteShortcutCategory(
+        string companyId, string integrationId, string categoryId, CancellationToken ct)
     {
-        return Ok(new { id = categoryId, companyId, name = "", updatedAt = DateTimeOffset.UtcNow });
-    }
+        IntegrationChannel? integration = await _integrationRepo.GetByIdAsync(integrationId, companyId, ct);
+        if (integration is null) return NotFound();
 
-    [HttpDelete("shortcut-categories/{categoryId}")]
-    public IActionResult DeleteShortcutCategory(string companyId, string categoryId)
-    {
+        integration.ShortcutCategories.RemoveAll(c => c.Id == categoryId);
+        integration.UpdatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        await _integrationRepo.UpdateAsync(integration, ct);
         return NoContent();
     }
+}
+
+// Request DTOs
+public record ConnectPlatformRequest
+{
+    public string? Name { get; init; }
+    public string? ChannelId { get; init; }
+    public string? ChannelSecret { get; init; }
+    public string? ChannelAccessToken { get; init; }
+    public string? RefreshToken { get; init; }
+    public string? PageAccessToken { get; init; }
+    public string? AppSecret { get; init; }
+    public string? PhoneNumberId { get; init; }
+    public string? BusinessAccountId { get; init; }
+    public string? AccessToken { get; init; }
+    public string? EmailAddress { get; init; }
+    public string? EmailPassword { get; init; }
+    public string? SmtpHost { get; init; }
+    public int? SmtpPort { get; init; }
+    public string? ImapHost { get; init; }
+    public int? ImapPort { get; init; }
+}
+
+public record UpdateGreetingMessagesRequest
+{
+    public List<GreetingMessage> Messages { get; init; } = new();
+}
+
+public record UpdateAutoRepliesRequest
+{
+    public List<AutoReply> Rules { get; init; } = new();
 }

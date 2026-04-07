@@ -7,4 +7,6 @@ public static class MessageDeliveryState
     public const string Delivered = "Delivered";
     public const string Read = "Read";
     public const string Failed = "Failed";
+
+    public static readonly string[] All = [Pending, Sent, Delivered, Read, Failed];
 }

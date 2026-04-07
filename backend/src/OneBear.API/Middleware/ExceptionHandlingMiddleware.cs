@@ -59,6 +59,7 @@ public class ExceptionHandlingMiddleware
     {
         (HttpStatusCode statusCode, string title, string detail) = exception switch
         {
+            FluentValidation.ValidationException ve => (HttpStatusCode.BadRequest, "Validation Failed", ve.Message),
             ArgumentException ae => (HttpStatusCode.BadRequest, "Bad Request", ae.Message),
             KeyNotFoundException => (HttpStatusCode.NotFound, "Not Found", "The requested resource was not found."),
             UnauthorizedAccessException => (HttpStatusCode.Unauthorized, "Unauthorized", "Authentication required."),
@@ -85,6 +86,16 @@ public class ExceptionHandlingMiddleware
                 ["traceId"] = Activity.Current?.Id ?? context.TraceIdentifier
             }
         };
+
+        if (exception is FluentValidation.ValidationException validationException)
+        {
+            Dictionary<string, string[]> errors = validationException.Errors
+                .GroupBy(e => e.PropertyName)
+                .ToDictionary(
+                    g => char.ToLowerInvariant(g.Key[0]) + g.Key[1..],
+                    g => g.Select(e => e.ErrorMessage).ToArray());
+            problemDetails.Extensions["errors"] = errors;
+        }
 
         context.Response.StatusCode = (int)statusCode;
         context.Response.ContentType = "application/problem+json";

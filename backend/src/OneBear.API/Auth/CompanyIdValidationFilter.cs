@@ -5,48 +5,38 @@ using Microsoft.AspNetCore.Mvc.Filters;
 namespace OneBear.API.Auth;
 
 /// <summary>
-/// Validates that the companyId in the URL path matches the company_id claim in the JWT.
-/// Users with Chat.Admin (3005) permission bypass this check.
+/// Validates that the companyId URL parameter matches the JWT company_id claim.
+/// API key auth bypasses this check (service-to-service calls may target any company).
 /// </summary>
-public class CompanyIdValidationFilter : IActionFilter
+public class CompanyIdValidationFilter : IAsyncActionFilter
 {
-    public void OnActionExecuting(ActionExecutingContext context)
+    public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
-        if (!context.RouteData.Values.TryGetValue("companyId", out object? companyIdObj))
-            return; // No companyId in route -- skip
-
-        string? routeCompanyId = companyIdObj?.ToString();
-        if (string.IsNullOrEmpty(routeCompanyId))
+        // API key auth bypasses company validation (service-to-service calls may target any company)
+        if (context.HttpContext.User.HasClaim(AuthConstants.ClaimAuthMethod, AuthConstants.ClaimAuthMethodApiKey))
+        {
+            await next();
             return;
+        }
 
-        ClaimsPrincipal user = context.HttpContext.User;
-        if (!user.Identity?.IsAuthenticated ?? true)
-            return; // Let auth middleware handle unauthenticated
-
-        // API key auth doesn't have company_id -- skip
-        if (user.FindFirst(ClaimTypes.AuthenticationMethod)?.Value == "ApiKey")
+        // Extract companyId from action arguments
+        if (!context.ActionArguments.TryGetValue("companyId", out object? companyIdObj) ||
+            companyIdObj is not string companyId)
+        {
+            await next(); // No companyId parameter — skip validation
             return;
+        }
 
-        string? claimCompanyId = user.FindFirst("company_id")?.Value;
-        if (string.IsNullOrEmpty(claimCompanyId))
+        // Extract company_id from JWT claims
+        string? claimCompanyId = context.HttpContext.User.FindFirstValue(AuthConstants.ClaimCompanyId);
+
+        if (string.IsNullOrEmpty(claimCompanyId) ||
+            !string.Equals(companyId, claimCompanyId, StringComparison.Ordinal))
         {
             context.Result = new ForbidResult();
             return;
         }
 
-        if (!string.Equals(routeCompanyId, claimCompanyId, StringComparison.OrdinalIgnoreCase))
-        {
-            context.Result = new ObjectResult(new ProblemDetails
-            {
-                Status = 403,
-                Title = "Forbidden",
-                Detail = "CompanyId in URL does not match your token."
-            })
-            {
-                StatusCode = 403
-            };
-        }
+        await next();
     }
-
-    public void OnActionExecuted(ActionExecutedContext context) { }
 }

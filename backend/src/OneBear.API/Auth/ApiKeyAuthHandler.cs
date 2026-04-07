@@ -7,50 +7,40 @@ using Microsoft.Extensions.Options;
 
 namespace OneBear.API.Auth;
 
-public class ApiKeyAuthOptions : AuthenticationSchemeOptions
+public class ApiKeyAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
-    public const string SchemeName = "ApiKey";
-    public const string HeaderName = "X-Api-Key";
-}
-
-public class ApiKeyAuthHandler : AuthenticationHandler<ApiKeyAuthOptions>
-{
-    private readonly IConfiguration _config;
+    private readonly ApiKeyOptions _apiKeyOptions;
 
     public ApiKeyAuthHandler(
-        IOptionsMonitor<ApiKeyAuthOptions> options,
+        IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
-        IConfiguration config) : base(options, logger, encoder)
+        IOptions<ApiKeyOptions> apiKeyOptions) : base(options, logger, encoder)
     {
-        _config = config;
+        _apiKeyOptions = apiKeyOptions.Value;
     }
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        if (!Request.Headers.TryGetValue(ApiKeyAuthOptions.HeaderName, out Microsoft.Extensions.Primitives.StringValues headerValue))
+        if (!Request.Headers.TryGetValue("X-Api-Key", out Microsoft.Extensions.Primitives.StringValues headerValue))
         {
             return Task.FromResult(AuthenticateResult.NoResult());
         }
 
         string providedKey = headerValue.ToString();
 
-        // Check against configured keys (support dual-key rotation)
-        string primaryKey = _config["ApiKeys:Primary"] ?? _config["ApiKeys:Webhook"] ?? "";
-        string secondaryKey = _config["ApiKeys:Secondary"] ?? "";
-
         string? matchedScope = null;
 
-        if (ConstantTimeEquals(providedKey, primaryKey) ||
-            (!string.IsNullOrEmpty(secondaryKey) && ConstantTimeEquals(providedKey, secondaryKey)))
+        if (ConstantTimeEquals(providedKey, _apiKeyOptions.Primary) ||
+            (!string.IsNullOrEmpty(_apiKeyOptions.Secondary) && ConstantTimeEquals(providedKey, _apiKeyOptions.Secondary)))
         {
-            matchedScope = "webhook";
+            matchedScope = AuthConstants.ApiKeyScopeWebhook;
         }
 
-        string aiKey = _config["ApiKeys:AiService"] ?? "";
-        if (matchedScope == null && !string.IsNullOrEmpty(aiKey) && ConstantTimeEquals(providedKey, aiKey))
+        if (matchedScope == null && !string.IsNullOrEmpty(_apiKeyOptions.AiService) &&
+            ConstantTimeEquals(providedKey, _apiKeyOptions.AiService))
         {
-            matchedScope = "ai-service";
+            matchedScope = AuthConstants.ApiKeyScopeAiService;
         }
 
         if (matchedScope == null)
@@ -58,16 +48,16 @@ public class ApiKeyAuthHandler : AuthenticationHandler<ApiKeyAuthOptions>
             return Task.FromResult(AuthenticateResult.Fail("Invalid API key"));
         }
 
-        var claims = new[]
-        {
-            new Claim(ClaimTypes.Name, $"service:{matchedScope}"),
-            new Claim("scope", matchedScope),
-            new Claim(ClaimTypes.AuthenticationMethod, "ApiKey")
-        };
+        Claim[] claims =
+        [
+            new(ClaimTypes.Name, $"service:{matchedScope}"),
+            new(AuthConstants.ClaimAuthMethod, AuthConstants.ClaimAuthMethodApiKey),
+            new(AuthConstants.ClaimApiKeyScope, matchedScope)
+        ];
 
-        var identity = new ClaimsIdentity(claims, ApiKeyAuthOptions.SchemeName);
-        var principal = new ClaimsPrincipal(identity);
-        var ticket = new AuthenticationTicket(principal, ApiKeyAuthOptions.SchemeName);
+        ClaimsIdentity identity = new(claims, AuthConstants.ApiKeyScheme);
+        ClaimsPrincipal principal = new(identity);
+        AuthenticationTicket ticket = new(principal, AuthConstants.ApiKeyScheme);
 
         return Task.FromResult(AuthenticateResult.Success(ticket));
     }
