@@ -104,6 +104,19 @@ export function usePinRoom(companyId: string) {
 	})
 }
 
+export function useMarkDone(companyId: string) {
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: (roomId: string) => api.rooms.done(companyId, roomId),
+		onSuccess: (_data, roomId) => {
+			queryClient.invalidateQueries({ queryKey: ['rooms'] })
+			queryClient.invalidateQueries({ queryKey: ['room', companyId, roomId] })
+			queryClient.invalidateQueries({ queryKey: ['badge-count'] })
+		},
+	})
+}
+
 export function useUnpinRoom(companyId: string) {
 	const queryClient = useQueryClient()
 

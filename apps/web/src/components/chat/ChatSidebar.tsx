@@ -7,6 +7,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { PlatformIcon } from './PlatformIcon'
+import { TimerDisplay } from './TimerDisplay'
 import type { HubConnection } from '@microsoft/signalr'
 
 interface Props {
@@ -23,6 +24,17 @@ const stateLabels: Record<ChatState, { label: string; color: string }> = {
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
 	return <h3 className="text-xs font-semibold text-t3 uppercase tracking-[0.06em] mb-2">{children}</h3>
+}
+
+function formatMs(ms: number): string {
+	const totalSeconds = Math.floor(ms / 1000)
+	if (totalSeconds < 60) return `${totalSeconds}s`
+	const minutes = Math.floor(totalSeconds / 60)
+	const seconds = totalSeconds % 60
+	if (minutes < 60) return `${minutes}m ${seconds}s`
+	const hours = Math.floor(minutes / 60)
+	const mins = minutes % 60
+	return `${hours}h ${mins}m`
 }
 
 export function ChatSidebar({ room, connection }: Props) {
@@ -89,6 +101,64 @@ export function ChatSidebar({ room, connection }: Props) {
 					</div>
 				)}
 			</div>
+
+			{/* Response Times */}
+			{room.frtStartTimestamp && (
+				<div className="p-4 border-b border-border">
+					<SectionTitle>Response Times</SectionTitle>
+					{room.isResolved ? (
+						/* Resolved: show final FRT + RT summary */
+						<div className="flex flex-col gap-2">
+							{room.frtDurationMs != null && (
+								<div className="flex items-center justify-between text-sm">
+									<span className="text-t3">Latest FRT</span>
+									<span className="font-medium text-t1 tabular-nums">{formatMs(room.frtDurationMs)}</span>
+								</div>
+							)}
+							{room.rtDurationMs != null && (
+								<div className="flex items-center justify-between text-sm">
+									<span className="text-t3">Latest RT</span>
+									<span className="font-medium text-t1 tabular-nums">{formatMs(room.rtDurationMs)}</span>
+								</div>
+							)}
+							{(room.sessionTimings?.length ?? 0) > 1 && (() => {
+								const sessions = room.sessionTimings!
+								const avgFrt = Math.round(sessions.reduce((acc, s) => acc + s.frtMs, 0) / sessions.length)
+								const avgRt = Math.round(sessions.reduce((acc, s) => acc + s.rtMs, 0) / sessions.length)
+								return (
+									<>
+										<div className="mt-1 border-t border-border pt-1">
+											<div className="flex items-center justify-between text-sm">
+												<span className="text-t3">Avg FRT</span>
+												<span className="font-medium text-t1 tabular-nums">{formatMs(avgFrt)}</span>
+											</div>
+											<div className="flex items-center justify-between text-sm mt-1">
+												<span className="text-t3">Avg RT</span>
+												<span className="font-medium text-t1 tabular-nums">{formatMs(avgRt)}</span>
+											</div>
+										</div>
+									</>
+								)
+							})()}
+						</div>
+					) : (
+						/* Active: show live timer with current label */
+						<div className="flex items-center gap-2">
+							<span className="text-sm text-t3">
+								{!room.isFrtStopped ? 'First Response Time' : 'Resolved Time'}
+							</span>
+							{!room.isFrtStopped ? (
+								<TimerDisplay startTimestamp={room.frtStartTimestamp} />
+							) : (
+								<TimerDisplay
+									startTimestamp={room.frtStartTimestamp}
+									stoppedAt={room.frtEndTimestamp}
+								/>
+							)}
+						</div>
+					)}
+				</div>
+			)}
 
 			{/* Assigned agent */}
 			<div className="p-4 border-b border-border">

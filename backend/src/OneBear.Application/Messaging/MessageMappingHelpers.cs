@@ -75,6 +75,14 @@ public static class MessageMappingHelpers
         PinnedTimestamp = room.PinnedTimestamp,
         HandoffSource = room.HandoffSource,
         HandoffSourceName = room.HandoffSourceName,
-        HandoffTimestamp = room.HandoffTimestamp
+        HandoffTimestamp = room.HandoffTimestamp,
+        FrtStartTimestamp = room.FrtStartTimestamp,
+        FrtEndTimestamp = room.FrtEndTimestamp,
+        FrtDurationMs = room.FrtDurationMs,
+        IsFrtStopped = room.IsFrtStopped,
+        RtEndTimestamp = room.RtEndTimestamp,
+        RtDurationMs = room.RtDurationMs,
+        IsResolved = room.IsResolved,
+        SessionTimings = room.SessionTimings
     };
 }

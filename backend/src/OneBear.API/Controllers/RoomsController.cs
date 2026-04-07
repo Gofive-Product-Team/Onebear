@@ -10,7 +10,9 @@ using OneBear.Application.Messaging;
 using OneBear.Application.Rooms.Services;
 using OneBear.Domain.Common;
 using OneBear.Domain.Entities;
+using OneBear.Domain.Enums;
 using OneBear.Domain.Interfaces.Repositories;
+using OneBear.Domain.ValueObjects;
 
 using ChatRoom = OneBear.Domain.Entities.ChatRoom;
 
@@ -229,6 +231,58 @@ public class RoomsController : ControllerBase
         await _roomRepo.UpdateAsync(room, ct);
 
         return NoContent();
+    }
+
+    /// <summary>Mark a room as Done — stops RT timer, records session timing, transitions to Resolved.</summary>
+    [HttpPost("{roomId}/done")]
+    public async Task<IActionResult> MarkDone(string companyId, string roomId, CancellationToken ct)
+    {
+        string userId = User.GetUserId();
+
+        ChatRoom? room = await _roomRepo.GetByIdAsync(roomId, companyId, ct);
+        if (room is null)
+            return NotFound();
+
+        long now = DateTimeHelper.NowUnixMilliseconds();
+
+        long rtDurationMs = room.FrtStartTimestamp.HasValue
+            ? now - room.FrtStartTimestamp.Value
+            : 0;
+
+        SessionTimingSummaryDto summary;
+        Result<ChatRoom> doneResult = await _roomStateService.UpdateRoomWithRetryAsync(room, r =>
+        {
+            r.RtEndTimestamp = now;
+            r.RtDurationMs = rtDurationMs;
+            r.IsResolved = true;
+            r.State = ChatState.Resolved;
+            r.UpdatedBy = userId;
+
+            r.SessionTimings.Add(new SessionTiming
+            {
+                FrtMs = r.FrtDurationMs ?? 0,
+                RtMs = rtDurationMs,
+                ResolvedBy = userId,
+                Timestamp = now
+            });
+        }, ct);
+
+        if (doneResult is Result<ChatRoom>.Failure f)
+            return f.Error.Type == ErrorType.NotFound ? NotFound() : Conflict(new { error = f.Error.Code, message = f.Error.Message });
+
+        ChatRoom resolved = ((Result<ChatRoom>.Success)doneResult).Value;
+
+        List<SessionTiming> timings = resolved.SessionTimings;
+        summary = new SessionTimingSummaryDto
+        {
+            LatestFrtMs = resolved.FrtDurationMs,
+            LatestRtMs = resolved.RtDurationMs,
+            AverageFrtMs = timings.Count > 0 ? timings.Average(t => (double)t.FrtMs) : null,
+            AverageRtMs = timings.Count > 0 ? timings.Average(t => (double)t.RtMs) : null,
+            SessionCount = timings.Count
+        };
+
+        return Ok(summary);
     }
 
     /// <summary>Update room participants.</summary>

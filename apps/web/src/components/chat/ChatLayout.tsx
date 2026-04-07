@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/auth-store'
 import { RoomList } from './RoomList'
 import { MessageList } from './MessageList'
 import { Composer } from './Composer'
+import { DoneButtonBar } from './DoneButtonBar'
 import { ChatSidebar } from './ChatSidebar'
 
 interface Props {
@@ -114,8 +115,9 @@ export function ChatLayout({ roomId }: Props) {
 							</button>
 						</div>
 
-						{/* Messages + Composer */}
+						{/* Messages + Done bar + Composer */}
 						<MessageList companyId={companyId} roomId={roomId} typingUsers={typingUsers} />
+						{activeRoom && <DoneButtonBar room={activeRoom} />}
 						<Composer companyId={companyId} roomId={roomId} platform={activeRoom?.platform ?? ''} sendTyping={sendTyping} />
 					</>
 				) : (

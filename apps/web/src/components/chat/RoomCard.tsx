@@ -4,6 +4,7 @@ import type { ChatRoom, ChatState } from '@one-bear/shared-types'
 import { Avatar } from '@/components/ui/Avatar'
 import { Tooltip } from '@/components/ui/Tooltip'
 import { PlatformIcon } from './PlatformIcon'
+import { TimerDisplay } from './TimerDisplay'
 import { formatSmartTimestamp, formatFullThaiDatetime } from '@/lib/date'
 import { usePinRoom, useUnpinRoom } from '@/api/useRooms'
 import { useAuthStore } from '@/stores/auth-store'
@@ -138,6 +139,24 @@ export function RoomCard({ room, isActive, onClick }: Props) {
 									<span className="text-amber-600">· {formatSmartTimestamp(room.handoffTimestamp)}</span>
 								)}
 							</span>
+						</div>
+					)}
+
+					{/* Row 4: FRT/RT timer */}
+					{room.frtStartTimestamp && !room.isResolved && (
+						<div className="flex items-center justify-end mt-1">
+							{!room.isFrtStopped ? (
+								<TimerDisplay
+									startTimestamp={room.frtStartTimestamp}
+									label="FRT"
+								/>
+							) : (
+								<TimerDisplay
+									startTimestamp={room.frtStartTimestamp}
+									stoppedAt={room.frtEndTimestamp}
+									label="RT"
+								/>
+							)}
 						</div>
 					)}
 				</div>

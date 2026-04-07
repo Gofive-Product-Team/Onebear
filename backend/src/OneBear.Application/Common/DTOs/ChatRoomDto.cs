@@ -1,5 +1,7 @@
 namespace OneBear.Application.Common.DTOs;
 
+using OneBear.Domain.ValueObjects;
+
 public class ChatRoomDto
 {
     public string Id { get; set; } = default!;
@@ -22,4 +24,14 @@ public class ChatRoomDto
     public string? HandoffSource { get; set; }
     public string? HandoffSourceName { get; set; }
     public long? HandoffTimestamp { get; set; }
+
+    // FRT/RT timer fields
+    public long? FrtStartTimestamp { get; set; }
+    public long? FrtEndTimestamp { get; set; }
+    public long? FrtDurationMs { get; set; }
+    public bool IsFrtStopped { get; set; }
+    public long? RtEndTimestamp { get; set; }
+    public long? RtDurationMs { get; set; }
+    public bool IsResolved { get; set; }
+    public List<SessionTiming> SessionTimings { get; set; } = new();
 }

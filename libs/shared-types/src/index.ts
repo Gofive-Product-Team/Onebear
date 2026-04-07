@@ -1,3 +1,11 @@
+// Matches backend SessionTiming value object
+export interface SessionTiming {
+	frtMs: number
+	rtMs: number
+	resolvedBy: string
+	timestamp: number
+}
+
 // Matches backend ChatRoomDto
 export interface ChatRoom {
 	id: string
@@ -17,6 +25,15 @@ export interface ChatRoom {
 	handoffSource?: string | null
 	handoffSourceName?: string | null
 	handoffTimestamp?: number | null
+	// FRT/RT timer fields
+	frtStartTimestamp?: number | null
+	frtEndTimestamp?: number | null
+	frtDurationMs?: number | null
+	isFrtStopped?: boolean
+	isResolved?: boolean
+	rtEndTimestamp?: number | null
+	rtDurationMs?: number | null
+	sessionTimings?: SessionTiming[]
 }
 
 export type MessageType =

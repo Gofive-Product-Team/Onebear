@@ -78,6 +78,33 @@ public class ChatRoom : MongoEntity, IAuditableEntity
     [JsonPropertyName("handoffTimestamp")]
     public long? HandoffTimestamp { get; set; }
 
+    [JsonPropertyName("frtStartTimestamp")]
+    public long? FrtStartTimestamp { get; set; }
+
+    [JsonPropertyName("frtEndTimestamp")]
+    public long? FrtEndTimestamp { get; set; }
+
+    [JsonPropertyName("frtDurationMs")]
+    public long? FrtDurationMs { get; set; }
+
+    [JsonPropertyName("rtEndTimestamp")]
+    public long? RtEndTimestamp { get; set; }
+
+    [JsonPropertyName("rtDurationMs")]
+    public long? RtDurationMs { get; set; }
+
+    [JsonPropertyName("isFrtStopped")]
+    public bool IsFrtStopped { get; set; }
+
+    [JsonPropertyName("isResolved")]
+    public bool IsResolved { get; set; }
+
+    [JsonPropertyName("frtStoppedBy")]
+    public string? FrtStoppedBy { get; set; }
+
+    [JsonPropertyName("sessionTimings")]
+    public List<SessionTiming> SessionTimings { get; set; } = new();
+
     [JsonPropertyName("createdBy")]
     public string? CreatedBy { get; set; }
 

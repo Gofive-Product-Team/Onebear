@@ -120,6 +120,15 @@ public class MessageOrchestrator
             return new Result<InboundMessageResult>.Failure(f4.Error);
         (ChatRoom room, bool isNewRoom) = ((Result<(ChatRoom, bool)>.Success)roomResult).Value;
 
+        // Step 4.5: FRT Start — set timer on first customer message
+        if (room.FrtStartTimestamp is null && !room.IsFrtStopped)
+        {
+            Result<ChatRoom> frtStartResult = await _roomStateService.UpdateRoomWithRetryAsync(
+                room, r => r.FrtStartTimestamp = DateTimeHelper.NowUnixMilliseconds(), ct);
+            if (frtStartResult is Result<ChatRoom>.Success frtStartSuccess)
+                room = frtStartSuccess.Value;
+        }
+
         // Step 5: Persist message
         long now = DateTimeHelper.NowUnixMilliseconds();
         ChatMessage chatMessage = new()
@@ -337,6 +346,24 @@ public class MessageOrchestrator
                 await _roomStateService.UpdateRoomWithRetryAsync(room, r => r.Unread = 0, ct);
             if (unreadResult is Result<ChatRoom>.Success unreadSuccess)
                 room = unreadSuccess.Value;
+        }
+
+        // Step 7.5: FRT Stop — first admin/AI reply stops the FRT timer
+        // Auto-replies (senderUserId == null or "system") do NOT stop FRT
+        bool isAutoReply = string.IsNullOrEmpty(senderUserId) || senderUserId == "system";
+        if (!isAutoReply && !room.IsFrtStopped && room.FrtStartTimestamp is not null
+            && chatMessage.DeliveryStatus != MessageDeliveryState.Failed)
+        {
+            Result<ChatRoom> frtStopResult = await _roomStateService.UpdateRoomWithRetryAsync(room, r =>
+            {
+                long frtNow = DateTimeHelper.NowUnixMilliseconds();
+                r.FrtEndTimestamp = frtNow;
+                r.FrtDurationMs = frtNow - r.FrtStartTimestamp!.Value;
+                r.IsFrtStopped = true;
+                r.FrtStoppedBy = senderUserId;
+            }, ct);
+            if (frtStopResult is Result<ChatRoom>.Success frtStopSuccess)
+                room = frtStopSuccess.Value;
         }
 
         // Step 8: Broadcast via SignalR
