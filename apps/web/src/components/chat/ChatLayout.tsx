@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { cn } from '@one-bear/ui'
+import { useNavigate } from '@tanstack/react-router'
 import { useSignalRContext } from '@/routes/__root'
 import { useRoomConnection } from '@/hooks/useRoomConnection'
 import { useTyping } from '@/hooks/useTyping'
@@ -12,12 +13,14 @@ import { DoneButtonBar } from './DoneButtonBar'
 import { ChatSidebar } from './ChatSidebar'
 import { AiHandoffBanner } from './AiHandoffBanner'
 import { SlaWarningBanner } from './SlaWarningBanner'
+import { SwipeableMessageArea } from './SwipeableMessageArea'
 
 interface Props {
 	roomId?: string
 }
 
 export function ChatLayout({ roomId }: Props) {
+	const navigate = useNavigate()
 	const user = useAuthStore((s) => s.user)
 	const companyId = user?.companyId ?? ''
 
@@ -31,10 +34,18 @@ export function ChatLayout({ roomId }: Props) {
 	const { data: activeRoom } = useRoom(companyId, roomId ?? null)
 
 	const [sidebarOpen, setSidebarOpen] = useState(true)
-	const [mobileView, setMobileView] = useState<'list' | 'chat'>('list')
 
 	const toggleSidebar = useCallback(() => {
 		setSidebarOpen((prev) => !prev)
+	}, [])
+
+	// Mobile swipe handlers
+	const handleMobileBack = useCallback(() => {
+		navigate({ to: '/chat' })
+	}, [navigate])
+
+	const handleOpenInfo = useCallback(() => {
+		setSidebarOpen(true)
 	}, [])
 
 	// Determine mobile view based on roomId
@@ -78,8 +89,9 @@ export function ChatLayout({ roomId }: Props) {
 								{/* Mobile back button */}
 								<button
 									type="button"
-									onClick={() => setMobileView('list')}
+									onClick={handleMobileBack}
 									className="md:hidden text-t3 hover:text-t1"
+									aria-label="Back to inbox"
 								>
 									<svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
 										<path
@@ -128,10 +140,16 @@ export function ChatLayout({ roomId }: Props) {
 							/>
 						)}
 
-						{/* Messages + Done bar + Composer */}
-						<MessageList companyId={companyId} roomId={roomId} typingUsers={typingUsers} />
-						{activeRoom && <DoneButtonBar room={activeRoom} />}
-						<Composer companyId={companyId} roomId={roomId} platform={activeRoom?.platform ?? ''} sendTyping={sendTyping} />
+						{/* Messages + Done bar + Composer — wrapped in SwipeableMessageArea on mobile */}
+						<SwipeableMessageArea
+							onBack={handleMobileBack}
+							onOpenInfo={handleOpenInfo}
+							enabled={effectiveMobileView === 'chat'}
+						>
+							<MessageList companyId={companyId} roomId={roomId} typingUsers={typingUsers} />
+							{activeRoom && <DoneButtonBar room={activeRoom} />}
+							<Composer companyId={companyId} roomId={roomId} platform={activeRoom?.platform ?? ''} sendTyping={sendTyping} />
+						</SwipeableMessageArea>
 					</>
 				) : (
 					/* No room selected state */

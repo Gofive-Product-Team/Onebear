@@ -10,4 +10,5 @@ public interface IChatMessageRepository
     Task<ChatMessage> CreateAsync(ChatMessage message, CancellationToken ct = default);
     Task<ChatMessage> UpdateAsync(ChatMessage message, CancellationToken ct = default);
     Task<ChatMessage?> GetByMidAsync(string roomId, string mid, CancellationToken ct = default);
+    Task<List<ChatMessage>> GetPinnedMessagesAsync(string roomId, int limit = 20, CancellationToken ct = default);
 }

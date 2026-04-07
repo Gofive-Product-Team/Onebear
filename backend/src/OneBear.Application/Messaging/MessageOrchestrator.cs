@@ -26,6 +26,7 @@ public class MessageOrchestrator
     private readonly IAutoAssignmentService _autoAssignmentService;
     private readonly ISignalRNotifier _signalRNotifier;
     private readonly IEventPublisher _eventPublisher;
+    private readonly SpamDetectionService _spamService;
     private readonly ILogger<MessageOrchestrator> _logger;
 
     public MessageOrchestrator(
@@ -38,6 +39,7 @@ public class MessageOrchestrator
         IAutoAssignmentService autoAssignmentService,
         ISignalRNotifier signalRNotifier,
         IEventPublisher eventPublisher,
+        SpamDetectionService spamService,
         ILogger<MessageOrchestrator> logger)
     {
         _sp = sp;
@@ -49,6 +51,7 @@ public class MessageOrchestrator
         _autoAssignmentService = autoAssignmentService;
         _signalRNotifier = signalRNotifier;
         _eventPublisher = eventPublisher;
+        _spamService = spamService;
         _logger = logger;
     }
 
@@ -120,7 +123,25 @@ public class MessageOrchestrator
             return new Result<InboundMessageResult>.Failure(f4.Error);
         (ChatRoom room, bool isNewRoom) = ((Result<(ChatRoom, bool)>.Success)roomResult).Value;
 
-        // Step 4.5: FRT Start — set timer on first customer message
+        // Step 4.5: Spam check — run before FRT and notifications
+        (bool isSpamMessage, double spamScore) = _spamService.CheckMessage(normalized.Content);
+        if (isSpamMessage)
+        {
+            _logger.LogInformation("Spam detected for room {RoomId} (score={Score}). Moving to Spam state.", room.Id, spamScore);
+            room.IsSpam = true;
+            room.SpamScore = spamScore;
+            room.State = Domain.Enums.ChatState.Spam;
+            await _roomRepo.UpdateAsync(room, ct);
+            // Accept silently — do not notify team
+            return new Result<InboundMessageResult>.Success(new InboundMessageResult
+            {
+                Room = MessageMappingHelpers.ToDto(room),
+                Message = new ChatMessageDto { Id = Guid.NewGuid().ToString(), RoomId = room.Id, Content = normalized.Content, Type = normalized.MessageType, Platform = platform, DeliveryStatus = Domain.Enums.MessageDeliveryState.Delivered, Timestamp = DateTimeHelper.NowUnixMilliseconds() },
+                IsNewRoom = isNewRoom
+            });
+        }
+
+        // Step 4.6: FRT Start — set timer on first customer message
         if (room.FrtStartTimestamp is null && !room.IsFrtStopped)
         {
             Result<ChatRoom> frtStartResult = await _roomStateService.UpdateRoomWithRetryAsync(

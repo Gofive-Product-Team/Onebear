@@ -163,6 +163,7 @@ public class MessageOrchestratorTests
             autoAssignmentServiceMock.Object,
             signalRNotifierMock.Object,
             eventPublisherMock.Object,
+            new SpamDetectionService(),
             loggerMock.Object);
 
         return (sut, mocks);

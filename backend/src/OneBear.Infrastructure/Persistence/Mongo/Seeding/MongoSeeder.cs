@@ -45,6 +45,12 @@ public class MongoSeeder
                 .Ascending(r => r.CompanyId)
                 .Ascending(r => r.FollowupTimestamp), ct);
 
+        await CreateIndexAsync(_context.Rooms, "ix_rooms_company_spam",
+            Builders<ChatRoom>.IndexKeys
+                .Ascending(r => r.CompanyId)
+                .Ascending(r => r.IsSpam)
+                .Ascending(r => r.State), ct);
+
         // Messages: 2 indexes
         await CreateIndexAsync(_context.Messages, "ix_messages_room_deleted_ts",
             Builders<ChatMessage>.IndexKeys
@@ -56,6 +62,12 @@ public class MongoSeeder
             Builders<ChatMessage>.IndexKeys
                 .Ascending(m => m.RoomId)
                 .Ascending(m => m.Mid), ct);
+
+        await CreateIndexAsync(_context.Messages, "ix_messages_room_pinned_ts",
+            Builders<ChatMessage>.IndexKeys
+                .Ascending(m => m.RoomId)
+                .Ascending(m => m.IsPinnedByUser)
+                .Descending(m => m.MessagePinnedTimestamp), ct);
 
         // Users: 2 indexes (1 unique)
         await CreateIndexAsync(_context.Users, "ix_users_company_external_platform",

@@ -65,4 +65,21 @@ public class ChatMessageRepository : MongoRepositoryBase<ChatMessage>, IChatMess
 
         return await _collection.Find(filter).FirstOrDefaultAsync(ct);
     }
+
+    public async Task<List<ChatMessage>> GetPinnedMessagesAsync(string roomId, int limit = 20, CancellationToken ct = default)
+    {
+        FilterDefinitionBuilder<ChatMessage> fb = Builders<ChatMessage>.Filter;
+        FilterDefinition<ChatMessage> filter = fb.And(
+            fb.Eq(m => m.RoomId, roomId),
+            fb.Eq(m => m.IsPinnedByUser, true)
+        );
+
+        SortDefinition<ChatMessage> sort = Builders<ChatMessage>.Sort.Descending(m => m.MessagePinnedTimestamp);
+
+        return await _collection
+            .Find(filter)
+            .Sort(sort)
+            .Limit(limit)
+            .ToListAsync(ct);
+    }
 }

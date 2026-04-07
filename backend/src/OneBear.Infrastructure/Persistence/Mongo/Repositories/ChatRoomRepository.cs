@@ -27,6 +27,9 @@ public class ChatRoomRepository : MongoRepositoryBase<ChatRoom>, IChatRoomReposi
 
         if (filter.State is not null)
             filters.Add(fb.Eq(r => r.State, filter.State));
+        else
+            // Exclude spam from the default inbox view
+            filters.Add(fb.Ne(r => r.State, ChatState.Spam));
         if (filter.Platform is not null)
             filters.Add(fb.Eq(r => r.Platform, filter.Platform));
         if (filter.AssignToUserId is not null)

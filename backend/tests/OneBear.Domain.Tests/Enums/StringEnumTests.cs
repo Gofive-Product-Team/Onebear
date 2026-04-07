@@ -7,11 +7,12 @@ public class StringEnumTests
     [Fact]
     public void ChatState_All_ContainsAllConstants()
     {
-        Assert.Equal(4, ChatState.All.Length);
+        Assert.Equal(5, ChatState.All.Length);
         Assert.Contains("New", ChatState.All);
         Assert.Contains("InProgress", ChatState.All);
         Assert.Contains("Closed", ChatState.All);
         Assert.Contains("Resolved", ChatState.All);
+        Assert.Contains("Spam", ChatState.All);
     }
 
     [Fact]

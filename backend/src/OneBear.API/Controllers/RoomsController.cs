@@ -29,19 +29,22 @@ public class RoomsController : ControllerBase
     private readonly BadgeService _badgeService;
     private readonly IRoomStateService _roomStateService;
     private readonly IChatRoomRepository _roomRepo;
+    private readonly IChatMessageRepository _messageRepo;
 
     public RoomsController(
         RoomQueryService queryService,
         RoomParticipantService participantService,
         BadgeService badgeService,
         IRoomStateService roomStateService,
-        IChatRoomRepository roomRepo)
+        IChatRoomRepository roomRepo,
+        IChatMessageRepository messageRepo)
     {
         _queryService = queryService;
         _participantService = participantService;
         _badgeService = badgeService;
         _roomStateService = roomStateService;
         _roomRepo = roomRepo;
+        _messageRepo = messageRepo;
     }
 
     /// <summary>List rooms with pagination.</summary>
@@ -310,6 +313,94 @@ public class RoomsController : ControllerBase
         room.HandoffTimestamp = null;
         room.IsAiMuted = false;
 
+        await _roomRepo.UpdateAsync(room, ct);
+
+        return Ok(MessageMappingHelpers.ToDto(room));
+    }
+
+    /// <summary>Pin a message within a thread. Max 20 pinned messages per room.</summary>
+    [HttpPost("{roomId}/messages/{messageId}/pin")]
+    public async Task<IActionResult> PinMessage(string companyId, string roomId, string messageId, CancellationToken ct = default)
+    {
+        ChatRoom? room = await _roomRepo.GetByIdAsync(roomId, companyId, ct);
+        if (room is null)
+            return NotFound(new { error = "ROOM_NOT_FOUND", message = "Room not found." });
+
+        OneBear.Domain.Entities.ChatMessage? message = await _messageRepo.GetByIdAsync(messageId, roomId, ct);
+        if (message is null || message.RoomId != roomId)
+            return NotFound(new { error = "MESSAGE_NOT_FOUND", message = "Message not found." });
+
+        if (!message.IsPinnedByUser)
+        {
+            List<OneBear.Domain.Entities.ChatMessage> pinned = await _messageRepo.GetPinnedMessagesAsync(roomId, 20, ct);
+            if (pinned.Count >= 20)
+                return Conflict(new { error = "MAX_PINS_REACHED", message = "Maximum of 20 pinned messages per room." });
+        }
+
+        message.IsPinnedByUser = true;
+        message.MessagePinnedTimestamp = DateTimeHelper.NowUnixMilliseconds();
+        await _messageRepo.UpdateAsync(message, ct);
+
+        return Ok(MessageMappingHelpers.ToDto(message));
+    }
+
+    /// <summary>Unpin a message within a thread.</summary>
+    [HttpDelete("{roomId}/messages/{messageId}/pin")]
+    public async Task<IActionResult> UnpinMessage(string companyId, string roomId, string messageId, CancellationToken ct = default)
+    {
+        ChatRoom? room = await _roomRepo.GetByIdAsync(roomId, companyId, ct);
+        if (room is null)
+            return NotFound(new { error = "ROOM_NOT_FOUND", message = "Room not found." });
+
+        OneBear.Domain.Entities.ChatMessage? message = await _messageRepo.GetByIdAsync(messageId, roomId, ct);
+        if (message is null || message.RoomId != roomId)
+            return NotFound(new { error = "MESSAGE_NOT_FOUND", message = "Message not found." });
+
+        message.IsPinnedByUser = false;
+        message.MessagePinnedTimestamp = null;
+        await _messageRepo.UpdateAsync(message, ct);
+
+        return NoContent();
+    }
+
+    /// <summary>List pinned messages in a room (max 20, sorted by pin time descending).</summary>
+    [HttpGet("{roomId}/pinned-messages")]
+    public async Task<IActionResult> ListPinnedMessages(string companyId, string roomId, CancellationToken ct = default)
+    {
+        ChatRoom? room = await _roomRepo.GetByIdAsync(roomId, companyId, ct);
+        if (room is null)
+            return NotFound(new { error = "ROOM_NOT_FOUND", message = "Room not found." });
+
+        List<OneBear.Domain.Entities.ChatMessage> pinned = await _messageRepo.GetPinnedMessagesAsync(roomId, 20, ct);
+        List<ChatMessageDto> dtos = pinned.Select(m => MessageMappingHelpers.ToDto(m)).ToList();
+        return Ok(dtos);
+    }
+
+    /// <summary>List spam rooms for the company.</summary>
+    [HttpGet("spam")]
+    public async Task<IActionResult> ListSpamRooms(
+        string companyId,
+        [FromQuery] string? continuationToken = null,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default)
+    {
+        RoomFilter filter = new() { State = ChatState.Spam };
+        Result<PagedResult<ChatRoomDto>> result =
+            await _queryService.ListRoomsAsync(companyId, filter, pageSize, continuationToken, ct);
+        return result.ToActionResult();
+    }
+
+    /// <summary>Mark a spam room as not-spam — moves it back to inbox (New state).</summary>
+    [HttpPost("{roomId}/not-spam")]
+    public async Task<IActionResult> MarkNotSpam(string companyId, string roomId, CancellationToken ct = default)
+    {
+        ChatRoom? room = await _roomRepo.GetByIdAsync(roomId, companyId, ct);
+        if (room is null)
+            return NotFound();
+
+        room.IsSpam = false;
+        room.SpamScore = null;
+        room.State = ChatState.New;
         await _roomRepo.UpdateAsync(room, ct);
 
         return Ok(MessageMappingHelpers.ToDto(room));

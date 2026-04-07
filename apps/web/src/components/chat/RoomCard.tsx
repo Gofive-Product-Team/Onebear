@@ -146,6 +146,15 @@ export function RoomCard({ room, isActive, onClick }: Props) {
 						<p className="mt-0.5 text-xs italic text-blue-500">Admin is typing...</p>
 					)}
 
+					{/* Spam suspect indicator */}
+					{!room.isSpam && room.spamScore != null && room.spamScore > 0.5 && (
+						<div className="flex items-center gap-1.5 mt-1">
+							<span className="inline-flex items-center gap-1 rounded-full bg-red-50 border border-red-200 px-2 py-0.5 text-[10px] font-medium text-red-700">
+								⚠️ May be spam
+							</span>
+						</div>
+					)}
+
 					{/* Row 3: handoff badge */}
 					{room.handoffSource && (
 						<div className="flex items-center gap-1.5 mt-1">

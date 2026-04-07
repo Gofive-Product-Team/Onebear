@@ -105,6 +105,12 @@ public class ChatRoom : MongoEntity, IAuditableEntity
     [JsonPropertyName("sessionTimings")]
     public List<SessionTiming> SessionTimings { get; set; } = new();
 
+    [JsonPropertyName("isSpam")]
+    public bool IsSpam { get; set; }
+
+    [JsonPropertyName("spamScore")]
+    public double? SpamScore { get; set; }
+
     [JsonPropertyName("createdBy")]
     public string? CreatedBy { get; set; }
 

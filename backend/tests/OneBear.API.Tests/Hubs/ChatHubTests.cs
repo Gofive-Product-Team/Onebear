@@ -57,6 +57,7 @@ public class ChatHubTests
             _spMock.Object, integrationMock.Object, chatUserMock.Object,
             roomStateMock.Object, messageRepoMock.Object, roomRepoMock.Object,
             autoAssignMock.Object, signalRMock.Object, eventPubMock.Object,
+            new OneBear.Application.Messaging.SpamDetectionService(),
             orchLoggerMock.Object);
 
         // Set up user claims

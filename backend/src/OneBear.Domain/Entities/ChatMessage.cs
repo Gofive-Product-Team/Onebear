@@ -69,6 +69,12 @@ public class ChatMessage : MongoEntity, IAuditableEntity
     [JsonPropertyName("deletedTimestamp")]
     public long? DeletedTimestamp { get; set; }
 
+    [JsonPropertyName("isPinnedByUser")]
+    public bool IsPinnedByUser { get; set; }
+
+    [JsonPropertyName("messagePinnedTimestamp")]
+    public long? MessagePinnedTimestamp { get; set; }
+
     [JsonPropertyName("createdBy")]
     public string? CreatedBy { get; set; }
 

@@ -14,6 +14,8 @@ public class ChatMessageDto
     public string? Mid { get; set; }
     public bool IsEdited { get; set; }
     public bool IsDeleted { get; set; }
+    public bool IsPinnedByUser { get; set; }
+    public long? MessagePinnedTimestamp { get; set; }
     public MessageAttachmentDto? Attachment { get; set; }
     public ReplyToMessageDto? ReplyTo { get; set; }
     public MessageProductDto? Product { get; set; }

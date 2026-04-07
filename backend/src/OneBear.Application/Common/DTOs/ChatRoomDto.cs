@@ -34,4 +34,6 @@ public class ChatRoomDto
     public long? RtDurationMs { get; set; }
     public bool IsResolved { get; set; }
     public List<SessionTiming> SessionTimings { get; set; } = new();
+    public bool IsSpam { get; set; }
+    public double? SpamScore { get; set; }
 }

@@ -20,6 +20,7 @@ public static class DependencyInjection
 
         // Core messaging pipeline
         services.AddScoped<MessageOrchestrator>();
+        services.AddSingleton<SpamDetectionService>();
 
         // Room services (interface → implementation)
         services.AddScoped<IRoomStateService, RoomStateService>();

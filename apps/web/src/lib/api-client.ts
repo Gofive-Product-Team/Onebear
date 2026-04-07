@@ -86,6 +86,9 @@ export const api = {
 			fetchApi(`/companies/${companyId}/rooms/${roomId}/done`, { method: 'POST' }),
 		returnToAi: (companyId: string, roomId: string) =>
 			fetchApi(`/companies/${companyId}/rooms/${roomId}/return-to-ai`, { method: 'POST' }),
+		spam: (companyId: string) => fetchApi(`/companies/${companyId}/rooms/spam`),
+		notSpam: (companyId: string, roomId: string) =>
+			fetchApi(`/companies/${companyId}/rooms/${roomId}/not-spam`, { method: 'POST' }),
 	},
 	messages: {
 		list: (companyId: string, roomId: string, params?: Record<string, string>) =>
@@ -94,6 +97,12 @@ export const api = {
 			fetchApi(`/companies/${companyId}/rooms/${roomId}/messages`, { method: 'POST', body: JSON.stringify(body) }),
 		get: (companyId: string, roomId: string, messageId: string) =>
 			fetchApi(`/companies/${companyId}/rooms/${roomId}/messages/${messageId}`),
+		pinnedMessages: (companyId: string, roomId: string) =>
+			fetchApi(`/companies/${companyId}/rooms/${roomId}/pinned-messages`),
+		pinMessage: (companyId: string, roomId: string, messageId: string) =>
+			fetchApi(`/companies/${companyId}/rooms/${roomId}/messages/${messageId}/pin`, { method: 'POST' }),
+		unpinMessage: (companyId: string, roomId: string, messageId: string) =>
+			fetchApi(`/companies/${companyId}/rooms/${roomId}/messages/${messageId}/pin`, { method: 'DELETE' }),
 	},
 	integrations: {
 		list: (companyId: string) => fetchApi(`/companies/${companyId}/integrations`),

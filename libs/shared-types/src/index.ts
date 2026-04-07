@@ -36,6 +36,9 @@ export interface ChatRoom {
 	rtEndTimestamp?: number | null
 	rtDurationMs?: number | null
 	sessionTimings?: SessionTiming[]
+	// Spam fields
+	isSpam?: boolean
+	spamScore?: number | null
 }
 
 export type MessageType =
@@ -82,6 +85,9 @@ export interface ChatMessage {
 	metadata?: Record<string, unknown>
 	attachments?: Attachment[]
 	replyTo?: string
+	// Pin fields
+	isPinnedByUser?: boolean
+	pinnedTimestamp?: number | null
 }
 
 export interface PagedResponse<T> {

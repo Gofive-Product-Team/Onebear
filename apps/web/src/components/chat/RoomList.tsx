@@ -1,9 +1,10 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { cn } from '@one-bear/ui'
-import { useRooms, useBadgeCount } from '@/api/useRooms'
+import { useRooms, useBadgeCount, useSpamRooms } from '@/api/useRooms'
 import { useAuthStore } from '@/stores/auth-store'
 import { RoomCard } from './RoomCard'
+import { SpamFolder } from './SpamFolder'
 import { Input } from '@/components/ui/Input'
 import type { ChatRoom } from '@one-bear/shared-types'
 
@@ -52,6 +53,7 @@ export function RoomList({ activeRoomId }: Props) {
 	const companyId = user?.companyId ?? ''
 
 	const [searchQuery, setSearchQuery] = useState('')
+	const [spamOpen, setSpamOpen] = useState(false)
 
 	const filters = useMemo(() => {
 		if (searchQuery.trim()) return { search: searchQuery.trim() }
@@ -60,6 +62,7 @@ export function RoomList({ activeRoomId }: Props) {
 
 	const { data, isLoading, isError } = useRooms(companyId, filters)
 	const { data: badgeData } = useBadgeCount(companyId)
+	const { data: spamRooms = [] } = useSpamRooms(companyId)
 
 	const rooms = useMemo<ChatRoom[]>(() => {
 		if (!data?.data) return []
@@ -79,16 +82,43 @@ export function RoomList({ activeRoomId }: Props) {
 	)
 
 	return (
-		<div className="flex flex-col h-full bg-bg-page border-r border-border">
+		<div className="flex flex-col h-full bg-bg-page border-r border-border relative">
+			{/* Spam folder overlay */}
+			{spamOpen && (
+				<div className="absolute inset-0 z-20 bg-bg-page">
+					<SpamFolder onClose={() => setSpamOpen(false)} />
+				</div>
+			)}
+
 			{/* Header with badge count */}
 			<div className="shrink-0 px-4 pt-4 pb-2">
 				<div className="flex items-center justify-between mb-3">
 					<h2 className="text-[1.1rem] font-[800] tracking-[-0.5px] text-t1">Chats</h2>
-					{badgeData && badgeData.total > 0 && (
-						<span className="inline-flex items-center justify-center h-5 min-w-5 rounded-full bg-primary px-1.5 text-[10px] font-medium text-white">
-							{badgeData.total > 99 ? '99+' : badgeData.total}
-						</span>
-					)}
+					<div className="flex items-center gap-2">
+						{/* Spam folder button */}
+						<button
+							type="button"
+							onClick={() => setSpamOpen(true)}
+							className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-t3 hover:bg-bg-hover hover:text-t1 transition-colors"
+							title="Open Spam Folder"
+						>
+							<svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+								<path d="M2 4h12M4 4V2.5A1.5 1.5 0 015.5 1h5A1.5 1.5 0 0112 2.5V4M5 7v5M8 7v5M11 7v5M3 4l1 9.5A1 1 0 005 14.5h6a1 1 0 001-.5L13 4" />
+							</svg>
+							Spam
+							{spamRooms.length > 0 && (
+								<span className="inline-flex items-center justify-center h-4 min-w-4 rounded-full bg-red-500 px-1 text-[9px] font-medium text-white">
+									{spamRooms.length}
+								</span>
+							)}
+						</button>
+
+						{badgeData && badgeData.total > 0 && (
+							<span className="inline-flex items-center justify-center h-5 min-w-5 rounded-full bg-primary px-1.5 text-[10px] font-medium text-white">
+								{badgeData.total > 99 ? '99+' : badgeData.total}
+							</span>
+						)}
+					</div>
 				</div>
 				<Input
 					placeholder="Search conversations..."

@@ -19,6 +19,8 @@ public static class MessageMappingHelpers
         Mid = msg.Mid,
         IsEdited = msg.IsEdited,
         IsDeleted = msg.IsDeleted,
+        IsPinnedByUser = msg.IsPinnedByUser,
+        MessagePinnedTimestamp = msg.MessagePinnedTimestamp,
         Attachment = msg.Attachment is not null ? new MessageAttachmentDto
         {
             FileUrl = msg.Attachment.FileUrl,
@@ -83,6 +85,8 @@ public static class MessageMappingHelpers
         RtEndTimestamp = room.RtEndTimestamp,
         RtDurationMs = room.RtDurationMs,
         IsResolved = room.IsResolved,
-        SessionTimings = room.SessionTimings
+        SessionTimings = room.SessionTimings,
+        IsSpam = room.IsSpam,
+        SpamScore = room.SpamScore
     };
 }

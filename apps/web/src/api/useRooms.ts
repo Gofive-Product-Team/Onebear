@@ -2,6 +2,39 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { ChatRoom, PagedResponse, BadgeCount } from '@one-bear/shared-types'
 import { api } from '@/lib/api-client'
 
+export function useSpamRooms(companyId: string) {
+	return useQuery<ChatRoom[]>({
+		queryKey: ['rooms-spam', companyId],
+		queryFn: () => api.rooms.spam(companyId) as Promise<ChatRoom[]>,
+		enabled: !!companyId,
+	})
+}
+
+export function useMarkNotSpam(companyId: string) {
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: (roomId: string) => api.rooms.notSpam(companyId, roomId),
+		onMutate: async (roomId) => {
+			await queryClient.cancelQueries({ queryKey: ['rooms-spam', companyId] })
+			const previous = queryClient.getQueryData<ChatRoom[]>(['rooms-spam', companyId])
+			queryClient.setQueryData<ChatRoom[]>(['rooms-spam', companyId], (old = []) =>
+				old.filter((r) => r.id !== roomId),
+			)
+			return { previous }
+		},
+		onError: (_err, _roomId, context) => {
+			if (context?.previous !== undefined) {
+				queryClient.setQueryData(['rooms-spam', companyId], context.previous)
+			}
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ['rooms-spam', companyId] })
+			queryClient.invalidateQueries({ queryKey: ['rooms', companyId] })
+		},
+	})
+}
+
 export interface RoomFilters {
 	state?: string
 	assignedTo?: string

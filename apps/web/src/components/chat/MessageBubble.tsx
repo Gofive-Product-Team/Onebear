@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { cn } from '@one-bear/ui'
 import type { ChatMessage } from '@one-bear/shared-types'
 import { Tooltip } from '@/components/ui/Tooltip'
@@ -8,6 +9,8 @@ interface Props {
 	message: ChatMessage
 	currentUserId: string
 	onRetry?: (messageId: string) => void
+	onPin?: (messageId: string) => void
+	onUnpin?: (messageId: string) => void
 }
 
 function DeliveryStatusIcon({ status }: { status: string }) {
@@ -40,7 +43,8 @@ function DeliveryStatusIcon({ status }: { status: string }) {
 }
 
 
-export function MessageBubble({ message, currentUserId, onRetry }: Props) {
+export function MessageBubble({ message, currentUserId, onRetry, onPin, onUnpin }: Props) {
+	const [hovered, setHovered] = useState(false)
 	const msgType = message.type.toLowerCase()
 	const senderType = message.senderType?.toLowerCase() ?? ''
 
@@ -64,25 +68,52 @@ export function MessageBubble({ message, currentUserId, onRetry }: Props) {
 	// Messages without senderType: assume customer if type is not system
 	const isFromAgent = isAgent || (!isSystem && senderType === '' && message.deliveryStatus === 'Sent')
 
+	const isPinned = message.isPinnedByUser
+
 	return (
-		<div className={cn('flex w-full mb-1', isFromAgent ? 'justify-end' : 'justify-start')}>
+		<div
+			className={cn('flex w-full mb-1 group', isFromAgent ? 'justify-end' : 'justify-start')}
+			onMouseEnter={() => setHovered(true)}
+			onMouseLeave={() => setHovered(false)}
+		>
 			<div className={cn('max-w-[70%] flex flex-col', isFromAgent ? 'items-end' : 'items-start')}>
 				{/* Sender name for customer messages */}
 				{!isFromAgent && message.senderName && (
 					<span className="text-xs text-t3 mb-0.5 px-1">{message.senderName}</span>
 				)}
 
-				{/* Message content */}
-				<div
-					className={cn(
-						'rounded-2xl px-3.5 py-2 text-sm break-words',
-						isFromAgent
-							? 'bg-primary text-white rounded-[16px_16px_4px_16px]'
-							: 'bg-bg-input text-t1 rounded-[16px_16px_16px_4px]',
-						isFailed && 'ring-2 ring-error/30 bg-error-bg text-error',
+				{/* Message content row with pin button */}
+				<div className={cn('flex items-end gap-1.5', isFromAgent ? 'flex-row-reverse' : 'flex-row')}>
+					<div
+						className={cn(
+							'rounded-2xl px-3.5 py-2 text-sm break-words',
+							isFromAgent
+								? 'bg-primary text-white rounded-[16px_16px_4px_16px]'
+								: 'bg-bg-input text-t1 rounded-[16px_16px_16px_4px]',
+							isFailed && 'ring-2 ring-error/30 bg-error-bg text-error',
+						)}
+					>
+						<MessageRenderer message={message} />
+					</div>
+
+					{/* Pin/unpin button — visible on hover or when pinned */}
+					{(onPin || onUnpin) && (hovered || isPinned) && (
+						<Tooltip content={isPinned ? 'Unpin message' : 'Pin message'} side="top">
+							<button
+								type="button"
+								onClick={() => isPinned ? onUnpin?.(message.id) : onPin?.(message.id)}
+								className={cn(
+									'shrink-0 flex items-center justify-center h-6 w-6 rounded-full transition-colors',
+									isPinned
+										? 'text-amber-500 bg-amber-100 hover:bg-amber-200'
+										: 'text-t3 bg-bg-hover hover:text-amber-500 hover:bg-amber-100',
+								)}
+								aria-label={isPinned ? 'Unpin message' : 'Pin message'}
+							>
+								<span className="text-[11px] leading-none" aria-hidden>📌</span>
+							</button>
+						</Tooltip>
 					)}
-				>
-					<MessageRenderer message={message} />
 				</div>
 
 				{/* Timestamp + delivery status */}
