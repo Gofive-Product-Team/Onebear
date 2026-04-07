@@ -330,11 +330,20 @@ public class MessageOrchestrator
         chatMessage.UpdatedTimestamp = DateTimeHelper.NowUnixMilliseconds();
         await _messageRepo.UpdateAsync(chatMessage, ct);
 
-        // Step 7: Broadcast via SignalR
+        // Step 7: Reset unread count on admin reply (clears badge — badge clears ONLY on reply, not on open)
+        if (chatMessage.DeliveryStatus != MessageDeliveryState.Failed && room.Unread != 0)
+        {
+            Result<ChatRoom> unreadResult =
+                await _roomStateService.UpdateRoomWithRetryAsync(room, r => r.Unread = 0, ct);
+            if (unreadResult is Result<ChatRoom>.Success unreadSuccess)
+                room = unreadSuccess.Value;
+        }
+
+        // Step 8: Broadcast via SignalR
         ChatMessageDto messageDto = MessageMappingHelpers.ToDto(chatMessage);
         await _signalRNotifier.SendToRoomAsync(room.Id, "ReceiveMessage", messageDto, ct);
 
-        // Step 8: Return result
+        // Step 9: Return result
         if (chatMessage.DeliveryStatus == MessageDeliveryState.Failed)
         {
             return new Result<ChatMessageDto>.Failure(

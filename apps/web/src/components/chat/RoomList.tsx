@@ -1,22 +1,49 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { cn } from '@one-bear/ui'
-import { useRooms, useBadgeCount, type RoomFilters } from '@/api/useRooms'
+import { useRooms, useBadgeCount } from '@/api/useRooms'
 import { useAuthStore } from '@/stores/auth-store'
 import { RoomCard } from './RoomCard'
 import { Input } from '@/components/ui/Input'
-
-type FilterTab = 'all' | 'mine' | 'unassigned' | 'followup'
-
-const tabs: { key: FilterTab; label: string }[] = [
-	{ key: 'all', label: 'All' },
-	{ key: 'mine', label: 'Mine' },
-	{ key: 'unassigned', label: 'Unassigned' },
-	{ key: 'followup', label: 'Follow-up' },
-]
+import type { ChatRoom } from '@one-bear/shared-types'
 
 interface Props {
 	activeRoomId?: string
+}
+
+function SkeletonRoomCard() {
+	return (
+		<div className="flex items-center gap-3 px-3 py-3 animate-pulse">
+			<div className="h-10 w-10 rounded-full bg-gray-200 shrink-0" />
+			<div className="flex-1 space-y-2">
+				<div className="h-3 w-24 rounded bg-gray-200" />
+				<div className="h-2 w-40 rounded bg-gray-200" />
+			</div>
+			<div className="h-2 w-8 rounded bg-gray-100" />
+		</div>
+	)
+}
+
+function SectionHeader({ label }: { label: string }) {
+	return (
+		<h3 className="px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">{label}</h3>
+	)
+}
+
+function groupRooms(rooms: ChatRoom[], currentUserId: string | undefined) {
+	const pinnedRooms = rooms
+		.filter((r) => r.isPinned)
+		.sort((a, b) => (b.pinnedTimestamp ?? 0) - (a.pinnedTimestamp ?? 0))
+
+	const assignedToMe = rooms
+		.filter((r) => !r.isPinned && r.assignToUserId === currentUserId && !!r.handoffSource)
+		.sort((a, b) => (b.handoffTimestamp ?? 0) - (a.handoffTimestamp ?? 0))
+
+	const allChats = rooms
+		.filter((r) => !r.isPinned && !(r.assignToUserId === currentUserId && r.handoffSource))
+		.sort((a, b) => (b.lastMessageTimestamp ?? 0) - (a.lastMessageTimestamp ?? 0))
+
+	return { pinnedRooms, assignedToMe, allChats }
 }
 
 export function RoomList({ activeRoomId }: Props) {
@@ -24,29 +51,25 @@ export function RoomList({ activeRoomId }: Props) {
 	const user = useAuthStore((s) => s.user)
 	const companyId = user?.companyId ?? ''
 
-	const [activeTab, setActiveTab] = useState<FilterTab>('all')
 	const [searchQuery, setSearchQuery] = useState('')
 
-	const filters = useMemo((): RoomFilters => {
-		const f: RoomFilters = {}
-		if (searchQuery.trim()) f.search = searchQuery.trim()
-		if (activeTab === 'mine' && user) f.assignedTo = user.userId
-		if (activeTab === 'unassigned') f.assignedTo = 'unassigned'
-		if (activeTab === 'followup') f.state = 'followup'
-		return f
-	}, [activeTab, searchQuery, user])
+	const filters = useMemo(() => {
+		if (searchQuery.trim()) return { search: searchQuery.trim() }
+		return {}
+	}, [searchQuery])
 
 	const { data, isLoading, isError } = useRooms(companyId, filters)
 	const { data: badgeData } = useBadgeCount(companyId)
 
-	const rooms = useMemo(() => {
+	const rooms = useMemo<ChatRoom[]>(() => {
 		if (!data?.data) return []
-		return [...data.data].sort((a, b) => {
-			const aTime = a.lastMessageTimestamp ?? a.createdTimestamp
-			const bTime = b.lastMessageTimestamp ?? b.createdTimestamp
-			return bTime - aTime
-		})
+		return data.data
 	}, [data])
+
+	const { pinnedRooms, assignedToMe, allChats } = useMemo(
+		() => groupRooms(rooms, user?.userId),
+		[rooms, user?.userId],
+	)
 
 	const handleRoomClick = useCallback(
 		(roomId: string) => {
@@ -75,38 +98,12 @@ export function RoomList({ activeRoomId }: Props) {
 				/>
 			</div>
 
-			{/* Filter tabs */}
-			<div className="shrink-0 flex border-b border-border">
-				{tabs.map((tab) => (
-					<button
-						key={tab.key}
-						type="button"
-						onClick={() => setActiveTab(tab.key)}
-						className={cn(
-							'flex-1 px-2 py-2 text-xs font-medium transition-colors',
-							'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary',
-							activeTab === tab.key
-								? 'text-primary border-b-2 border-primary font-bold'
-								: 'text-t3 hover:text-t2',
-						)}
-					>
-						{tab.label}
-					</button>
-				))}
-			</div>
-
 			{/* Room list */}
 			<div className="flex-1 overflow-y-auto">
 				{isLoading && (
 					<div className="flex flex-col gap-1 p-2">
 						{Array.from({ length: 8 }).map((_, i) => (
-							<div key={i} className="flex items-start gap-3 px-4 py-3 animate-pulse">
-								<div className="h-10 w-10 rounded-full bg-bg-input shrink-0" />
-								<div className="flex-1 space-y-2">
-									<div className="h-3.5 w-3/4 rounded bg-bg-input" />
-									<div className="h-3 w-1/2 rounded bg-bg-input" />
-								</div>
-							</div>
+							<SkeletonRoomCard key={i} />
 						))}
 					</div>
 				)}
@@ -124,15 +121,55 @@ export function RoomList({ activeRoomId }: Props) {
 					</div>
 				)}
 
-				{!isLoading &&
-					rooms.map((room) => (
-						<RoomCard
-							key={room.id}
-							room={room}
-							isActive={room.id === activeRoomId}
-							onClick={() => handleRoomClick(room.id)}
-						/>
-					))}
+				{!isLoading && !isError && (
+					<>
+						{/* Pinned section */}
+						{pinnedRooms.length > 0 && (
+							<div>
+								<SectionHeader label="📌 Pinned" />
+								{pinnedRooms.map((room) => (
+									<RoomCard
+										key={room.id}
+										room={room}
+										isActive={room.id === activeRoomId}
+										onClick={() => handleRoomClick(room.id)}
+									/>
+								))}
+							</div>
+						)}
+
+						{/* Assigned to Me section */}
+						{assignedToMe.length > 0 && (
+							<div className={cn(pinnedRooms.length > 0 && 'mt-1')}>
+								<SectionHeader label="🔀 Assigned to Me" />
+								{assignedToMe.map((room) => (
+									<RoomCard
+										key={room.id}
+										room={room}
+										isActive={room.id === activeRoomId}
+										onClick={() => handleRoomClick(room.id)}
+									/>
+								))}
+							</div>
+						)}
+
+						{/* All Chats section */}
+						<div className={cn((pinnedRooms.length > 0 || assignedToMe.length > 0) && 'mt-1')}>
+							<SectionHeader label="💬 All Chats" />
+							{allChats.length === 0 && (
+								<p className="px-3 py-2 text-xs text-t3">No conversations.</p>
+							)}
+							{allChats.map((room) => (
+								<RoomCard
+									key={room.id}
+									room={room}
+									isActive={room.id === activeRoomId}
+									onClick={() => handleRoomClick(room.id)}
+								/>
+							))}
+						</div>
+					</>
+				)}
 			</div>
 		</div>
 	)

@@ -1,6 +1,8 @@
 import { cn } from '@one-bear/ui'
 import type { ChatMessage } from '@one-bear/shared-types'
+import { Tooltip } from '@/components/ui/Tooltip'
 import { MessageRenderer } from './renderers/MessageRenderer'
+import { formatSmartTimestamp, formatFullThaiDatetime } from '@/lib/date'
 
 interface Props {
 	message: ChatMessage
@@ -37,10 +39,6 @@ function DeliveryStatusIcon({ status }: { status: string }) {
 	}
 }
 
-function formatTime(unixMs: number): string {
-	const d = new Date(unixMs)
-	return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-}
 
 export function MessageBubble({ message, currentUserId, onRetry }: Props) {
 	const msgType = message.type.toLowerCase()
@@ -89,7 +87,9 @@ export function MessageBubble({ message, currentUserId, onRetry }: Props) {
 
 				{/* Timestamp + delivery status */}
 				<div className="flex items-center gap-1 mt-0.5 px-1">
-					<span className="text-[10px] text-t3">{formatTime(message.timestamp)}</span>
+					<Tooltip content={formatFullThaiDatetime(message.timestamp)} side={isFromAgent ? 'left' : 'right'}>
+						<span className="text-[10px] text-t3 cursor-default">{formatSmartTimestamp(message.timestamp)}</span>
+					</Tooltip>
 					{isFromAgent && <DeliveryStatusIcon status={message.deliveryStatus} />}
 				</div>
 

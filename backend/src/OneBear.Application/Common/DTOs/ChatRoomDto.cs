@@ -17,4 +17,9 @@ public class ChatRoomDto
     public long? FollowupTimestamp { get; set; }
     public long CreatedTimestamp { get; set; }
     public long? LastMessageTimestamp { get; set; }
+    public bool IsPinned { get; set; }
+    public long? PinnedTimestamp { get; set; }
+    public string? HandoffSource { get; set; }
+    public string? HandoffSourceName { get; set; }
+    public long? HandoffTimestamp { get; set; }
 }

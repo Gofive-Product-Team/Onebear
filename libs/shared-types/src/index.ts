@@ -7,8 +7,16 @@ export interface ChatRoom {
 	unreadCount: number
 	customerName: string | null
 	customerAvatar: string | null
+	lastMessage: string | null
 	createdTimestamp: number // Unix ms
 	lastMessageTimestamp: number | null // Unix ms
+	// Pin fields
+	isPinned?: boolean
+	pinnedTimestamp?: number | null
+	// Handoff fields
+	handoffSource?: string | null
+	handoffSourceName?: string | null
+	handoffTimestamp?: number | null
 }
 
 export type MessageType =

@@ -87,6 +87,17 @@ public class ChatRoomRepository : MongoRepositoryBase<ChatRoom>, IChatRoomReposi
         return (int)count;
     }
 
+    public async Task<int> GetPinnedCountAsync(string companyId, CancellationToken ct = default)
+    {
+        FilterDefinitionBuilder<ChatRoom> fb = Builders<ChatRoom>.Filter;
+        FilterDefinition<ChatRoom> filter = fb.And(
+            fb.Eq(r => r.CompanyId, companyId),
+            fb.Eq(r => r.IsPinned, true)
+        );
+        long count = await _collection.CountDocumentsAsync(filter, cancellationToken: ct);
+        return (int)count;
+    }
+
     public async Task<ChatRoom?> GetByUserAndIntegrationAsync(
         string companyId, string userId, string integrationId, CancellationToken ct = default)
     {

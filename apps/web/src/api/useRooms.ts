@@ -71,3 +71,67 @@ export function useCloseRoom(companyId: string) {
 		},
 	})
 }
+
+export function usePinRoom(companyId: string) {
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: (roomId: string) => api.rooms.pin(companyId, roomId),
+		onMutate: async (roomId) => {
+			await queryClient.cancelQueries({ queryKey: ['rooms', companyId] })
+			const previousRooms = queryClient.getQueriesData<PagedResponse<ChatRoom>>({ queryKey: ['rooms', companyId] })
+			queryClient.setQueriesData<PagedResponse<ChatRoom>>({ queryKey: ['rooms', companyId] }, (old) => {
+				if (!old) return old
+				return {
+					...old,
+					data: old.data.map((r) =>
+						r.id === roomId ? { ...r, isPinned: true, pinnedTimestamp: Date.now() } : r,
+					),
+				}
+			})
+			return { previousRooms }
+		},
+		onError: (_err, _roomId, context) => {
+			if (context?.previousRooms) {
+				for (const [queryKey, data] of context.previousRooms) {
+					queryClient.setQueryData(queryKey, data)
+				}
+			}
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ['rooms', companyId] })
+		},
+	})
+}
+
+export function useUnpinRoom(companyId: string) {
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: (roomId: string) => api.rooms.unpin(companyId, roomId),
+		onMutate: async (roomId) => {
+			await queryClient.cancelQueries({ queryKey: ['rooms', companyId] })
+			const previousRooms = queryClient.getQueriesData<PagedResponse<ChatRoom>>({ queryKey: ['rooms', companyId] })
+			queryClient.setQueriesData<PagedResponse<ChatRoom>>({ queryKey: ['rooms', companyId] }, (old) => {
+				if (!old) return old
+				return {
+					...old,
+					data: old.data.map((r) =>
+						r.id === roomId ? { ...r, isPinned: false, pinnedTimestamp: null } : r,
+					),
+				}
+			})
+			return { previousRooms }
+		},
+		onError: (_err, _roomId, context) => {
+			if (context?.previousRooms) {
+				for (const [queryKey, data] of context.previousRooms) {
+					queryClient.setQueryData(queryKey, data)
+				}
+			}
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ['rooms', companyId] })
+		},
+	})
+}

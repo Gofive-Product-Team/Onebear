@@ -60,6 +60,24 @@ public class ChatRoom : MongoEntity, IAuditableEntity
     [JsonPropertyName("isAiMuted")]
     public bool IsAiMuted { get; set; }
 
+    [JsonPropertyName("isPinned")]
+    public bool IsPinned { get; set; }
+
+    [JsonPropertyName("pinnedTimestamp")]
+    public long? PinnedTimestamp { get; set; }
+
+    [JsonPropertyName("pinnedByUserId")]
+    public string? PinnedByUserId { get; set; }
+
+    [JsonPropertyName("handoffSource")]
+    public string? HandoffSource { get; set; }
+
+    [JsonPropertyName("handoffSourceName")]
+    public string? HandoffSourceName { get; set; }
+
+    [JsonPropertyName("handoffTimestamp")]
+    public long? HandoffTimestamp { get; set; }
+
     [JsonPropertyName("createdBy")]
     public string? CreatedBy { get; set; }
 

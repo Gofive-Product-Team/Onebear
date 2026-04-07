@@ -70,6 +70,11 @@ public static class MessageMappingHelpers
         IsAiMuted = room.IsAiMuted,
         FollowupTimestamp = room.FollowupTimestamp,
         CreatedTimestamp = room.CreatedTimestamp,
-        LastMessageTimestamp = room.LastMessageTimestamp
+        LastMessageTimestamp = room.LastMessageTimestamp,
+        IsPinned = room.IsPinned,
+        PinnedTimestamp = room.PinnedTimestamp,
+        HandoffSource = room.HandoffSource,
+        HandoffSourceName = room.HandoffSourceName,
+        HandoffTimestamp = room.HandoffTimestamp
     };
 }

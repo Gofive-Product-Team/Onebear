@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OneBear.API.Auth;
 using OneBear.API.Extensions;
+using OneBear.Application.Common;
 using OneBear.Application.Common.DTOs;
 using OneBear.Application.Common.Interfaces;
 using OneBear.Application.Messaging;
@@ -187,6 +188,47 @@ public class RoomsController : ControllerBase
         Result<ChatRoomDto> result =
             await _participantService.UpdateTagsAsync(companyId, roomId, request.TagIds, ct);
         return result.ToActionResult();
+    }
+
+    /// <summary>Pin a room. Max 10 pinned rooms per company.</summary>
+    [HttpPost("{roomId}/pin")]
+    public async Task<IActionResult> PinRoom(string companyId, string roomId, CancellationToken ct)
+    {
+        string userId = User.GetUserId();
+        ChatRoom? room = await _roomRepo.GetByIdAsync(roomId, companyId, ct);
+        if (room is null)
+            return NotFound();
+
+        if (!room.IsPinned)
+        {
+            int pinnedCount = await _roomRepo.GetPinnedCountAsync(companyId, ct);
+            if (pinnedCount >= 10)
+                return Conflict(new { error = "MAX_PINNED_REACHED", message = "Maximum of 10 pinned rooms allowed per company." });
+        }
+
+        long now = DateTimeHelper.NowUnixMilliseconds();
+        room.IsPinned = true;
+        room.PinnedTimestamp = now;
+        room.PinnedByUserId = userId;
+        await _roomRepo.UpdateAsync(room, ct);
+
+        return Ok(MessageMappingHelpers.ToDto(room));
+    }
+
+    /// <summary>Unpin a room.</summary>
+    [HttpDelete("{roomId}/pin")]
+    public async Task<IActionResult> UnpinRoom(string companyId, string roomId, CancellationToken ct)
+    {
+        ChatRoom? room = await _roomRepo.GetByIdAsync(roomId, companyId, ct);
+        if (room is null)
+            return NotFound();
+
+        room.IsPinned = false;
+        room.PinnedTimestamp = null;
+        room.PinnedByUserId = null;
+        await _roomRepo.UpdateAsync(room, ct);
+
+        return NoContent();
     }
 
     /// <summary>Update room participants.</summary>

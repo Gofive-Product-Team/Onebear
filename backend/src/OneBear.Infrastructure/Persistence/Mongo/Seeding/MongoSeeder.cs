@@ -131,6 +131,12 @@ public class MongoSeeder
             Builders<ChatRoom>.IndexKeys.Ascending(r => r.FollowupTimestamp),
             new CreateIndexOptions { Name = "ix_rooms_followup_ts" }), ct);
 
+        // Rooms — pinned rooms per company
+        await CreateIndexAsync(_context.Rooms, new CreateIndexModel<ChatRoom>(
+            Builders<ChatRoom>.IndexKeys
+                .Ascending(r => r.CompanyId).Ascending(r => r.IsPinned).Descending(r => r.PinnedTimestamp),
+            new CreateIndexOptions { Name = "ix_rooms_company_pinned" }), ct);
+
         // IntegrationChannels — LINE webhook bot_id lookup (CRITICAL: runs every webhook)
         await CreateIndexAsync(_context.IntegrationChannels, new CreateIndexModel<IntegrationChannel>(
             Builders<IntegrationChannel>.IndexKeys

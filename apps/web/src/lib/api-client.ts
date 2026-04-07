@@ -78,6 +78,10 @@ export const api = {
 			fetchApi(`/companies/${companyId}/rooms/${roomId}/resolve`, { method: 'POST' }),
 		close: (companyId: string, roomId: string) =>
 			fetchApi(`/companies/${companyId}/rooms/${roomId}/close`, { method: 'POST' }),
+		pin: (companyId: string, roomId: string) =>
+			fetchApi(`/companies/${companyId}/rooms/${roomId}/pin`, { method: 'POST' }),
+		unpin: (companyId: string, roomId: string) =>
+			fetchApi(`/companies/${companyId}/rooms/${roomId}/pin`, { method: 'DELETE' }),
 	},
 	messages: {
 		list: (companyId: string, roomId: string, params?: Record<string, string>) =>
