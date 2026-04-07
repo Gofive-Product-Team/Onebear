@@ -36,4 +36,5 @@ public class MongoDbContext
     public IMongoCollection<ChatbotConfiguration> ChatbotConfigurations => _database.GetCollection<ChatbotConfiguration>("ChatbotConfigurations");
     public IMongoCollection<CompanyFeatureSettings> CompanyFeatureSettings => _database.GetCollection<CompanyFeatureSettings>("CompanyFeatureSettings");
     public IMongoCollection<UserVerification> UserVerifications => _database.GetCollection<UserVerification>("UserVerifications");
+    public IMongoCollection<Customer> Customers => _database.GetCollection<Customer>("Customers");
 }

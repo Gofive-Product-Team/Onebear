@@ -1,0 +1,250 @@
+namespace OneBear.Application.Customers.Services;
+
+using Microsoft.Extensions.Logging;
+using OneBear.Application.Customers.DTOs;
+using OneBear.Application.Customers.Mappings;
+using OneBear.Domain.Common;
+using OneBear.Domain.Entities;
+using OneBear.Domain.Interfaces.Repositories;
+using OneBear.Domain.ValueObjects;
+
+public class CustomerService
+{
+    private readonly ICustomerRepository _customerRepo;
+    private readonly ILogger<CustomerService> _logger;
+
+    public CustomerService(ICustomerRepository customerRepo, ILogger<CustomerService> logger)
+    {
+        _customerRepo = customerRepo;
+        _logger = logger;
+    }
+
+    public async Task<Result<CustomerDetailDto>> GetByIdAsync(
+        string companyId, string customerId, CancellationToken ct = default)
+    {
+        Customer? customer = await _customerRepo.GetByIdAsync(customerId, companyId, ct);
+        if (customer is null)
+            return new Result<CustomerDetailDto>.Failure(
+                new Error("CUSTOMER_NOT_FOUND", $"Customer {customerId} not found", ErrorType.NotFound));
+
+        return new Result<CustomerDetailDto>.Success(CustomerMapper.ToDetailDto(customer));
+    }
+
+    public async Task<(List<CustomerListDto> Items, string? ContinuationToken)> ListAsync(
+        string companyId, CustomerQueryParams query, CancellationToken ct = default)
+    {
+        (List<Customer> items, string? continuationToken) = await _customerRepo.QueryAsync(companyId, query, ct);
+        List<CustomerListDto> dtos = items.Select(CustomerMapper.ToListDto).ToList();
+        return (dtos, continuationToken);
+    }
+
+    public async Task<Result<CustomerDetailDto>> CreateAsync(
+        string companyId, CreateCustomerRequest request, string userId, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Name))
+            return new Result<CustomerDetailDto>.Failure(
+                new Error("VALIDATION_ERROR", "Customer name is required", ErrorType.Validation));
+
+        long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        Customer customer = new()
+        {
+            CompanyId = companyId,
+            CustomerType = request.CustomerType ?? "Individual",
+            Status = "Active",
+            Name = request.Name.Trim(),
+            Email = request.Email?.Trim(),
+            Phone = request.Phone?.Trim(),
+            Avatar = request.Avatar,
+            IsPromoted = true,
+            PromotedTimestamp = now,
+            Tags =
+            [
+                new CustomerTag
+                {
+                    Name = "New",
+                    IsAiAssigned = false,
+                    AssignedTimestamp = now,
+                    AssignedBy = userId
+                }
+            ],
+            CreatedBy = userId,
+            CreatedTimestamp = now,
+            UpdatedBy = userId,
+            UpdatedTimestamp = now
+        };
+
+        Customer created = await _customerRepo.CreateAsync(customer, ct);
+        _logger.LogInformation("Customer {CustomerId} created by {UserId} for company {CompanyId}",
+            created.Id, userId, companyId);
+
+        return new Result<CustomerDetailDto>.Success(CustomerMapper.ToDetailDto(created));
+    }
+
+    public async Task<Result<CustomerDetailDto>> UpdateAsync(
+        string companyId, string customerId, UpdateCustomerRequest request, string userId, CancellationToken ct = default)
+    {
+        Customer? customer = await _customerRepo.GetByIdAsync(customerId, companyId, ct);
+        if (customer is null)
+            return new Result<CustomerDetailDto>.Failure(
+                new Error("CUSTOMER_NOT_FOUND", $"Customer {customerId} not found", ErrorType.NotFound));
+
+        if (request.Name is not null)
+            customer.Name = request.Name.Trim();
+        if (request.Email is not null)
+            customer.Email = request.Email.Trim();
+        if (request.Phone is not null)
+            customer.Phone = request.Phone.Trim();
+        if (request.Avatar is not null)
+            customer.Avatar = request.Avatar;
+        if (request.NationalId is not null)
+            customer.NationalId = request.NationalId.Trim();
+        if (request.TaxId is not null)
+            customer.TaxId = request.TaxId.Trim();
+
+        customer.UpdatedBy = userId;
+
+        Customer updated = await _customerRepo.UpdateAsync(customer, ct);
+        return new Result<CustomerDetailDto>.Success(CustomerMapper.ToDetailDto(updated));
+    }
+
+    public async Task<Result<bool>> DeleteAsync(
+        string companyId, string customerId, CancellationToken ct = default)
+    {
+        Customer? customer = await _customerRepo.GetByIdAsync(customerId, companyId, ct);
+        if (customer is null)
+            return new Result<bool>.Failure(
+                new Error("CUSTOMER_NOT_FOUND", $"Customer {customerId} not found", ErrorType.NotFound));
+
+        // Soft delete: set Status = Inactive
+        customer.Status = "Inactive";
+        customer.UpdatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        await _customerRepo.UpdateAsync(customer, ct);
+        return new Result<bool>.Success(true);
+    }
+
+    public async Task<Result<CustomerDetailDto>> AddTagAsync(
+        string companyId, string customerId, string tagName, string userId, CancellationToken ct = default)
+    {
+        Customer? customer = await _customerRepo.GetByIdAsync(customerId, companyId, ct);
+        if (customer is null)
+            return new Result<CustomerDetailDto>.Failure(
+                new Error("CUSTOMER_NOT_FOUND", $"Customer {customerId} not found", ErrorType.NotFound));
+
+        bool alreadyHasTag = customer.Tags.Any(t => string.Equals(t.Name, tagName, StringComparison.OrdinalIgnoreCase));
+        if (!alreadyHasTag)
+        {
+            customer.Tags.Add(new CustomerTag
+            {
+                Name = tagName,
+                IsAiAssigned = false,
+                AssignedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                AssignedBy = userId
+            });
+            customer.UpdatedBy = userId;
+            await _customerRepo.UpdateAsync(customer, ct);
+        }
+
+        return new Result<CustomerDetailDto>.Success(CustomerMapper.ToDetailDto(customer));
+    }
+
+    public async Task<Result<CustomerDetailDto>> RemoveTagAsync(
+        string companyId, string customerId, string tagName, CancellationToken ct = default)
+    {
+        Customer? customer = await _customerRepo.GetByIdAsync(customerId, companyId, ct);
+        if (customer is null)
+            return new Result<CustomerDetailDto>.Failure(
+                new Error("CUSTOMER_NOT_FOUND", $"Customer {customerId} not found", ErrorType.NotFound));
+
+        customer.Tags.RemoveAll(t => string.Equals(t.Name, tagName, StringComparison.OrdinalIgnoreCase));
+        customer.UpdatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        await _customerRepo.UpdateAsync(customer, ct);
+        return new Result<CustomerDetailDto>.Success(CustomerMapper.ToDetailDto(customer));
+    }
+
+    public async Task<Result<CustomerDetailDto>> SetPinnedNoteAsync(
+        string companyId, string customerId, string note, string userId, CancellationToken ct = default)
+    {
+        Customer? customer = await _customerRepo.GetByIdAsync(customerId, companyId, ct);
+        if (customer is null)
+            return new Result<CustomerDetailDto>.Failure(
+                new Error("CUSTOMER_NOT_FOUND", $"Customer {customerId} not found", ErrorType.NotFound));
+
+        long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        customer.PinnedNote = note;
+        customer.PinnedNoteBy = userId;
+        customer.PinnedNoteTimestamp = now;
+        customer.UpdatedBy = userId;
+
+        await _customerRepo.UpdateAsync(customer, ct);
+        return new Result<CustomerDetailDto>.Success(CustomerMapper.ToDetailDto(customer));
+    }
+
+    public async Task<Result<CustomerDetailDto>> RemovePinnedNoteAsync(
+        string companyId, string customerId, CancellationToken ct = default)
+    {
+        Customer? customer = await _customerRepo.GetByIdAsync(customerId, companyId, ct);
+        if (customer is null)
+            return new Result<CustomerDetailDto>.Failure(
+                new Error("CUSTOMER_NOT_FOUND", $"Customer {customerId} not found", ErrorType.NotFound));
+
+        customer.PinnedNote = null;
+        customer.PinnedNoteBy = null;
+        customer.PinnedNoteTimestamp = null;
+        customer.UpdatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        await _customerRepo.UpdateAsync(customer, ct);
+        return new Result<CustomerDetailDto>.Success(CustomerMapper.ToDetailDto(customer));
+    }
+
+    public async Task<Result<CustomerDetailDto>> PromoteAsync(
+        string companyId, string customerId, CancellationToken ct = default)
+    {
+        Customer? customer = await _customerRepo.GetByIdAsync(customerId, companyId, ct);
+        if (customer is null)
+            return new Result<CustomerDetailDto>.Failure(
+                new Error("CUSTOMER_NOT_FOUND", $"Customer {customerId} not found", ErrorType.NotFound));
+
+        long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        customer.IsPromoted = true;
+        customer.PromotedTimestamp = now;
+
+        // Add "New" and "Hot" tags if not already present
+        foreach (string tagName in new[] { "New", "Hot" })
+        {
+            if (!customer.Tags.Any(t => string.Equals(t.Name, tagName, StringComparison.OrdinalIgnoreCase)))
+            {
+                customer.Tags.Add(new CustomerTag
+                {
+                    Name = tagName,
+                    IsAiAssigned = false,
+                    AssignedTimestamp = now,
+                    AssignedBy = "system"
+                });
+            }
+        }
+
+        customer.UpdatedTimestamp = now;
+
+        await _customerRepo.UpdateAsync(customer, ct);
+        return new Result<CustomerDetailDto>.Success(CustomerMapper.ToDetailDto(customer));
+    }
+
+    public async Task<CustomerSegmentCountsDto> GetSegmentCountsAsync(
+        string companyId, CancellationToken ct = default)
+    {
+        CustomerSegmentCounts counts = await _customerRepo.GetSegmentCountsAsync(companyId, ct);
+        return new CustomerSegmentCountsDto
+        {
+            All = counts.All,
+            Hot = counts.Hot,
+            Vip = counts.Vip,
+            AtRisk = counts.AtRisk,
+            New = counts.New,
+            Cold = counts.Cold,
+            Organization = counts.Organization
+        };
+    }
+}

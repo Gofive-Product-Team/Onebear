@@ -160,19 +160,26 @@ export const api = {
 	customers: {
 		list: (companyId: string, params?: Record<string, string>) =>
 			fetchApi(`/companies/${companyId}/customers${params ? '?' + new URLSearchParams(params) : ''}`),
-		get: (companyId: string, customerId: string) =>
-			fetchApi(`/companies/${companyId}/customers/${customerId}`),
-		update: (companyId: string, customerId: string, body: object) =>
-			fetchApi(`/companies/${companyId}/customers/${customerId}`, { method: 'PUT', body: JSON.stringify(body) }),
-		addTag: (companyId: string, customerId: string, tag: string) =>
-			fetchApi(`/companies/${companyId}/customers/${customerId}/tags`, {
-				method: 'POST',
-				body: JSON.stringify({ tag }),
-			}),
-		removeTag: (companyId: string, customerId: string, tag: string) =>
-			fetchApi(`/companies/${companyId}/customers/${customerId}/tags/${encodeURIComponent(tag)}`, {
-				method: 'DELETE',
-			}),
+		get: (companyId: string, id: string) =>
+			fetchApi(`/companies/${companyId}/customers/${id}`),
+		segmentCounts: (companyId: string) =>
+			fetchApi(`/companies/${companyId}/customers/segment-counts`),
+		create: (companyId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/customers`, { method: 'POST', body: JSON.stringify(body) }),
+		update: (companyId: string, id: string, body: object) =>
+			fetchApi(`/companies/${companyId}/customers/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+		delete: (companyId: string, id: string) =>
+			fetchApi(`/companies/${companyId}/customers/${id}`, { method: 'DELETE' }),
+		addTag: (companyId: string, id: string, name: string) =>
+			fetchApi(`/companies/${companyId}/customers/${id}/tags`, { method: 'POST', body: JSON.stringify({ name }) }),
+		removeTag: (companyId: string, id: string, name: string) =>
+			fetchApi(`/companies/${companyId}/customers/${id}/tags/${encodeURIComponent(name)}`, { method: 'DELETE' }),
+		setPinnedNote: (companyId: string, id: string, note: string) =>
+			fetchApi(`/companies/${companyId}/customers/${id}/pinned-note`, { method: 'PUT', body: JSON.stringify({ note }) }),
+		removePinnedNote: (companyId: string, id: string) =>
+			fetchApi(`/companies/${companyId}/customers/${id}/pinned-note`, { method: 'DELETE' }),
+		promote: (companyId: string, id: string) =>
+			fetchApi(`/companies/${companyId}/customers/${id}/promote`, { method: 'POST' }),
 	},
 	companies: {
 		featureSettings: (companyId: string) => fetchApi(`/companies/${companyId}/feature-settings`),

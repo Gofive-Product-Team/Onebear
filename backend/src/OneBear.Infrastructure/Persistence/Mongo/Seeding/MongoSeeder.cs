@@ -143,7 +143,52 @@ public class MongoSeeder
                 .Ascending(c => c.IsActive).Ascending("credentials.tokenExpiresAt"),
             new CreateIndexOptions { Name = "ix_integrations_active_tokenexpiry" }), ct);
 
-        _logger.LogInformation("MongoDB indexes created/verified (21 total)");
+        // Customers: 8 indexes
+        await CreateIndexAsync(_context.Customers, "ix_customers_company_promoted",
+            Builders<Customer>.IndexKeys
+                .Ascending(c => c.CompanyId)
+                .Ascending(c => c.IsPromoted)
+                .Descending(c => c.LastActivityTimestamp), ct);
+
+        await CreateIndexAsync(_context.Customers, "ix_customers_company_type",
+            Builders<Customer>.IndexKeys
+                .Ascending(c => c.CompanyId)
+                .Ascending(c => c.CustomerType), ct);
+
+        await CreateIndexAsync(_context.Customers, "ix_customers_company_tags",
+            Builders<Customer>.IndexKeys
+                .Ascending(c => c.CompanyId)
+                .Ascending("tags.name"), ct);
+
+        await CreateIndexAsync(_context.Customers, "ix_customers_company_phone",
+            Builders<Customer>.IndexKeys
+                .Ascending(c => c.CompanyId)
+                .Ascending(c => c.Phone), ct);
+
+        await CreateIndexAsync(_context.Customers, "ix_customers_company_email",
+            Builders<Customer>.IndexKeys
+                .Ascending(c => c.CompanyId)
+                .Ascending(c => c.Email), ct);
+
+        await CreateIndexAsync(_context.Customers, "ix_customers_company_name",
+            Builders<Customer>.IndexKeys
+                .Ascending(c => c.CompanyId)
+                .Ascending(c => c.Name), ct);
+
+        await CreateIndexAsync(_context.Customers, "ix_customers_company_ltv",
+            Builders<Customer>.IndexKeys
+                .Ascending(c => c.CompanyId)
+                .Descending(c => c.Ltv), ct);
+
+        // Text search index (compound text index on name, email, phone)
+        await CreateIndexAsync(_context.Customers, new CreateIndexModel<Customer>(
+            Builders<Customer>.IndexKeys
+                .Text("name")
+                .Text("email")
+                .Text("phone"),
+            new CreateIndexOptions { Name = "ix_customers_company_search" }), ct);
+
+        _logger.LogInformation("MongoDB indexes created/verified (29 total)");
     }
 
     private async Task CreateIndexAsync<T>(
@@ -571,7 +616,125 @@ public class MongoSeeder
         };
         await UpsertAsync(_context.CompanyFeatureSettings, devFeatures, ct);
 
+        // Customer seed data
+        await SeedCustomersAsync(companyId, now, ct);
+
         _logger.LogInformation("Development seed data created for dev company {CompanyId}", companyId);
+    }
+
+    private async Task SeedCustomersAsync(string companyId, long now, CancellationToken ct)
+    {
+        long day = 86400000L;
+
+        Customer hotCustomer = new()
+        {
+            Id = "cust-001", CompanyId = companyId, CustomerType = "Individual", Status = "Active",
+            Name = "สมชาย ใจดี", Phone = "0812345678", Email = "somchai@example.com",
+            Channels = [new() { ChatUserId = "c-line-001", Platform = "Line", ExternalId = "Uf001", DisplayName = "สมชาย ใจดี" }],
+            Ltv = 15800m, OrderCount = 12, Aov = 1317m,
+            FirstOrderTimestamp = now - (120 * day), LastOrderTimestamp = now - (5 * day),
+            LastActivityTimestamp = now - (30 * 60 * 1000),
+            Tags =
+            [
+                new() { Name = "Hot", IsAiAssigned = false, AssignedTimestamp = now - day, AssignedBy = "dev-user-001" },
+                new() { Name = "VIP", IsAiAssigned = false, AssignedTimestamp = now - (7 * day), AssignedBy = "dev-user-001" }
+            ],
+            PinnedNote = "VIP customer — always prioritize response",
+            PinnedNoteBy = "dev-user-001", PinnedNoteTimestamp = now - (3 * day),
+            IsPromoted = true, PromotedTimestamp = now - (120 * day),
+            CreatedBy = "system", CreatedTimestamp = now - (120 * day), UpdatedBy = "system", UpdatedTimestamp = now - (30 * 60 * 1000)
+        };
+
+        Customer vipCustomer = new()
+        {
+            Id = "cust-002", CompanyId = companyId, CustomerType = "Individual", Status = "Active",
+            Name = "Nattaya Srisuk", Phone = "0898765432", Email = "nattaya@example.com",
+            Channels = [new() { ChatUserId = "c-fb-001", Platform = "Facebook", ExternalId = "fb-001", DisplayName = "Nattaya S." }],
+            Ltv = 32500m, OrderCount = 25, Aov = 1300m,
+            FirstOrderTimestamp = now - (365 * day), LastOrderTimestamp = now - (10 * day),
+            LastActivityTimestamp = now - (2 * 60 * 60 * 1000),
+            Tags =
+            [
+                new() { Name = "VIP", IsAiAssigned = false, AssignedTimestamp = now - (30 * day), AssignedBy = "dev-user-001" },
+                new() { Name = "Loyal", IsAiAssigned = true, Reason = "Purchased 25 times over the past year", AssignedTimestamp = now - (14 * day), AssignedBy = "ai" }
+            ],
+            IsPromoted = true, PromotedTimestamp = now - (365 * day),
+            CreatedBy = "system", CreatedTimestamp = now - (365 * day), UpdatedBy = "system", UpdatedTimestamp = now - (2 * 60 * 60 * 1000)
+        };
+
+        Customer newCustomer = new()
+        {
+            Id = "cust-003", CompanyId = companyId, CustomerType = "Individual", Status = "Active",
+            Name = "Ploy Beauty", Phone = null, Email = null,
+            Channels = [new() { ChatUserId = "c-ig-001", Platform = "Instagram", ExternalId = "ig-001", DisplayName = "Ploy.beauty" }],
+            Ltv = 890m, OrderCount = 1, Aov = 890m,
+            FirstOrderTimestamp = now - (2 * day), LastOrderTimestamp = now - (2 * day),
+            LastActivityTimestamp = now - (30 * 60 * 1000),
+            Tags =
+            [
+                new() { Name = "New", IsAiAssigned = false, AssignedTimestamp = now - (2 * day), AssignedBy = "system" },
+                new() { Name = "Hot", IsAiAssigned = true, Reason = "First-time buyer within 48h", AssignedTimestamp = now - (2 * day), AssignedBy = "ai" }
+            ],
+            IsPromoted = true, PromotedTimestamp = now - (2 * day),
+            CreatedBy = "system", CreatedTimestamp = now - (2 * day), UpdatedBy = "system", UpdatedTimestamp = now - (30 * 60 * 1000)
+        };
+
+        Customer atRiskCustomer = new()
+        {
+            Id = "cust-004", CompanyId = companyId, CustomerType = "Individual", Status = "Active",
+            Name = "Anon Wongsawat", Phone = "+66812345678", Email = null,
+            Channels = [new() { ChatUserId = "c-wa-001", Platform = "WhatsApp", ExternalId = "+66812345678", DisplayName = "Anon W." }],
+            Ltv = 5400m, OrderCount = 4, Aov = 1350m,
+            FirstOrderTimestamp = now - (90 * day), LastOrderTimestamp = now - (60 * day),
+            LastActivityTimestamp = now - (60 * 1000),
+            Tags =
+            [
+                new() { Name = "At-risk", IsAiAssigned = true, Reason = "No purchase in 60 days, historically bought every 20 days", AssignedTimestamp = now - (5 * day), AssignedBy = "ai" }
+            ],
+            IsPromoted = true, PromotedTimestamp = now - (90 * day),
+            CreatedBy = "system", CreatedTimestamp = now - (90 * day), UpdatedBy = "system", UpdatedTimestamp = now - (60 * 1000)
+        };
+
+        Customer coldCustomer = new()
+        {
+            Id = "cust-005", CompanyId = companyId, CustomerType = "Individual", Status = "Active",
+            Name = "วิชัย มงคล", Phone = null, Email = null,
+            Channels = [new() { ChatUserId = "c-line-002", Platform = "Line", ExternalId = "Uf002", DisplayName = "วิชัย มงคล" }],
+            Ltv = 1590m, OrderCount = 1, Aov = 1590m,
+            FirstOrderTimestamp = now - (180 * day), LastOrderTimestamp = now - (180 * day),
+            LastActivityTimestamp = now - (172800000),
+            Tags =
+            [
+                new() { Name = "Cold", IsAiAssigned = true, Reason = "Inactive for 180 days since first purchase", AssignedTimestamp = now - (10 * day), AssignedBy = "ai" }
+            ],
+            IsPromoted = true, PromotedTimestamp = now - (180 * day),
+            CreatedBy = "system", CreatedTimestamp = now - (180 * day), UpdatedBy = "system", UpdatedTimestamp = now - (2 * day)
+        };
+
+        Customer orgCustomer = new()
+        {
+            Id = "cust-006", CompanyId = companyId, CustomerType = "Organization", Status = "Active",
+            Name = "Bangkok Tech Co., Ltd.", Phone = "021234567", Email = "purchase@bangkoktech.co.th",
+            TaxId = "0105567890123",
+            Channels = [new() { ChatUserId = "c-shopee-001", Platform = "Shopee", ExternalId = "shopee-buyer-001", DisplayName = "Buyer_star99" }],
+            Ltv = 85000m, OrderCount = 8, Aov = 10625m,
+            FirstOrderTimestamp = now - (200 * day), LastOrderTimestamp = now - (15 * day),
+            LastActivityTimestamp = now - (1800000),
+            Tags =
+            [
+                new() { Name = "VIP", IsAiAssigned = false, AssignedTimestamp = now - (60 * day), AssignedBy = "dev-user-001" }
+            ],
+            ContactIds = [],
+            IsPromoted = true, PromotedTimestamp = now - (200 * day),
+            CreatedBy = "system", CreatedTimestamp = now - (200 * day), UpdatedBy = "system", UpdatedTimestamp = now - (1800000)
+        };
+
+        await UpsertAsync(_context.Customers, hotCustomer, ct);
+        await UpsertAsync(_context.Customers, vipCustomer, ct);
+        await UpsertAsync(_context.Customers, newCustomer, ct);
+        await UpsertAsync(_context.Customers, atRiskCustomer, ct);
+        await UpsertAsync(_context.Customers, coldCustomer, ct);
+        await UpsertAsync(_context.Customers, orgCustomer, ct);
     }
 
     private async Task UpsertAsync<T>(IMongoCollection<T> collection, T item, CancellationToken ct) where T : MongoEntity

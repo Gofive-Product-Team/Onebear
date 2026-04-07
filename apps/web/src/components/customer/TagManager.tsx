@@ -1,21 +1,31 @@
 import { useState } from 'react'
-import { useAddTag, useRemoveTag } from '@/api/useCustomers'
+import { useAddCustomerTag, useRemoveCustomerTag, type CustomerTag } from '@/api/useCustomers'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
-export function TagManager({ customerId, tags }: { customerId: string; tags: string[] }) {
+interface Props {
+	customerId: string
+	/** Accepts both new CustomerTag[] and legacy string[] shapes */
+	tags: CustomerTag[] | string[]
+}
+
+function tagName(tag: CustomerTag | string): string {
+	return typeof tag === 'string' ? tag : tag.name
+}
+
+export function TagManager({ customerId, tags }: Props) {
 	const [isAdding, setIsAdding] = useState(false)
 	const [newTag, setNewTag] = useState('')
 
-	const addTagMutation = useAddTag()
-	const removeTagMutation = useRemoveTag()
+	const addTagMutation = useAddCustomerTag()
+	const removeTagMutation = useRemoveCustomerTag()
 
 	function handleAdd() {
 		const trimmed = newTag.trim()
 		if (!trimmed) return
 		addTagMutation.mutate(
-			{ customerId, tag: trimmed },
+			{ id: customerId, name: trimmed },
 			{
 				onSuccess: () => {
 					setNewTag('')
@@ -25,8 +35,8 @@ export function TagManager({ customerId, tags }: { customerId: string; tags: str
 		)
 	}
 
-	function handleRemove(tag: string) {
-		removeTagMutation.mutate({ customerId, tag })
+	function handleRemove(name: string) {
+		removeTagMutation.mutate({ id: customerId, name })
 	}
 
 	function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -41,22 +51,25 @@ export function TagManager({ customerId, tags }: { customerId: string; tags: str
 
 	return (
 		<div className="flex flex-wrap items-center gap-2">
-			{tags.map((tag) => (
-				<span key={tag} className="inline-flex items-center gap-1">
-					<Badge variant="secondary">{tag}</Badge>
-					<button
-						type="button"
-						onClick={() => handleRemove(tag)}
-						disabled={removeTagMutation.isPending}
-						className="flex h-4 w-4 items-center justify-center rounded-full text-gray-400 hover:bg-red-100 hover:text-red-600 disabled:opacity-50"
-						aria-label={`Remove tag ${tag}`}
-					>
-						<svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-						</svg>
-					</button>
-				</span>
-			))}
+			{tags.map((tag) => {
+				const name = tagName(tag)
+				return (
+					<span key={name} className="inline-flex items-center gap-1">
+						<Badge variant="secondary">{name}</Badge>
+						<button
+							type="button"
+							onClick={() => handleRemove(name)}
+							disabled={removeTagMutation.isPending}
+							className="flex h-4 w-4 items-center justify-center rounded-full text-gray-400 hover:bg-red-100 hover:text-red-600 disabled:opacity-50"
+							aria-label={`Remove tag ${name}`}
+						>
+							<svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+							</svg>
+						</button>
+					</span>
+				)
+			})}
 
 			{isAdding ? (
 				<div className="flex items-center gap-1.5">

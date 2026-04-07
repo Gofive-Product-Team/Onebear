@@ -52,6 +52,7 @@ public static class DependencyInjection
         services.AddScoped<IChatbotConfigurationRepository, ChatbotConfigurationRepository>();
         services.AddScoped<ICompanyFeatureSettingsRepository, CompanyFeatureSettingsRepository>();
         services.AddScoped<IUserVerificationRepository, UserVerificationRepository>();
+        services.AddScoped<ICustomerRepository, CustomerRepository>();
 
         services.AddTransient<MongoSeeder>();
 

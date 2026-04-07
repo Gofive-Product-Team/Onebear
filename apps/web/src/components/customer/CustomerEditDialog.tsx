@@ -4,7 +4,6 @@ import { z } from 'zod'
 import { useUpdateCustomer, type CustomerDetail } from '@/api/useCustomers'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Textarea } from '@/components/ui/Textarea'
 
 const customerSchema = z.object({
 	name: z.string().min(1, 'Name is required'),
@@ -14,7 +13,6 @@ const customerSchema = z.object({
 		.transform((v) => v ?? '')
 		.refine((v) => v === '' || z.string().email().safeParse(v).success, { message: 'Invalid email address' }),
 	phone: z.string().optional(),
-	notes: z.string().optional(),
 })
 
 type CustomerFormValues = z.infer<typeof customerSchema>
@@ -38,19 +36,17 @@ export function CustomerEditDialog({
 			name: customer.name,
 			email: customer.email ?? '',
 			phone: customer.phone ?? '',
-			notes: customer.notes ?? '',
 		},
 	})
 
 	function onSubmit(values: CustomerFormValues) {
 		updateMutation.mutate(
 			{
-				customerId: customer.id,
+				id: customer.id,
 				body: {
 					name: values.name,
 					email: values.email || undefined,
 					phone: values.phone || undefined,
-					notes: values.notes || undefined,
 				},
 			},
 			{
@@ -102,16 +98,6 @@ export function CustomerEditDialog({
 							{...register('phone')}
 						/>
 						{errors.phone && <p className="text-xs text-red-600">{errors.phone.message}</p>}
-					</div>
-
-					<div className="flex flex-col gap-1.5">
-						<Textarea
-							label="Notes"
-							placeholder="Internal notes about this customer..."
-							rows={3}
-							{...register('notes')}
-						/>
-						{errors.notes && <p className="text-xs text-red-600">{errors.notes.message}</p>}
 					</div>
 
 					<div className="flex justify-end gap-2 pt-2">

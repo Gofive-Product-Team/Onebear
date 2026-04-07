@@ -10,6 +10,7 @@ using OneBear.Application.Rooms.Services;
 using OneBear.Application.Integrations.Services;
 using OneBear.Application.Chatbot.Services;
 using OneBear.Application.Notifications.Services;
+using OneBear.Application.Customers.Services;
 
 public static class DependencyInjection
 {
@@ -39,6 +40,9 @@ public static class DependencyInjection
         // Chatbot & notifications
         services.AddScoped<ChatbotService>();
         services.AddScoped<NotificationService>();
+
+        // CRM
+        services.AddScoped<CustomerService>();
 
         return services;
     }
