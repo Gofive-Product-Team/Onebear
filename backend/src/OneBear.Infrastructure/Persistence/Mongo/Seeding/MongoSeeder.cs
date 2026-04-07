@@ -253,7 +253,21 @@ public class MongoSeeder
                 .Ascending(x => x.EventType)
                 .Descending(x => x.Timestamp), ct);
 
-        _logger.LogInformation("MongoDB indexes created/verified (37 total)");
+        // UserProfiles: 3 indexes (2 unique)
+        await CreateIndexAsync(_context.UserProfiles, "ix_userprofiles_keycloakuserid",
+            Builders<UserProfile>.IndexKeys
+                .Ascending(p => p.KeycloakUserId), ct, unique: true);
+
+        await CreateIndexAsync(_context.UserProfiles, "ix_userprofiles_email",
+            Builders<UserProfile>.IndexKeys
+                .Ascending(p => p.Email), ct, unique: true);
+
+        await CreateIndexAsync(_context.UserProfiles, "ix_userprofiles_company_active",
+            Builders<UserProfile>.IndexKeys
+                .Ascending(p => p.CompanyId)
+                .Ascending(p => p.IsActive), ct);
+
+        _logger.LogInformation("MongoDB indexes created/verified (40 total)");
     }
 
     private async Task CreateIndexAsync<T>(

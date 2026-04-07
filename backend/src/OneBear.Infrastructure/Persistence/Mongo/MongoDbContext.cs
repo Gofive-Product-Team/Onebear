@@ -38,4 +38,5 @@ public class MongoDbContext
     public IMongoCollection<UserVerification> UserVerifications => _database.GetCollection<UserVerification>("UserVerifications");
     public IMongoCollection<Customer> Customers => _database.GetCollection<Customer>("Customers");
     public IMongoCollection<ActivityLog> ActivityLogs => _database.GetCollection<ActivityLog>("ActivityLogs");
+    public IMongoCollection<UserProfile> UserProfiles => _database.GetCollection<UserProfile>("UserProfiles");
 }

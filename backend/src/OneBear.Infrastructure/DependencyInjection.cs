@@ -56,6 +56,8 @@ public static class DependencyInjection
         services.AddScoped<IActivityLogRepository, ActivityLogRepository>();
         services.AddScoped<IAiActivityLogRepository, AiActivityLogRepository>();
         services.AddScoped<IAiCreditRepository, AiCreditRepository>();
+        services.AddScoped<IUnansweredQuestionRepository, UnansweredQuestionRepository>();
+        services.AddScoped<IUserProfileRepository, UserProfileRepository>();
 
         services.AddTransient<MongoSeeder>();
 
