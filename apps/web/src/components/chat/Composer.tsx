@@ -4,6 +4,7 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
+import { StickyNote } from 'lucide-react'
 import { cn } from '@one-bear/ui'
 import { useSendMessage } from '@/api/useMessages'
 import { ComposerToolbar } from './composer/ComposerToolbar'
@@ -20,6 +21,7 @@ export function Composer({ companyId, roomId, platform, sendTyping }: Props) {
 	const isRichMode = platform === 'Email'
 
 	const [attachments, setAttachments] = useState<File[]>([])
+	const [isNoteMode, setIsNoteMode] = useState(false)
 	const fileInputRef = useRef<HTMLInputElement>(null)
 	const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 	const isTypingRef = useRef(false)
@@ -103,9 +105,10 @@ export function Composer({ companyId, roomId, platform, sendTyping }: Props) {
 		if (!text || isPending) return
 
 		const content = isRichMode ? editor.getHTML() : editor.getText()
+		const messageType = isNoteMode ? 'Note' : 'text'
 
 		send(
-			{ content, messageType: 'text' },
+			{ content, messageType },
 			{
 				onSuccess: () => {
 					editor.commands.clearContent(true)
@@ -117,7 +120,7 @@ export function Composer({ companyId, roomId, platform, sendTyping }: Props) {
 				},
 			},
 		)
-	}, [editor, isPending, isRichMode, send, sendTyping])
+	}, [editor, isPending, isRichMode, isNoteMode, send, sendTyping])
 
 	const handleEmojiSelect = useCallback(
 		(emoji: string) => {
@@ -162,13 +165,29 @@ export function Composer({ companyId, roomId, platform, sendTyping }: Props) {
 	const canSend = (editor?.getText().trim().length ?? 0) > 0 && !isPending
 
 	return (
-		<div className="shrink-0 border-t border-border bg-bg-card">
+		<div
+			className={cn(
+				'shrink-0 border-t border-border transition-colors duration-200',
+				isNoteMode ? 'bg-amber-50 border-t-amber-300' : 'bg-bg-card',
+			)}
+		>
+			{/* Note mode banner */}
+			{isNoteMode && (
+				<div className="flex items-center gap-1.5 px-4 pt-2 pb-0.5">
+					<StickyNote className="h-3.5 w-3.5 text-amber-600" />
+					<span className="text-xs font-semibold text-amber-700">Note</span>
+					<span className="text-xs text-amber-600">-- visible to agents only, not sent to customer</span>
+				</div>
+			)}
+
 			{/* Toolbar */}
 			<ComposerToolbar
 				editor={editor}
 				isRichMode={isRichMode}
 				onEmojiSelect={handleEmojiSelect}
 				onAttachClick={handleAttachClick}
+				isNoteMode={isNoteMode}
+				onToggleNoteMode={() => setIsNoteMode((prev) => !prev)}
 			/>
 
 			{/* Attachment previews */}
@@ -178,8 +197,10 @@ export function Composer({ companyId, roomId, platform, sendTyping }: Props) {
 			<div className="flex items-end gap-2 px-4 pb-3">
 				<div
 					className={cn(
-						'flex-1 rounded-lg border border-border-input bg-bg-input',
-						'focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-1',
+						'flex-1 rounded-lg border bg-bg-input',
+						isNoteMode
+							? 'border-amber-300 bg-amber-50/50 focus-within:ring-2 focus-within:ring-amber-400 focus-within:ring-offset-1'
+							: 'border-border-input focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-1',
 						isPending && 'cursor-not-allowed opacity-50',
 					)}
 				>
@@ -190,7 +211,12 @@ export function Composer({ companyId, roomId, platform, sendTyping }: Props) {
 					type="button"
 					onClick={handleSend}
 					disabled={!canSend}
-					className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary-light to-primary flex items-center justify-center shrink-0 shadow-[0_2px_10px_var(--color-primary-alpha)] transition-all duration-250 hover:-translate-y-px hover:shadow-[0_4px_18px_var(--color-primary-glow)] disabled:opacity-50 disabled:cursor-not-allowed"
+					className={cn(
+						'w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-all duration-250 hover:-translate-y-px disabled:opacity-50 disabled:cursor-not-allowed',
+						isNoteMode
+							? 'bg-gradient-to-br from-amber-400 to-amber-500 shadow-[0_2px_10px_rgba(245,158,11,0.3)] hover:shadow-[0_4px_18px_rgba(245,158,11,0.4)]'
+							: 'bg-gradient-to-br from-primary-light to-primary shadow-[0_2px_10px_var(--color-primary-alpha)] hover:shadow-[0_4px_18px_var(--color-primary-glow)]',
+					)}
 				>
 					{isPending ? (
 						<svg className="w-[18px] h-[18px] text-white animate-spin" viewBox="0 0 24 24" fill="none">

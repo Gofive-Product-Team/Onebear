@@ -164,6 +164,19 @@ export function useReturnToAi(companyId: string) {
 	})
 }
 
+export function useUpdateFollowUp(companyId: string, roomId: string) {
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: (body: { followupTimestamp: number | null; content?: string | null }) =>
+			api.rooms.updateFollowUp(companyId, roomId, body),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ['rooms'] })
+			queryClient.invalidateQueries({ queryKey: ['room', companyId, roomId] })
+		},
+	})
+}
+
 export function useUnpinRoom(companyId: string) {
 	const queryClient = useQueryClient()
 

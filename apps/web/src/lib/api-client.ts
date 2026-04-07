@@ -99,6 +99,8 @@ export const api = {
 		spam: (companyId: string) => fetchApi(`/companies/${companyId}/rooms/spam`),
 		notSpam: (companyId: string, roomId: string) =>
 			fetchApi(`/companies/${companyId}/rooms/${roomId}/not-spam`, { method: 'POST' }),
+		updateFollowUp: (companyId: string, roomId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/rooms/${roomId}/follow-up`, { method: 'PUT', body: JSON.stringify(body) }),
 	},
 	messages: {
 		list: (companyId: string, roomId: string, params?: Record<string, string>) =>

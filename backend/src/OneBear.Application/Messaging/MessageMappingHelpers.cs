@@ -93,6 +93,7 @@ public static class MessageMappingHelpers
         Tags = room.Tags?.Select(t => t.Name).ToList() ?? new(),
         IsAiMuted = room.IsAiMuted,
         FollowupTimestamp = room.FollowupTimestamp,
+        FollowupContent = room.FollowupContent,
         CreatedTimestamp = room.CreatedTimestamp,
         LastMessageTimestamp = room.LastMessageTimestamp,
         IsPinned = room.IsPinned,

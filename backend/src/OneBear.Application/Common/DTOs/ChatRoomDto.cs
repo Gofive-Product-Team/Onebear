@@ -17,6 +17,7 @@ public class ChatRoomDto
     public List<string> Tags { get; set; } = new();
     public bool IsAiMuted { get; set; }
     public long? FollowupTimestamp { get; set; }
+    public string? FollowupContent { get; set; }
     public long CreatedTimestamp { get; set; }
     public long? LastMessageTimestamp { get; set; }
     public bool IsPinned { get; set; }

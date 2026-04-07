@@ -1,4 +1,5 @@
 import type { Editor } from '@tiptap/react'
+import { StickyNote } from 'lucide-react'
 import { cn } from '@one-bear/ui'
 import { EmojiPicker } from './EmojiPicker'
 
@@ -7,9 +8,18 @@ interface Props {
 	isRichMode: boolean
 	onEmojiSelect: (emoji: string) => void
 	onAttachClick: () => void
+	isNoteMode?: boolean
+	onToggleNoteMode?: () => void
 }
 
-export function ComposerToolbar({ editor, isRichMode, onEmojiSelect, onAttachClick }: Props) {
+export function ComposerToolbar({
+	editor,
+	isRichMode,
+	onEmojiSelect,
+	onAttachClick,
+	isNoteMode,
+	onToggleNoteMode,
+}: Props) {
 	return (
 		<div className="flex items-center gap-0.5 px-2 py-1">
 			{isRichMode && (
@@ -55,6 +65,21 @@ export function ComposerToolbar({ editor, isRichMode, onEmojiSelect, onAttachCli
 					/>
 				</svg>
 			</button>
+			{onToggleNoteMode && (
+				<button
+					type="button"
+					onClick={onToggleNoteMode}
+					className={cn(
+						'flex h-8 w-8 items-center justify-center rounded-md transition-colors',
+						isNoteMode
+							? 'bg-amber-100 text-amber-600 hover:bg-amber-200'
+							: 'text-gray-500 hover:bg-gray-100 hover:text-gray-700',
+					)}
+					title={isNoteMode ? 'Switch to message mode' : 'Switch to note mode'}
+				>
+					<StickyNote className="h-4 w-4" />
+				</button>
+			)}
 		</div>
 	)
 }

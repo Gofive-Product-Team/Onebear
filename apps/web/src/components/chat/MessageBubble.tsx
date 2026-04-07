@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { StickyNote, Lock } from 'lucide-react'
 import { cn } from '@one-bear/ui'
 import type { ChatMessage } from '@one-bear/shared-types'
 import { Tooltip } from '@/components/ui/Tooltip'
@@ -58,6 +59,8 @@ export function MessageBubble({ message, currentUserId, onRetry, onPin, onUnpin 
 	const msgType = message.type.toLowerCase()
 	const senderType = message.senderType?.toLowerCase() ?? ''
 	const isAiMessage = message.isAiMessage === true
+	const isNote = message.type === 'Note' || message.type === 'PrivateNote'
+	const isPrivateNote = message.type === 'PrivateNote'
 
 	// Determine if this message is from the current agent user
 	// Backend sets senderType to "Agent" or "Customer" or null
@@ -71,6 +74,53 @@ export function MessageBubble({ message, currentUserId, onRetry, onPin, onUnpin 
 		return (
 			<div className="flex justify-center py-1">
 				<MessageRenderer message={message} />
+			</div>
+		)
+	}
+
+	// Note messages — full-width amber strip
+	if (isNote) {
+		return (
+			<div className="flex w-full mb-1 justify-center px-4">
+				<div className="w-full max-w-[85%] flex flex-col items-start">
+					{/* Note badge */}
+					<div className="flex items-center gap-1 mb-0.5 px-1">
+						<StickyNote className="h-3 w-3 text-amber-600" />
+						<span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+							Note
+						</span>
+						{isPrivateNote && (
+							<span className="inline-flex items-center gap-0.5 rounded-full bg-amber-200 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
+								<Lock className="h-2.5 w-2.5" />
+								Private
+							</span>
+						)}
+						{message.senderName && (
+							<span className="text-[10px] text-amber-600">{message.senderName}</span>
+						)}
+					</div>
+
+					{/* Note content */}
+					<div
+						className={cn(
+							'w-full rounded-[16px] px-3.5 py-2 text-[13px] break-words border',
+							isPrivateNote
+								? 'bg-amber-100 border-amber-300 text-amber-900'
+								: 'bg-amber-50 border-amber-200 text-amber-900',
+						)}
+					>
+						<MessageRenderer message={message} />
+					</div>
+
+					{/* Timestamp */}
+					<div className="flex items-center gap-1 mt-0.5 px-1">
+						<Tooltip content={formatFullThaiDatetime(message.timestamp)} side="right">
+							<span className="text-[10px] text-amber-500 cursor-default">
+								{formatSmartTimestamp(message.timestamp)}
+							</span>
+						</Tooltip>
+					</div>
+				</div>
 			</div>
 		)
 	}
