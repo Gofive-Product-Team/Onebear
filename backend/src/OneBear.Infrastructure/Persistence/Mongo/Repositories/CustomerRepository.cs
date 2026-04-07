@@ -243,4 +243,15 @@ public class CustomerRepository : MongoRepositoryBase<Customer>, ICustomerReposi
         );
         return await _collection.Find(filter).Limit(limit).ToListAsync(ct);
     }
+
+    public async Task<List<Customer>> QueryByChannelChatUserIdAsync(
+        string companyId, string chatUserId, CancellationToken ct = default)
+    {
+        FilterDefinitionBuilder<Customer> fb = Builders<Customer>.Filter;
+        FilterDefinition<Customer> filter = fb.And(
+            fb.Eq(c => c.CompanyId, companyId),
+            fb.ElemMatch(c => c.Channels, ch => ch.ChatUserId == chatUserId)
+        );
+        return await _collection.Find(filter).Limit(5).ToListAsync(ct);
+    }
 }

@@ -441,4 +441,68 @@ public class CustomerService
         await _customerRepo.UpdateAsync(customer, ct);
         _logger.LogDebug("Updated activity timestamp for customer {CustomerId}", customer.Id);
     }
+
+    /// <summary>
+    /// Auto-create or link a Customer CRM record from an inbound chat user.
+    /// Called by MessageOrchestrator on every inbound message.
+    /// Creates a temporary contact (IsPromoted=false) if no Customer exists.
+    /// </summary>
+    public async Task EnsureCustomerFromChatUserAsync(
+        string companyId, ChatUser chatUser, string platform,
+        string? displayName, string? pictureUrl, CancellationToken ct)
+    {
+        // Check if a Customer already links to this ChatUser
+        List<Customer> existing = await _customerRepo.QueryByChannelChatUserIdAsync(companyId, chatUser.Id, ct);
+        if (existing.Count > 0)
+        {
+            // Customer exists — just update activity
+            Customer customer = existing[0];
+            customer.LastActivityTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            customer = _tagRecalcService.RecalculateTagsAsync(customer);
+            await _customerRepo.UpdateAsync(customer, ct);
+            return;
+        }
+
+        // Check if a Customer with same phone/email exists (merge candidate)
+        // For now, skip — just create new
+
+        // Create new Customer as temporary contact (IsPromoted=false)
+        long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        string name = displayName ?? chatUser.DisplayName ?? chatUser.ExternalId ?? "Unknown";
+
+        Customer newCustomer = new()
+        {
+            Id = Guid.NewGuid().ToString(),
+            CompanyId = companyId,
+            CustomerType = "Individual",
+            Status = "Active",
+            Name = name,
+            Avatar = pictureUrl ?? chatUser.PictureUrl,
+            Channels = new List<CustomerChannel>
+            {
+                new()
+                {
+                    ChatUserId = chatUser.Id,
+                    Platform = platform,
+                    ExternalId = chatUser.ExternalId,
+                    DisplayName = displayName ?? chatUser.DisplayName
+                }
+            },
+            IsPromoted = false, // Temporary contact — not shown in CRM until order or manual promote
+            LastActivityTimestamp = now,
+            CreatedBy = "system",
+            CreatedTimestamp = now,
+        };
+
+        newCustomer = _tagRecalcService.RecalculateTagsAsync(newCustomer);
+        await _customerRepo.CreateAsync(newCustomer, ct);
+
+        _logger.LogInformation(
+            "Auto-created Customer {CustomerId} from ChatUser {ChatUserId} ({Platform}: {Name})",
+            newCustomer.Id, chatUser.Id, platform, name);
+
+        await _activityLogService.LogActivityAsync(
+            companyId, newCustomer.Id, "status_change",
+            $"Customer created from {platform} chat", "system", "System", null, null, ct);
+    }
 }

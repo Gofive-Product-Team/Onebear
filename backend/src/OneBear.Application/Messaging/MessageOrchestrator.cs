@@ -7,6 +7,7 @@ using OneBear.Application.Common;
 using OneBear.Application.Common.DTOs;
 using OneBear.Application.Common.Interfaces;
 using OneBear.Application.Events;
+using OneBear.Application.Customers.Services;
 using OneBear.Domain.Common;
 using OneBear.Domain.Entities;
 using OneBear.Domain.Enums;
@@ -80,6 +81,29 @@ public class MessageOrchestrator
                 new Error("ECHO_SKIPPED", "Echo message skipped.", ErrorType.Validation));
         }
 
+        // Step 2.5: Fetch user profile from platform if not available in webhook
+        if (string.IsNullOrEmpty(normalized.DisplayName))
+        {
+            try
+            {
+                Result<PlatformProfile> profileResult = await adapter.GetUserProfileAsync(
+                    normalized.ExternalUserId, integration, ct);
+                if (profileResult is Result<PlatformProfile>.Success profileSuccess)
+                {
+                    normalized = normalized with
+                    {
+                        DisplayName = profileSuccess.Value.DisplayName,
+                        PictureUrl = profileSuccess.Value.PictureUrl
+                    };
+                    _logger.LogDebug("Fetched profile for {UserId}: {Name}", normalized.ExternalUserId, normalized.DisplayName);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to fetch profile for {UserId}, continuing with null", normalized.ExternalUserId);
+            }
+        }
+
         // Step 3: Upsert external user
         Result<ChatUser> userResult = await _chatUserService.UpsertExternalUserAsync(
             normalized.ExternalUserId, platform, integrationId, companyId,
@@ -119,6 +143,21 @@ public class MessageOrchestrator
             CreatedTimestamp = now
         };
         await _messageRepo.CreateAsync(chatMessage, ct);
+
+        // Step 5.5: Auto-create/link Customer CRM record (best-effort)
+        try
+        {
+            CustomerService? customerService = _sp.GetService<CustomerService>();
+            if (customerService is not null)
+            {
+                await customerService.EnsureCustomerFromChatUserAsync(
+                    companyId, chatUser, platform, normalized.DisplayName, normalized.PictureUrl, ct);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to auto-create/link customer for ChatUser {UserId}", chatUser.Id);
+        }
 
         // Step 6: Auto-assign (best-effort; log on failure)
         Result<ChatRoom> assignResult = await _autoAssignmentService.TryAssignAsync(room, companyId, ct);
