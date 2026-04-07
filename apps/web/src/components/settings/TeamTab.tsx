@@ -288,7 +288,11 @@ export function TeamTab() {
 	}
 
 	// Determine which members are owners (by checking their role's isOwnerRole flag)
+	// Determine owner: by role flag OR by having all permissions
 	const ownerRoleId = roles?.find((r) => r.isOwnerRole)?.id
+	const isOwnerMember = (member: MemberItem) =>
+		member.roleId === ownerRoleId || member.roleName === 'Owner' ||
+		(member.permissions?.length ?? 0) >= 15
 
 	const isLoading = membersLoading || rolesLoading
 
@@ -332,7 +336,7 @@ export function TeamTab() {
 								key={member.id}
 								member={member}
 								roles={roles ?? []}
-								isOwner={member.roleId === ownerRoleId}
+								isOwner={isOwnerMember(member)}
 								onUpdateRole={handleUpdateRole}
 								onRemove={setConfirmRemoveMember}
 								isUpdating={updateMember.isPending}
