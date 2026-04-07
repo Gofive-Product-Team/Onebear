@@ -15,10 +15,13 @@ async function fetchApi<T>(path: string, options?: RequestInit, retryCount = 0):
 
 	const correlationId = crypto.randomUUID()
 
+	const isFormData = options?.body instanceof FormData
+
 	const response = await fetch(`${API_BASE}${path}`, {
 		...options,
 		headers: {
-			'Content-Type': 'application/json',
+			// Skip Content-Type for FormData — let the browser set multipart boundary
+			...(isFormData ? {} : { 'Content-Type': 'application/json' }),
 			'X-Correlation-Id': correlationId,
 			...(token ? { Authorization: `Bearer ${token}` } : {}),
 			...options?.headers,
@@ -238,6 +241,31 @@ export const api = {
 			fetchApi(`/companies/${companyId}/chatbot/knowledge-sources/${sourceId}`, {
 				method: 'DELETE',
 			}),
+		faq: (companyId: string) =>
+			fetchApi(`/companies/${companyId}/chatbot/faq`),
+		addFaq: (companyId: string, body: { question: string; answer: string }) =>
+			fetchApi(`/companies/${companyId}/chatbot/faq`, { method: 'POST', body: JSON.stringify(body) }),
+		updateFaq: (companyId: string, faqId: string, body: { question: string; answer: string }) =>
+			fetchApi(`/companies/${companyId}/chatbot/faq/${faqId}`, { method: 'PUT', body: JSON.stringify(body) }),
+		deleteFaq: (companyId: string, faqId: string) =>
+			fetchApi(`/companies/${companyId}/chatbot/faq/${faqId}`, { method: 'DELETE' }),
+		importCsv: (companyId: string, file: File) => {
+			const formData = new FormData()
+			formData.append('file', file)
+			return fetchApi(`/companies/${companyId}/chatbot/faq/import-csv`, { method: 'POST', body: formData })
+		},
+		test: (companyId: string, message: string) =>
+			fetchApi(`/companies/${companyId}/chatbot/test`, { method: 'POST', body: JSON.stringify({ message }) }),
+		insights: (companyId: string) =>
+			fetchApi(`/companies/${companyId}/chatbot/insights/unanswered`),
+		addInsightToFaq: (companyId: string, id: string) =>
+			fetchApi(`/companies/${companyId}/chatbot/insights/${id}/add-to-faq`, { method: 'POST' }),
+		dismissInsight: (companyId: string, id: string) =>
+			fetchApi(`/companies/${companyId}/chatbot/insights/${id}`, { method: 'DELETE' }),
+		credit: (companyId: string) =>
+			fetchApi(`/companies/${companyId}/chatbot/credit`),
+		topUp: (companyId: string, amount: number) =>
+			fetchApi(`/companies/${companyId}/chatbot/credit/topup`, { method: 'POST', body: JSON.stringify({ amount }) }),
 	},
 	oauth: {
 		getAuthUrl: (companyId: string, platform: string) =>

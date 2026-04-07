@@ -13,7 +13,17 @@ import {
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
+import { Tabs, TabList, Tab, TabPanel } from '@/components/ui/Tabs'
+import { KnowledgeBase } from './KnowledgeBase'
+import { TestMode } from './TestMode'
+import { AiCreditUsage } from './AiCreditUsage'
 import { formatDate } from '@/lib/date'
+
+const TONE_OPTIONS: Array<{ value: 'casual' | 'formal' | 'cute'; label: string }> = [
+	{ value: 'casual', label: 'Casual - สบายๆ' },
+	{ value: 'formal', label: 'Formal - สุภาพ' },
+	{ value: 'cute', label: 'Cute - น่ารัก' },
+]
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -246,6 +256,7 @@ export function ChatbotConfig() {
 	const [businessOverview, setBusinessOverview] = useState('')
 	const [responseStyle, setResponseStyle] = useState('')
 	const [instructions, setInstructions] = useState('')
+	const [tone, setTone] = useState<'casual' | 'formal' | 'cute'>('casual')
 	const [hasChanges, setHasChanges] = useState(false)
 
 	useEffect(() => {
@@ -256,6 +267,7 @@ export function ChatbotConfig() {
 			setBusinessOverview(config.businessOverview)
 			setResponseStyle(config.responseStyle)
 			setInstructions(config.instructions)
+			setTone(config.tone ?? 'casual')
 			setHasChanges(false)
 		}
 	}, [config])
@@ -273,6 +285,7 @@ export function ChatbotConfig() {
 				businessOverview,
 				responseStyle,
 				instructions,
+				tone,
 			},
 			{ onSuccess: () => setHasChanges(false) },
 		)
@@ -407,7 +420,33 @@ export function ChatbotConfig() {
 						}}
 					/>
 
-					{/* Knowledge sources */}
+					{/* Tone selector */}
+					<div className="space-y-2">
+						<label className="text-sm font-medium text-gray-700">Tone</label>
+						<p className="text-xs text-gray-500">Set the personality of the AI chatbot responses</p>
+						<div className="flex gap-2">
+							{TONE_OPTIONS.map((option) => (
+								<button
+									key={option.value}
+									type="button"
+									onClick={() => {
+										setTone(option.value)
+										markChanged()
+									}}
+									className={cn(
+										'rounded-lg border px-4 py-2 text-sm transition-colors',
+										tone === option.value
+											? 'border-primary bg-primary/10 text-primary font-medium'
+											: 'border-border text-t2 hover:bg-bg-input',
+									)}
+								>
+									{option.label}
+								</button>
+							))}
+						</div>
+					</div>
+
+					{/* Knowledge sources (legacy inline list) */}
 					<KnowledgeSourceList />
 				</div>
 
@@ -422,6 +461,27 @@ export function ChatbotConfig() {
 					</Button>
 				</div>
 			</div>
+
+			{/* Knowledge Base, Test Mode, AI Credit */}
+			<Tabs defaultValue="knowledge-base">
+				<TabList className="w-full">
+					<Tab value="knowledge-base">Knowledge Base</Tab>
+					<Tab value="test-mode">Test Mode</Tab>
+					<Tab value="ai-credit">AI Credit</Tab>
+				</TabList>
+
+				<TabPanel value="knowledge-base">
+					<KnowledgeBase />
+				</TabPanel>
+
+				<TabPanel value="test-mode">
+					<TestMode />
+				</TabPanel>
+
+				<TabPanel value="ai-credit">
+					<AiCreditUsage />
+				</TabPanel>
+			</Tabs>
 		</div>
 	)
 }

@@ -43,10 +43,21 @@ function DeliveryStatusIcon({ status }: { status: string }) {
 }
 
 
+function RobotAvatar() {
+	return (
+		<div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-purple-100">
+			<svg className="h-4 w-4 text-purple-600" viewBox="0 0 24 24" fill="currentColor">
+				<path d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7h1a1 1 0 110 2h-1.07A7.001 7.001 0 0113 22h-2a7.001 7.001 0 01-6.93-6H3a1 1 0 110-2h1a7 7 0 017-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 012-2zm-1 9a5 5 0 00-5 5 5 5 0 005 5h2a5 5 0 005-5 5 5 0 00-5-5h-2zm-1 3a1 1 0 110 2 1 1 0 010-2zm4 0a1 1 0 110 2 1 1 0 010-2z" />
+			</svg>
+		</div>
+	)
+}
+
 export function MessageBubble({ message, currentUserId, onRetry, onPin, onUnpin }: Props) {
 	const [hovered, setHovered] = useState(false)
 	const msgType = message.type.toLowerCase()
 	const senderType = message.senderType?.toLowerCase() ?? ''
+	const isAiMessage = message.isAiMessage === true
 
 	// Determine if this message is from the current agent user
 	// Backend sets senderType to "Agent" or "Customer" or null
@@ -77,13 +88,29 @@ export function MessageBubble({ message, currentUserId, onRetry, onPin, onUnpin 
 			onMouseLeave={() => setHovered(false)}
 		>
 			<div className={cn('max-w-[70%] flex flex-col', isFromAgent ? 'items-end' : 'items-start')}>
-				{/* Sender name for customer messages */}
-				{!isFromAgent && message.senderName && (
-					<span className="text-xs text-t3 mb-0.5 px-1">{message.senderName}</span>
+				{/* Sender name for customer messages or AI messages */}
+				{!isFromAgent && (message.senderName || isAiMessage) && (
+					<div className="flex items-center gap-1.5 mb-0.5 px-1">
+						{message.senderName && <span className="text-xs text-t3">{message.senderName}</span>}
+						{isAiMessage && (
+							<span className="inline-flex items-center rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-semibold text-purple-700">
+								AI
+							</span>
+						)}
+					</div>
+				)}
+				{isFromAgent && isAiMessage && (
+					<div className="flex items-center gap-1.5 mb-0.5 px-1">
+						<span className="inline-flex items-center rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-semibold text-purple-700">
+							AI
+						</span>
+					</div>
 				)}
 
 				{/* Message content row with pin button */}
 				<div className={cn('flex items-end gap-1.5', isFromAgent ? 'flex-row-reverse' : 'flex-row')}>
+					{/* AI robot avatar */}
+					{isAiMessage && !isFromAgent && <RobotAvatar />}
 					<div
 						className={cn(
 							'rounded-2xl px-3.5 py-2 text-sm break-words',
