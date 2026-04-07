@@ -195,6 +195,32 @@ public class CustomersController : ControllerBase
         return Ok(new { items, continuationToken = nextToken });
     }
 
+    // ─── Phase 4: Bulk Follow-up & Snooze ────────────────────────────────────
+
+    /// <summary>Bulk schedule follow-up for multiple customers.</summary>
+    [HttpPost("bulk-followup")]
+    public async Task<IActionResult> BulkFollowup(
+        string companyId,
+        [FromBody] BulkFollowupRequest request,
+        CancellationToken ct = default)
+    {
+        string userId = User.GetUserId();
+        int count = await _customerService.BulkFollowupAsync(companyId, request, userId, ct);
+        return Ok(new { count });
+    }
+
+    /// <summary>Snooze a customer for 24 hours (swipe-right action).</summary>
+    [HttpPost("{customerId}/snooze")]
+    public async Task<IActionResult> Snooze(
+        string companyId,
+        string customerId,
+        CancellationToken ct = default)
+    {
+        string userId = User.GetUserId();
+        Result<CustomerDetailDto> result = await _customerService.SnoozeAsync(companyId, customerId, userId, ct);
+        return result.ToActionResult();
+    }
+
     // ─── Organization Contact Management (Phase 3) ────────────────────────────
 
     /// <summary>Link an existing Individual customer as a contact of this Organization.</summary>

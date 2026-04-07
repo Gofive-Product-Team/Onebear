@@ -79,6 +79,10 @@ public class Customer : MongoEntity, IAuditableEntity
     [JsonPropertyName("contactIds")]
     public List<string> ContactIds { get; set; } = new();
 
+    // Snooze (Phase 4)
+    [JsonPropertyName("snoozeUntil")]
+    public long? SnoozeUntil { get; set; }
+
     // Promotion tracking
     [JsonPropertyName("isPromoted")]
     public bool IsPromoted { get; set; } = true;

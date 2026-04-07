@@ -365,6 +365,43 @@ public class CustomerService
         return contacts.Select(CustomerMapper.ToListDto).ToList();
     }
 
+    // ─── Phase 4: Bulk Follow-up & Snooze ────────────────────────────────────
+
+    public async Task<int> BulkFollowupAsync(string companyId, BulkFollowupRequest request, string userId, CancellationToken ct = default)
+    {
+        int count = 0;
+        foreach (string customerId in request.CustomerIds)
+        {
+            Customer? customer = await _customerRepo.GetByIdAsync(customerId, companyId, ct);
+            if (customer is null) continue;
+
+            // Create a FollowupSchedule for each customer
+            // For now: just log activity since FollowupSchedule is room-based
+            await _activityLogService.LogActivityAsync(
+                companyId, customerId, "followup",
+                $"Bulk follow-up scheduled via {request.Channel}",
+                userId, null, null, null, ct);
+            count++;
+        }
+        return count;
+    }
+
+    public async Task<Result<CustomerDetailDto>> SnoozeAsync(string companyId, string customerId, string userId, CancellationToken ct = default)
+    {
+        Customer? customer = await _customerRepo.GetByIdAsync(customerId, companyId, ct);
+        if (customer is null)
+            return new Result<CustomerDetailDto>.Failure(new Error("CUSTOMER_NOT_FOUND", "Customer not found", ErrorType.NotFound));
+
+        customer.SnoozeUntil = DateTimeOffset.UtcNow.AddHours(24).ToUnixTimeMilliseconds();
+        customer.UpdatedBy = userId;
+        await _customerRepo.UpdateAsync(customer, ct);
+
+        await _activityLogService.LogActivityAsync(
+            companyId, customerId, "followup", "Snoozed for 24 hours", userId, null, null, null, ct);
+
+        return new Result<CustomerDetailDto>.Success(CustomerMapper.ToDetailDto(customer));
+    }
+
     // ─── Activity / Messaging ─────────────────────────────────────────────────
 
     /// <summary>

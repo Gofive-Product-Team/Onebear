@@ -121,11 +121,30 @@ interface Props {
 	customer: CustomerListItem
 	onClick: () => void
 	onNavigateToProfile?: (id: string) => void
+	isSelectionMode?: boolean
+	isSelected?: boolean
+	onToggleSelect?: (id: string) => void
 }
 
-export function CustomerCard({ customer, onClick, onNavigateToProfile }: Props) {
+export function CustomerCard({
+	customer,
+	onClick,
+	onNavigateToProfile,
+	isSelectionMode = false,
+	isSelected = false,
+	onToggleSelect,
+}: Props) {
 	const [showChatDraft, setShowChatDraft] = useState(false)
 	const [chatDraftActionType, setChatDraftActionType] = useState<SuggestedActionType>('chat')
+
+	// In selection mode, card click toggles selection instead of opening detail
+	function handleCardClick() {
+		if (isSelectionMode) {
+			onToggleSelect?.(customer.id)
+		} else {
+			onClick()
+		}
+	}
 
 	// Route Organization customers to dedicated card
 	if (customer.customerType === 'Organization') {
@@ -133,7 +152,7 @@ export function CustomerCard({ customer, onClick, onNavigateToProfile }: Props) 
 			<>
 				<OrganizationCard
 					customer={customer}
-					onClick={onClick}
+					onClick={handleCardClick}
 					onNavigateToProfile={onNavigateToProfile}
 					onSuggestedAction={(type) => {
 						setChatDraftActionType(type)
@@ -170,15 +189,33 @@ export function CustomerCard({ customer, onClick, onNavigateToProfile }: Props) 
 		<article
 			role="button"
 			tabIndex={0}
-			onClick={onClick}
-			onKeyDown={(e) => e.key === 'Enter' && onClick()}
+			onClick={handleCardClick}
+			onKeyDown={(e) => e.key === 'Enter' && handleCardClick()}
+			aria-selected={isSelectionMode ? isSelected : undefined}
 			className={cn(
-				'relative flex cursor-pointer flex-col gap-3 rounded-xl border border-border bg-bg-card p-4 shadow-sm',
+				'relative flex cursor-pointer flex-col gap-3 rounded-xl border bg-bg-card p-4 shadow-sm',
 				'transition-all hover:border-blue-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+				isSelected ? 'border-primary ring-2 ring-primary/30' : 'border-border',
 			)}
 		>
+			{/* Selection checkbox — top-left, visible in selection mode */}
+			{isSelectionMode && (
+				<span
+					className={cn(
+						'absolute left-3 top-3 flex h-5 w-5 items-center justify-center rounded border-2 transition-colors',
+						isSelected ? 'border-primary bg-primary' : 'border-border-input bg-bg-input',
+					)}
+					aria-hidden="true"
+				>
+					{isSelected && (
+						<svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+							<path d="m5 12 5 5L20 7" />
+						</svg>
+					)}
+				</span>
+			)}
 			{/* Top row: avatar + name + channels + pinned note icon */}
-			<div className="flex items-start gap-3">
+			<div className={cn('flex items-start gap-3', isSelectionMode && 'pl-7')}>
 				{/* Avatar */}
 				<div
 					className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white"

@@ -299,6 +299,36 @@ export function useCheckDuplicate() {
 	})
 }
 
+export interface BulkFollowupBody {
+	customerIds: string[]
+	channel: string
+	message: string
+}
+
+export function useBulkFollowup() {
+	const companyId = useCompanyId()
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: (body: BulkFollowupBody) => api.customers.bulkFollowup(companyId, body),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ['customers', companyId] })
+		},
+	})
+}
+
+export function useSnoozeCustomer() {
+	const companyId = useCompanyId()
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: (id: string) => api.customers.snooze(companyId, id),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ['customers', companyId] })
+		},
+	})
+}
+
 // ─── Re-export legacy compat alias ────────────────────────────────────────────
 // CustomerPage previously typed customers as Customer; keep the union accessible
 export type Customer = CustomerListItem

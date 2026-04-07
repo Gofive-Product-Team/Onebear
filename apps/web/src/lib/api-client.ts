@@ -195,6 +195,10 @@ export const api = {
 			fetchApi(`/companies/${companyId}/customers/${id}/contacts`),
 		checkDuplicate: (companyId: string, params: Record<string, string>) =>
 			fetchApi(`/companies/${companyId}/customers/check-duplicate?${new URLSearchParams(params)}`),
+		bulkFollowup: (companyId: string, body: { customerIds: string[]; channel: string; message: string }) =>
+			fetchApi(`/companies/${companyId}/customers/bulk-followup`, { method: 'POST', body: JSON.stringify(body) }),
+		snooze: (companyId: string, id: string) =>
+			fetchApi(`/companies/${companyId}/customers/${id}/snooze`, { method: 'POST' }),
 	},
 	companies: {
 		featureSettings: (companyId: string) => fetchApi(`/companies/${companyId}/feature-settings`),

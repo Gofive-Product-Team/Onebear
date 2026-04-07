@@ -3,7 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { cn } from '@one-bear/ui'
 import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
-import { useCustomers, useSegmentCounts, type SegmentCounts } from '@/api/useCustomers'
+import { useCustomers, useSegmentCounts, useSnoozeCustomer, type SegmentCounts } from '@/api/useCustomers'
 import { CustomerCard } from '@/components/customer/CustomerCard'
 import { CustomerDetailPanel } from '@/components/customer/CustomerDetailPanel'
 import { FilterChips } from '@/components/customer/FilterChips'
@@ -12,6 +12,11 @@ import { CustomerSearch } from '@/components/customer/CustomerSearch'
 import { AddCustomerPanel } from '@/components/customer/AddCustomerPanel'
 import { FloatingActionButton } from '@/components/customer/FloatingActionButton'
 import { KpiSnapshotBar } from '@/components/customer/KpiSnapshotBar'
+import { SelectionModeToolbar } from '@/components/customer/SelectionModeToolbar'
+import { BulkFollowupSheet } from '@/components/customer/BulkFollowupSheet'
+import { CustomerContextMenu } from '@/components/customer/CustomerContextMenu'
+import { CustomerLongPressSheet } from '@/components/customer/CustomerLongPressSheet'
+import { SwipeableCard } from '@/components/customer/SwipeableCard'
 
 // ─── Empty segment counts fallback ────────────────────────────────────────────
 
@@ -93,6 +98,51 @@ export function CustomerPage() {
 	const [showAddPanel, setShowAddPanel] = useState(false)
 	const [addInitialName, setAddInitialName] = useState<string | undefined>(undefined)
 
+	// Selection mode
+	const [isSelectionMode, setIsSelectionMode] = useState(false)
+	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+	const [showBulkFollowupSheet, setShowBulkFollowupSheet] = useState(false)
+
+	function toggleSelectionMode() {
+		setIsSelectionMode((prev) => {
+			if (prev) setSelectedIds(new Set())
+			return !prev
+		})
+	}
+
+	function toggleSelectCustomer(id: string) {
+		setSelectedIds((prev) => {
+			const next = new Set(prev)
+			if (next.has(id)) {
+				next.delete(id)
+			} else {
+				next.add(id)
+			}
+			return next
+		})
+	}
+
+	function handleBulkFollowupSuccess() {
+		setIsSelectionMode(false)
+		setSelectedIds(new Set())
+	}
+
+	// Snooze
+	const snooze = useSnoozeCustomer()
+	const [snoozeToastVisible, setSnoozeToastVisible] = useState(false)
+
+	function handleSnooze(customerId: string) {
+		snooze.mutate(customerId, {
+			onSuccess: () => {
+				setSnoozeToastVisible(true)
+				setTimeout(() => setSnoozeToastVisible(false), 3000)
+			},
+		})
+	}
+
+	// Follow-up from swipe — opens ChatDraftModal via BulkFollowupSheet with 1 customer
+	const [swipeFollowupCustomerId, setSwipeFollowupCustomerId] = useState<string | null>(null)
+
 	// Infinite query
 	const { data, isLoading, isError, isFetchingNextPage, fetchNextPage, hasNextPage } = useCustomers({
 		segment,
@@ -142,17 +192,28 @@ export function CustomerPage() {
 					<h1 className="text-2xl font-bold text-t1">Customers</h1>
 					<p className="mt-0.5 text-sm text-t2">Manage and view customer information</p>
 				</div>
-				{/* "+ Add Customer" button — desktop only */}
-				<Button
-					onClick={() => openAddPanel()}
-					className="hidden md:inline-flex"
-				>
-					<svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-						<path d="M12 5v14" />
-						<path d="M5 12h14" />
-					</svg>
-					Add Customer
-				</Button>
+				<div className="flex items-center gap-2">
+					{/* Selection mode toolbar — shows "Select" toggle or active selection controls */}
+					<SelectionModeToolbar
+						isSelectionMode={isSelectionMode}
+						selectedCount={selectedIds.size}
+						onToggleSelectionMode={toggleSelectionMode}
+						onFollowup={() => setShowBulkFollowupSheet(true)}
+					/>
+					{/* "+ Add Customer" button — desktop only, hidden in selection mode */}
+					{!isSelectionMode && (
+						<Button
+							onClick={() => openAddPanel()}
+							className="hidden md:inline-flex"
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+								<path d="M12 5v14" />
+								<path d="M5 12h14" />
+							</svg>
+							Add Customer
+						</Button>
+					)}
+				</div>
 			</div>
 
 			{/* KPI Snapshot bar */}
@@ -206,16 +267,51 @@ export function CustomerPage() {
 
 						{/* Cards */}
 						{!isLoading &&
-							customers.map((customer) => (
-								<CustomerCard
-									key={customer.id}
-									customer={customer}
-									onClick={() => handleCardClick(customer.id)}
-									onNavigateToProfile={(id) =>
-										navigate({ to: '/customer/$customerId', params: { customerId: id } })
-									}
-								/>
-							))}
+							customers.map((customer) => {
+								const card = (
+									<CustomerCard
+										key={customer.id}
+										customer={customer}
+										onClick={() => handleCardClick(customer.id)}
+										onNavigateToProfile={(id) =>
+											navigate({ to: '/customer/$customerId', params: { customerId: id } })
+										}
+										isSelectionMode={isSelectionMode}
+										isSelected={selectedIds.has(customer.id)}
+										onToggleSelect={toggleSelectCustomer}
+									/>
+								)
+
+								if (isSelectionMode) {
+									// No context menu / long-press in selection mode
+									return card
+								}
+
+								const wrappedCard = (
+									<SwipeableCard
+										key={`swipe-${customer.id}`}
+										customerId={customer.id}
+										onFollowup={() => setSwipeFollowupCustomerId(customer.id)}
+										onChat={() =>
+											navigate({ to: '/customer/$customerId', params: { customerId: customer.id } })
+										}
+										onSnooze={() => handleSnooze(customer.id)}
+									>
+										{card}
+									</SwipeableCard>
+								)
+
+								return (
+									// Desktop: right-click context menu
+									// Mobile: long-press bottom sheet (intercepts click capture to suppress after long-press)
+									//         + swipe actions
+									<CustomerContextMenu key={customer.id} customer={customer}>
+										<CustomerLongPressSheet customer={customer}>
+											{wrappedCard}
+										</CustomerLongPressSheet>
+									</CustomerContextMenu>
+								)
+							})}
 
 						{/* Empty state (spans all cols) */}
 						{isEmpty && (
@@ -252,8 +348,37 @@ export function CustomerPage() {
 				initialName={addInitialName}
 			/>
 
-			{/* Mobile FAB */}
-			<FloatingActionButton onClick={() => openAddPanel()} />
+			{/* Mobile FAB — hidden in selection mode */}
+			{!isSelectionMode && <FloatingActionButton onClick={() => openAddPanel()} />}
+
+			{/* Bulk follow-up sheet (from selection mode) */}
+			<BulkFollowupSheet
+				open={showBulkFollowupSheet}
+				onOpenChange={setShowBulkFollowupSheet}
+				customerIds={Array.from(selectedIds)}
+				onSuccess={handleBulkFollowupSuccess}
+			/>
+
+			{/* Follow-up sheet triggered by swipe action (single customer) */}
+			<BulkFollowupSheet
+				open={swipeFollowupCustomerId !== null}
+				onOpenChange={(open) => { if (!open) setSwipeFollowupCustomerId(null) }}
+				customerIds={swipeFollowupCustomerId ? [swipeFollowupCustomerId] : []}
+				onSuccess={() => setSwipeFollowupCustomerId(null)}
+			/>
+
+			{/* Snooze toast */}
+			{snoozeToastVisible && (
+				<div
+					className={cn(
+						'fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-full bg-gray-800 px-4 py-2 text-sm text-white shadow-lg',
+						'animate-in fade-in-0 slide-in-from-bottom-2',
+					)}
+					role="status"
+				>
+					Snoozed for 24 hours
+				</div>
+			)}
 		</div>
 	)
 }
