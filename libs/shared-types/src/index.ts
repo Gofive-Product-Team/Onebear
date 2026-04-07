@@ -25,6 +25,8 @@ export interface ChatRoom {
 	handoffSource?: string | null
 	handoffSourceName?: string | null
 	handoffTimestamp?: number | null
+	isAiMuted?: boolean
+	attendedUserIds?: string[]
 	// FRT/RT timer fields
 	frtStartTimestamp?: number | null
 	frtEndTimestamp?: number | null

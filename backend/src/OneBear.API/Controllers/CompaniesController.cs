@@ -78,10 +78,55 @@ public class CompaniesController : ControllerBase
             updatedTimestamp = settings.UpdatedTimestamp
         });
     }
+
+    /// <summary>Update SLA escalation thresholds for a company.</summary>
+    [HttpPut("settings/sla")]
+    public async Task<IActionResult> UpdateSlaSettings(
+        string companyId,
+        [FromBody] UpdateSlaSettingsRequest request,
+        CancellationToken ct)
+    {
+        string userId = User.GetUserId();
+        CompanyFeatureSettings? existing = await _featureSettingsRepo.GetByCompanyIdAsync(companyId, ct);
+
+        CompanyFeatureSettings settings = existing ?? new CompanyFeatureSettings
+        {
+            Id = Guid.NewGuid().ToString(),
+            CompanyId = companyId
+        };
+
+        if (request.Level1Minutes.HasValue)
+            settings.SlaLevel1Minutes = request.Level1Minutes.Value;
+        if (request.Level2Minutes.HasValue)
+            settings.SlaLevel2Minutes = request.Level2Minutes.Value;
+        if (request.Level3Minutes.HasValue)
+            settings.SlaLevel3Minutes = request.Level3Minutes.Value;
+
+        settings.UpdatedBy = userId;
+        settings.UpdatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        await _featureSettingsRepo.UpsertAsync(settings, ct);
+
+        return Ok(new
+        {
+            companyId = settings.CompanyId,
+            slaLevel1Minutes = settings.SlaLevel1Minutes,
+            slaLevel2Minutes = settings.SlaLevel2Minutes,
+            slaLevel3Minutes = settings.SlaLevel3Minutes,
+            updatedTimestamp = settings.UpdatedTimestamp
+        });
+    }
 }
 
 public record UpdateFeatureSettingsRequest
 {
     public Dictionary<string, bool>? Features { get; init; }
     public Dictionary<string, string>? Settings { get; init; }
+}
+
+public record UpdateSlaSettingsRequest
+{
+    public int? Level1Minutes { get; init; }
+    public int? Level2Minutes { get; init; }
+    public int? Level3Minutes { get; init; }
 }

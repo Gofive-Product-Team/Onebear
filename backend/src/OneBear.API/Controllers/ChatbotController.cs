@@ -188,6 +188,44 @@ public class ChatbotController : ControllerBase
     // Internal / API-key endpoints
     // ──────────────────────────────────────────────
 
+    /// <summary>
+    /// Called by the AI service when it cannot handle the conversation (e.g. confidence below threshold).
+    /// Mutes AI for the room and sets handoff metadata so an admin can take over.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPost("api/v1/chatbot/callback/handoff")]
+    public async Task<IActionResult> ChatbotCallbackHandoff(
+        [FromBody] AiHandoffCallbackRequest request, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(request.RoomId) || string.IsNullOrEmpty(request.CompanyId))
+            return BadRequest(new { error = "roomId and companyId are required" });
+
+        ChatRoom? room = await _roomRepo.GetByIdAsync(request.RoomId, request.CompanyId, ct);
+        if (room is null)
+            return NotFound(new { error = "Room not found" });
+
+        Result<ChatRoom> result = await _chatbotService.HandleHandoffAsync(room, ct);
+        if (result is Result<ChatRoom>.Failure f)
+            return StatusCode(500, new { error = f.Error.Message });
+
+        ChatRoom updated = ((Result<ChatRoom>.Success)result).Value;
+
+        // Notify admins via SignalR that the room needs attention
+        await _signalRNotifier.SendToCompanyAsync(updated.CompanyId, "RoomUpdated", new
+        {
+            roomId = updated.Id,
+            changes = new
+            {
+                isAiMuted = updated.IsAiMuted,
+                handoffSource = updated.HandoffSource,
+                handoffSourceName = updated.HandoffSourceName,
+                handoffTimestamp = updated.HandoffTimestamp
+            }
+        }, ct);
+
+        return Ok(new { status = "handed_off", roomId = updated.Id, handoffTimestamp = updated.HandoffTimestamp });
+    }
+
     [AllowAnonymous]
     [HttpPost("api/v1/chatbot/callback/message")]
     public async Task<IActionResult> ChatbotCallbackMessage(
@@ -292,4 +330,12 @@ public record AiCallbackRequest
     public string CompanyId { get; init; } = default!;
     public string ResponseContent { get; init; } = default!;
     public string? MessageId { get; init; }
+}
+
+public record AiHandoffCallbackRequest
+{
+    public string RoomId { get; init; } = default!;
+    public string CompanyId { get; init; } = default!;
+    public string? Reason { get; init; }
+    public double? Confidence { get; init; }
 }

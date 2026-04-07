@@ -296,6 +296,24 @@ public class RoomsController : ControllerBase
             await _participantService.UpdateParticipantsAsync(companyId, roomId, request.ParticipantUserIds, ct);
         return result.ToActionResult();
     }
+
+    /// <summary>Return a room to AI — clears handoff fields and re-enables AI replies.</summary>
+    [HttpPost("{roomId}/return-to-ai")]
+    public async Task<IActionResult> ReturnToAi(string companyId, string roomId, CancellationToken ct = default)
+    {
+        ChatRoom? room = await _roomRepo.GetByIdAsync(roomId, companyId, ct);
+        if (room is null)
+            return NotFound();
+
+        room.HandoffSource = null;
+        room.HandoffSourceName = null;
+        room.HandoffTimestamp = null;
+        room.IsAiMuted = false;
+
+        await _roomRepo.UpdateAsync(room, ct);
+
+        return Ok(MessageMappingHelpers.ToDto(room));
+    }
 }
 
 // Request DTOs

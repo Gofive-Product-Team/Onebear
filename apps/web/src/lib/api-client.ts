@@ -84,6 +84,8 @@ export const api = {
 			fetchApi(`/companies/${companyId}/rooms/${roomId}/pin`, { method: 'DELETE' }),
 		done: (companyId: string, roomId: string) =>
 			fetchApi(`/companies/${companyId}/rooms/${roomId}/done`, { method: 'POST' }),
+		returnToAi: (companyId: string, roomId: string) =>
+			fetchApi(`/companies/${companyId}/rooms/${roomId}/return-to-ai`, { method: 'POST' }),
 	},
 	messages: {
 		list: (companyId: string, roomId: string, params?: Record<string, string>) =>

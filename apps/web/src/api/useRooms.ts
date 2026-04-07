@@ -117,6 +117,18 @@ export function useMarkDone(companyId: string) {
 	})
 }
 
+export function useReturnToAi(companyId: string) {
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: (roomId: string) => api.rooms.returnToAi(companyId, roomId),
+		onSuccess: (_data, roomId) => {
+			queryClient.invalidateQueries({ queryKey: ['rooms'] })
+			queryClient.invalidateQueries({ queryKey: ['room', companyId, roomId] })
+		},
+	})
+}
+
 export function useUnpinRoom(companyId: string) {
 	const queryClient = useQueryClient()
 

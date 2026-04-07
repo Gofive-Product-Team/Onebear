@@ -50,6 +50,14 @@ builder.Services.AddQuartz(q =>
         .ForJob(tagRecalcJobKey)
         .WithIdentity("ScheduledTagRecalculation-trigger")
         .WithCronSchedule("0 0 2 * * ?"));
+
+    // SLA escalation — every 1 minute
+    JobKey slaJobKey = new("SlaEscalation");
+    q.AddJob<SlaEscalationJob>(opts => opts.WithIdentity(slaJobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(slaJobKey)
+        .WithIdentity("SlaEscalation-trigger")
+        .WithCronSchedule("0 * * * * ?"));
 });
 builder.Services.AddQuartzHostedService(opt => opt.WaitForJobsToComplete = true);
 

@@ -5,9 +5,11 @@ import { Avatar } from '@/components/ui/Avatar'
 import { Tooltip } from '@/components/ui/Tooltip'
 import { PlatformIcon } from './PlatformIcon'
 import { TimerDisplay } from './TimerDisplay'
+import { PresenceAvatarStack } from './PresenceAvatarStack'
 import { formatSmartTimestamp, formatFullThaiDatetime } from '@/lib/date'
 import { usePinRoom, useUnpinRoom } from '@/api/useRooms'
 import { useAuthStore } from '@/stores/auth-store'
+import { useTypingStore } from '@/stores/typing-store'
 
 interface Props {
 	room: ChatRoom
@@ -33,6 +35,10 @@ function TimestampWithTooltip({ timestamp }: { timestamp: number }) {
 export function RoomCard({ room, isActive, onClick }: Props) {
 	const user = useAuthStore((s) => s.user)
 	const companyId = user?.companyId ?? ''
+	const currentUserId = user?.userId ?? ''
+
+	const typingEntry = useTypingStore((s) => s.typingRooms.get(room.id))
+	const isTyping = typingEntry !== undefined && Date.now() - typingEntry.timestamp < 5_000
 
 	const customerName = room.customerName ?? 'Unknown Customer'
 	const fallbackInitial = customerName.charAt(0).toUpperCase()
@@ -115,17 +121,30 @@ export function RoomCard({ room, isActive, onClick }: Props) {
 						)}
 					</div>
 
-					{/* Row 2: preview + unread badge */}
+					{/* Row 2: preview + unread badge + presence avatars */}
 					<div className="flex items-center justify-between gap-2 mt-0.5">
 						<p className={cn('truncate text-xs', showBoldPreview ? 'font-semibold text-gray-900' : 'text-gray-500')}>
 							{room.lastMessage ?? 'No messages yet'}
 						</p>
-						{showBadge && (
-							<span className="shrink-0 rounded-full bg-blue-600 px-1.5 py-0.5 text-[10px] font-medium text-white">
-								{unread > 99 ? '99+' : unread}
-							</span>
-						)}
+						<div className="flex items-center gap-1.5 shrink-0">
+							{room.attendedUserIds && room.attendedUserIds.length > 0 && (
+								<PresenceAvatarStack
+									userIds={room.attendedUserIds}
+									currentUserId={currentUserId}
+								/>
+							)}
+							{showBadge && (
+								<span className="shrink-0 rounded-full bg-blue-600 px-1.5 py-0.5 text-[10px] font-medium text-white">
+									{unread > 99 ? '99+' : unread}
+								</span>
+							)}
+						</div>
 					</div>
+
+					{/* Row 2b: typing indicator */}
+					{isTyping && (
+						<p className="mt-0.5 text-xs italic text-blue-500">Admin is typing...</p>
+					)}
 
 					{/* Row 3: handoff badge */}
 					{room.handoffSource && (

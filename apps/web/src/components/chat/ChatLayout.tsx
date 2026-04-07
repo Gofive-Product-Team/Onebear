@@ -10,6 +10,8 @@ import { MessageList } from './MessageList'
 import { Composer } from './Composer'
 import { DoneButtonBar } from './DoneButtonBar'
 import { ChatSidebar } from './ChatSidebar'
+import { AiHandoffBanner } from './AiHandoffBanner'
+import { SlaWarningBanner } from './SlaWarningBanner'
 
 interface Props {
 	roomId?: string
@@ -114,6 +116,17 @@ export function ChatLayout({ roomId }: Props) {
 								</svg>
 							</button>
 						</div>
+
+						{/* AI Handoff banner */}
+						{activeRoom && <AiHandoffBanner room={activeRoom} />}
+
+						{/* SLA Warning banner */}
+						{activeRoom && (
+							<SlaWarningBanner
+								frtStartTimestamp={activeRoom.frtStartTimestamp ?? null}
+								isFrtStopped={activeRoom.isFrtStopped ?? false}
+							/>
+						)}
 
 						{/* Messages + Done bar + Composer */}
 						<MessageList companyId={companyId} roomId={roomId} typingUsers={typingUsers} />

@@ -11,15 +11,18 @@ using OneBear.Domain.ValueObjects;
 public class ChatbotService
 {
     private readonly IChatbotConfigurationRepository _chatbotRepo;
+    private readonly IChatRoomRepository _roomRepo;
     private readonly IEventPublisher _eventPublisher;
     private readonly ILogger<ChatbotService> _logger;
 
     public ChatbotService(
         IChatbotConfigurationRepository chatbotRepo,
+        IChatRoomRepository roomRepo,
         IEventPublisher eventPublisher,
         ILogger<ChatbotService> logger)
     {
         _chatbotRepo = chatbotRepo;
+        _roomRepo = roomRepo;
         _eventPublisher = eventPublisher;
         _logger = logger;
     }
@@ -101,6 +104,29 @@ public class ChatbotService
             roomId, companyId);
 
         return new Result<string>.Success(responseContent);
+    }
+
+    /// <summary>
+    /// Handle AI handoff — called when the AI decides it cannot handle the conversation
+    /// (e.g. confidence below threshold). Mutes AI for the room and sets handoff metadata.
+    /// </summary>
+    public async Task<Result<ChatRoom>> HandleHandoffAsync(
+        ChatRoom room, CancellationToken ct)
+    {
+        long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        room.IsAiMuted = true;
+        room.HandoffSource = "ai";
+        room.HandoffSourceName = "AI";
+        room.HandoffTimestamp = now;
+
+        ChatRoom updated = await _roomRepo.UpdateAsync(room, ct);
+
+        _logger.LogInformation(
+            "AI handed off room {RoomId} to admin at {Timestamp}",
+            room.Id, now);
+
+        return new Result<ChatRoom>.Success(updated);
     }
 
     // ── Schedule evaluation ──────────────────────────────────────────

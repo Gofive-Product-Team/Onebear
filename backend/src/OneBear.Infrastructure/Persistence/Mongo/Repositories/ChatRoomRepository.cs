@@ -129,4 +129,21 @@ public class ChatRoomRepository : MongoRepositoryBase<ChatRoom>, IChatRoomReposi
 
         return await _collection.Find(filter).Limit(100).ToListAsync(ct);
     }
+
+    /// <summary>
+    /// Returns InProgress rooms assigned to an agent with an active FRT clock (not yet stopped),
+    /// suitable for SLA escalation checks.
+    /// </summary>
+    public async Task<List<ChatRoom>> GetRoomsForSlaCheckAsync(CancellationToken ct = default)
+    {
+        FilterDefinitionBuilder<ChatRoom> fb = Builders<ChatRoom>.Filter;
+        FilterDefinition<ChatRoom> filter = fb.And(
+            fb.Eq(r => r.State, ChatState.InProgress),
+            fb.Ne(r => r.AssignToUserId, null),
+            fb.Ne(r => r.FrtStartTimestamp, null),
+            fb.Eq(r => r.IsFrtStopped, false)
+        );
+
+        return await _collection.Find(filter).Limit(500).ToListAsync(ct);
+    }
 }
