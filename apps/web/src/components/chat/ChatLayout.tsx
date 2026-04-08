@@ -154,7 +154,7 @@ export function ChatLayout({ roomId }: Props) {
 							onOpenInfo={handleOpenInfo}
 							enabled={effectiveMobileView === 'chat'}
 						>
-							<MessageList companyId={companyId} roomId={roomId} typingUsers={typingUsers} />
+							<MessageList companyId={companyId} roomId={roomId} typingUsers={typingUsers} viewingUserIds={activeRoom?.attendedUserIds ?? []} />
 							{activeRoom && <DoneButtonBar room={activeRoom} />}
 							<Composer companyId={companyId} roomId={roomId} platform={activeRoom?.platform ?? ''} sendTyping={sendTyping} />
 						</SwipeableMessageArea>
