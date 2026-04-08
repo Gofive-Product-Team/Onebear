@@ -20,7 +20,7 @@ using StackExchange.Redis;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration, bool skipMassTransit = false)
     {
         // MongoDB
         services.AddSingleton<IMongoClient>(sp =>
@@ -75,10 +75,13 @@ public static class DependencyInjection
         // Event publisher (MassTransit)
         services.AddScoped<IEventPublisher, MassTransitEventPublisher>();
 
-        // MassTransit + RabbitMQ
-        string rabbitMqConnectionString = configuration.GetConnectionString("RabbitMq")
-            ?? "amqp://guest:guest@localhost:5672";
-        services.AddMassTransitMessaging(rabbitMqConnectionString);
+        // MassTransit + RabbitMQ (skip when Worker registers its own with consumers)
+        if (!skipMassTransit)
+        {
+            string rabbitMqConnectionString = configuration.GetConnectionString("RabbitMq")
+                ?? "amqp://guest:guest@localhost:5672";
+            services.AddMassTransitMessaging(rabbitMqConnectionString);
+        }
 
         // Platform adapters (keyed DI)
         services.AddKeyedScoped<IPlatformAdapter, LineAdapter>(SocialPlatform.Line);
