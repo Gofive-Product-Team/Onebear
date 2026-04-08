@@ -1,8 +1,9 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { cn } from '@one-bear/ui'
+import { Pencil } from 'lucide-react'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Tabs, TabList, Tab, TabPanel } from '@/components/ui/Tabs'
-import { useCustomer } from '@/api/useCustomers'
+import { useCustomer, useUpdateCustomer } from '@/api/useCustomers'
 import { getHighestPriorityTag, SegmentTag } from './SegmentTag'
 import { generateAvatarColor } from './CustomerCard'
 import { GeneralInfoTab } from './profile/GeneralInfoTab'
@@ -51,6 +52,28 @@ interface Props {
 export function CustomerDetailModal({ customerId, onClose }: Props) {
 	// Fetch customer data when modal is open
 	const { data: customer, isLoading, isError } = useCustomer(customerId ?? '')
+	const updateCustomer = useUpdateCustomer()
+	const [isEditing, setIsEditing] = useState(false)
+	const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', customerType: '' })
+
+	useEffect(() => {
+		if (customer && isEditing) {
+			setEditForm({
+				name: customer.name ?? '',
+				email: customer.email ?? '',
+				phone: customer.phone ?? '',
+				customerType: customer.customerType ?? 'Individual',
+			})
+		}
+	}, [customer, isEditing])
+
+	function handleSaveEdit() {
+		if (!customer) return
+		updateCustomer.mutate(
+			{ id: customer.id, body: { name: editForm.name, email: editForm.email || undefined, phone: editForm.phone || undefined, customerType: editForm.customerType } },
+			{ onSuccess: () => setIsEditing(false) },
+		)
+	}
 
 	// Close on Escape key
 	const handleKeyDown = useCallback(
@@ -161,9 +184,21 @@ export function CustomerDetailModal({ customerId, onClose }: Props) {
 									)}
 								</div>
 
-								{/* Name + tag */}
+								{/* Name + tag + Edit button */}
 								<div className="min-w-0 flex-1">
-									<h2 className="truncate text-xl font-bold text-t1">{customer.name}</h2>
+									<div className="flex items-center gap-2">
+										<h2 className="truncate text-xl font-bold text-t1">{customer.name}</h2>
+										{!isEditing && (
+											<button
+												type="button"
+												onClick={() => setIsEditing(true)}
+												className="shrink-0 rounded-md p-1.5 text-t3 hover:bg-bg-hover hover:text-primary transition-colors"
+												title="Edit customer"
+											>
+												<Pencil className="h-4 w-4" />
+											</button>
+										)}
+									</div>
 									<div className="mt-1 flex flex-wrap items-center gap-2">
 										<span
 											className={cn(
@@ -184,6 +219,70 @@ export function CustomerDetailModal({ customerId, onClose }: Props) {
 									</div>
 								</div>
 							</div>
+
+							{/* Edit form */}
+							{isEditing && (
+								<div className="mt-4 rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
+									<div className="grid grid-cols-2 gap-3">
+										<div>
+											<label className="text-xs font-medium text-t2">Name</label>
+											<input
+												value={editForm.name}
+												onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+												className="mt-1 w-full rounded-md border border-border bg-bg-input px-3 py-1.5 text-sm"
+											/>
+										</div>
+										<div>
+											<label className="text-xs font-medium text-t2">Type</label>
+											<select
+												value={editForm.customerType}
+												onChange={(e) => setEditForm({ ...editForm, customerType: e.target.value })}
+												className="mt-1 w-full rounded-md border border-border bg-bg-input px-3 py-1.5 text-sm"
+											>
+												<option value="Individual">Individual</option>
+												<option value="Organization">Organization</option>
+											</select>
+										</div>
+									</div>
+									<div className="grid grid-cols-2 gap-3">
+										<div>
+											<label className="text-xs font-medium text-t2">Email</label>
+											<input
+												value={editForm.email}
+												onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+												placeholder="customer@example.com"
+												className="mt-1 w-full rounded-md border border-border bg-bg-input px-3 py-1.5 text-sm"
+											/>
+										</div>
+										<div>
+											<label className="text-xs font-medium text-t2">Phone</label>
+											<input
+												value={editForm.phone}
+												onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+												placeholder="08x-xxx-xxxx"
+												className="mt-1 w-full rounded-md border border-border bg-bg-input px-3 py-1.5 text-sm"
+											/>
+										</div>
+									</div>
+									<div className="flex gap-2 justify-end">
+										<button
+											type="button"
+											onClick={() => setIsEditing(false)}
+											className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-t2 hover:bg-bg-hover"
+										>
+											Cancel
+										</button>
+										<button
+											type="button"
+											onClick={handleSaveEdit}
+											disabled={!editForm.name.trim() || updateCustomer.isPending}
+											className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/90 disabled:opacity-50"
+										>
+											{updateCustomer.isPending ? 'Saving...' : 'Save'}
+										</button>
+									</div>
+								</div>
+							)}
 
 							{/* Quick Stats bar */}
 							<div className="mt-4 flex gap-3 overflow-x-auto">
