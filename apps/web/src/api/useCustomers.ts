@@ -25,6 +25,11 @@ export interface CustomerListItem {
 	email: string | null
 	phone: string | null
 	avatar: string | null
+	address: string | null
+	province: string | null
+	district: string | null
+	subDistrict: string | null
+	postalCode: string | null
 	channels: CustomerChannel[]
 	tags: CustomerTag[]
 	ltv: number
