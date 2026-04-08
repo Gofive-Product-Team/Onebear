@@ -1,5 +1,7 @@
 namespace OneBear.Application.Customers.DTOs;
 
+using OneBear.Domain.ValueObjects;
+
 public record CustomerDetailDto
 {
     public string Id { get; init; } = default!;
@@ -8,6 +10,7 @@ public record CustomerDetailDto
     public string? Email { get; init; }
     public string? Phone { get; init; }
     public string? Avatar { get; init; }
+    public List<CustomerAddress> Addresses { get; init; } = new();
     public List<CustomerChannelDto> Channels { get; init; } = new();
     public List<CustomerTagDto> Tags { get; init; } = new();
     public decimal Ltv { get; init; }

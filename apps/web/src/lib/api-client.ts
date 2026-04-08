@@ -88,6 +88,8 @@ export const api = {
 			fetchApi(`/companies/${companyId}/rooms/${roomId}/resolve`, { method: 'POST' }),
 		close: (companyId: string, roomId: string) =>
 			fetchApi(`/companies/${companyId}/rooms/${roomId}/close`, { method: 'POST' }),
+		reopen: (companyId: string, roomId: string) =>
+			fetchApi(`/companies/${companyId}/rooms/${roomId}/reopen`, { method: 'POST' }),
 		pin: (companyId: string, roomId: string) =>
 			fetchApi(`/companies/${companyId}/rooms/${roomId}/pin`, { method: 'POST' }),
 		unpin: (companyId: string, roomId: string) =>
@@ -99,6 +101,8 @@ export const api = {
 		spam: (companyId: string) => fetchApi(`/companies/${companyId}/rooms/spam`),
 		notSpam: (companyId: string, roomId: string) =>
 			fetchApi(`/companies/${companyId}/rooms/${roomId}/not-spam`, { method: 'POST' }),
+		updateFollowUp: (companyId: string, roomId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/rooms/${roomId}/follow-up`, { method: 'PUT', body: JSON.stringify(body) }),
 	},
 	messages: {
 		list: (companyId: string, roomId: string, params?: Record<string, string>) =>
@@ -296,6 +300,10 @@ export const api = {
 			fetchApi(`/companies/${companyId}/chatbot/credit`),
 		topUp: (companyId: string, amount: number) =>
 			fetchApi(`/companies/${companyId}/chatbot/credit/topup`, { method: 'POST', body: JSON.stringify({ amount }) }),
+	},
+	dashboard: {
+		get: (companyId: string, from: string, to: string) =>
+			fetchApi(`/companies/${companyId}/dashboard?from=${from}&to=${to}`),
 	},
 	oauth: {
 		getAuthUrl: (companyId: string, platform: string) =>

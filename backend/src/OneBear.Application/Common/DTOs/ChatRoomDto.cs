@@ -16,8 +16,11 @@ public class ChatRoomDto
     public RoomCustomerDto? Customer { get; set; }
     public List<string> Tags { get; set; } = new();
     public bool IsAiMuted { get; set; }
+    public List<string> AttendedUserIds { get; set; } = new();
     public long? FollowupTimestamp { get; set; }
+    public string? FollowupContent { get; set; }
     public long CreatedTimestamp { get; set; }
+    public string? LastMessage { get; set; }
     public long? LastMessageTimestamp { get; set; }
     public bool IsPinned { get; set; }
     public long? PinnedTimestamp { get; set; }

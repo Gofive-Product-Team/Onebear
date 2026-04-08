@@ -29,6 +29,10 @@ public class Customer : MongoEntity, IAuditableEntity
     [JsonPropertyName("avatar")]
     public string? Avatar { get; set; }
 
+    // Addresses (multiple)
+    [JsonPropertyName("addresses")]
+    public List<CustomerAddress> Addresses { get; set; } = new();
+
     [JsonPropertyName("nationalId")]
     public string? NationalId { get; set; }
 

@@ -178,6 +178,15 @@ public class MessageOrchestrator
         };
         await _messageRepo.CreateAsync(chatMessage, ct);
 
+        // Step 5.1: Update last message on room
+        await _roomStateService.UpdateRoomWithRetryAsync(room, r =>
+        {
+            r.LastMessageContent = chatMessage.Content?.Length > 100
+                ? chatMessage.Content[..100] + "..."
+                : chatMessage.Content;
+            r.LastMessageTimestamp = chatMessage.Timestamp;
+        }, ct);
+
         // Step 5.5: Auto-create/link Customer CRM record (best-effort)
         try
         {
@@ -319,6 +328,15 @@ public class MessageOrchestrator
         };
         await _messageRepo.CreateAsync(chatMessage, ct);
 
+        // Update last message on room
+        await _roomStateService.UpdateRoomWithRetryAsync(room, r =>
+        {
+            r.LastMessageContent = chatMessage.Content?.Length > 100
+                ? chatMessage.Content[..100] + "..."
+                : chatMessage.Content;
+            r.LastMessageTimestamp = chatMessage.Timestamp;
+        }, ct);
+
         // Step 3: Auto-assign sender
         Result<ChatRoom> assignResult =
             await _autoAssignmentService.TryAssignSenderAsync(room, senderUserId, ct);
@@ -334,7 +352,18 @@ public class MessageOrchestrator
                 room = transitioned.Value;
         }
 
-        // Step 5: Send via platform adapter
+        // Step 5: Send via platform adapter (skip for Notes — internal only)
+        bool isNote = messageType == MessageType.Note || messageType == MessageType.PrivateNote;
+
+        if (isNote)
+        {
+            // Notes are internal — not sent to customer, mark as Delivered immediately
+            chatMessage.DeliveryStatus = MessageDeliveryState.Delivered;
+            chatMessage.UpdatedTimestamp = DateTimeHelper.NowUnixMilliseconds();
+            await _messageRepo.UpdateAsync(chatMessage, ct);
+        }
+        else
+        {
         Result<IntegrationChannel> integrationResult =
             await _integrationService.ValidateAndGetAsync(room.IntegrationId, room.CompanyId, ct);
         if (integrationResult is Result<IntegrationChannel>.Failure f1)
@@ -373,9 +402,11 @@ public class MessageOrchestrator
         }
         chatMessage.UpdatedTimestamp = DateTimeHelper.NowUnixMilliseconds();
         await _messageRepo.UpdateAsync(chatMessage, ct);
+        } // end else (non-note messages)
 
         // Step 7: Reset unread count on admin reply (clears badge — badge clears ONLY on reply, not on open)
-        if (chatMessage.DeliveryStatus != MessageDeliveryState.Failed && room.Unread != 0)
+        // Notes do NOT reset unread or stop FRT (they're internal, not a reply to customer)
+        if (!isNote && chatMessage.DeliveryStatus != MessageDeliveryState.Failed && room.Unread != 0)
         {
             Result<ChatRoom> unreadResult =
                 await _roomStateService.UpdateRoomWithRetryAsync(room, r => r.Unread = 0, ct);
@@ -385,8 +416,9 @@ public class MessageOrchestrator
 
         // Step 7.5: FRT Stop — first admin/AI reply stops the FRT timer
         // Auto-replies (senderUserId == null or "system") do NOT stop FRT
+        // Notes do NOT stop FRT
         bool isAutoReply = string.IsNullOrEmpty(senderUserId) || senderUserId == "system";
-        if (!isAutoReply && !room.IsFrtStopped && room.FrtStartTimestamp is not null
+        if (!isNote && !isAutoReply && !room.IsFrtStopped && room.FrtStartTimestamp is not null
             && chatMessage.DeliveryStatus != MessageDeliveryState.Failed)
         {
             Result<ChatRoom> frtStopResult = await _roomStateService.UpdateRoomWithRetryAsync(room, r =>

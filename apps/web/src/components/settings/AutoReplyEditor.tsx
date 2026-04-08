@@ -27,7 +27,7 @@ function RuleItem({
 			<div className="flex items-start justify-between gap-3">
 				<div className="min-w-0 flex-1">
 					<div className="mb-2 flex flex-wrap gap-1">
-						{rule.keywords.map((kw) => (
+						{(rule.keywords ?? []).map((kw) => (
 							<Badge key={kw} variant="outline" className="text-xs">
 								{kw}
 							</Badge>
@@ -84,7 +84,7 @@ function RuleForm({
 	onSave: (data: { keywords: string[]; response: string; enabled: boolean }) => void
 	onCancel: () => void
 }) {
-	const [keywordsText, setKeywordsText] = useState(initial?.keywords.join(', ') ?? '')
+	const [keywordsText, setKeywordsText] = useState((initial?.keywords ?? []).join(', '))
 	const [response, setResponse] = useState(initial?.response ?? '')
 	const [enabled, setEnabled] = useState(initial?.enabled ?? true)
 

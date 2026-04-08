@@ -3,7 +3,9 @@ import { api } from '@/lib/api-client'
 import { useAuthStore } from '@/stores/auth-store'
 
 export interface MemberItem {
-	id: string
+	id: string          // mapped from profileId
+	profileId: string   // original from backend
+	keycloakUserId: string
 	email: string
 	displayName: string | null
 	roleId: string
@@ -24,9 +26,24 @@ export function useMembers() {
 
 	return useQuery({
 		queryKey: ['members', companyId],
-		queryFn: () => api.members.list(companyId) as Promise<MemberItem[]>,
+		queryFn: async () => {
+			const data = await api.members.list(companyId) as Array<Record<string, unknown>>
+			// Backend returns profileId, map to id for frontend consistency
+			return data.map((m) => ({ ...m, id: m.profileId ?? m.id } as unknown as MemberItem))
+		},
 		enabled: !!companyId,
 	})
+}
+
+/**
+ * Resolve a Keycloak userId to display name using cached members list.
+ * Returns the display name or email if found, otherwise the userId itself.
+ */
+export function useMemberName(keycloakUserId: string | null | undefined): string {
+	const { data: members } = useMembers()
+	if (!keycloakUserId) return 'Unassigned'
+	const member = members?.find((m) => m.keycloakUserId === keycloakUserId)
+	return member?.displayName ?? member?.email ?? keycloakUserId
 }
 
 export function useAddMember() {

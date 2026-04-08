@@ -5,6 +5,7 @@ import { useSignalRContext } from '@/routes/__root'
 import { useRoomConnection } from '@/hooks/useRoomConnection'
 import { useTyping } from '@/hooks/useTyping'
 import { useRoom } from '@/api/useRooms'
+import { useMemberName } from '@/api/useMembers'
 import { useAuthStore } from '@/stores/auth-store'
 import { RoomList } from './RoomList'
 import { MessageList } from './MessageList'
@@ -14,6 +15,15 @@ import { ChatSidebar } from './ChatSidebar'
 import { AiHandoffBanner } from './AiHandoffBanner'
 import { SlaWarningBanner } from './SlaWarningBanner'
 import { SwipeableMessageArea } from './SwipeableMessageArea'
+
+function AssignedToLabel({ userId }: { userId: string }) {
+	const name = useMemberName(userId)
+	return (
+		<p className="text-xs text-t3">
+			Assigned to {name}
+		</p>
+	)
+}
 
 interface Props {
 	roomId?: string
@@ -106,9 +116,7 @@ export function ChatLayout({ roomId }: Props) {
 										{activeRoom?.customerName ?? 'Loading...'}
 									</h2>
 									{activeRoom?.assignToUserId && (
-										<p className="text-xs text-t3">
-											Assigned to {activeRoom.assignToUserId}
-										</p>
+										<AssignedToLabel userId={activeRoom.assignToUserId} />
 									)}
 								</div>
 							</div>
@@ -146,7 +154,7 @@ export function ChatLayout({ roomId }: Props) {
 							onOpenInfo={handleOpenInfo}
 							enabled={effectiveMobileView === 'chat'}
 						>
-							<MessageList companyId={companyId} roomId={roomId} typingUsers={typingUsers} />
+							<MessageList companyId={companyId} roomId={roomId} typingUsers={typingUsers} viewingUserIds={activeRoom?.attendedUserIds ?? []} />
 							{activeRoom && <DoneButtonBar room={activeRoom} />}
 							<Composer companyId={companyId} roomId={roomId} platform={activeRoom?.platform ?? ''} sendTyping={sendTyping} />
 						</SwipeableMessageArea>

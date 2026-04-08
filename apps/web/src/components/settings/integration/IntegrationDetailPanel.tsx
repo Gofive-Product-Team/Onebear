@@ -230,7 +230,7 @@ export function IntegrationDetailPanel({ integration, onClose }: IntegrationDeta
 					)}
 
 					{/* Section 2: Token Status */}
-					{integration.credentials?.tokenStatus !== undefined && integration.credentials.tokenStatus !== null && (
+					{integration.credentials?.tokenStatus != null && integration.credentials && (
 						<section>
 							<h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
 								Token Status

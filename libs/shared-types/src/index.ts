@@ -36,6 +36,9 @@ export interface ChatRoom {
 	rtEndTimestamp?: number | null
 	rtDurationMs?: number | null
 	sessionTimings?: SessionTiming[]
+	// Follow-up fields
+	followupTimestamp?: number | null
+	followupContent?: string | null
 	// Spam fields
 	isSpam?: boolean
 	spamScore?: number | null
@@ -55,6 +58,7 @@ export type MessageType =
 	| 'ReactionAdded'
 	| 'ReactionRemoved'
 	| 'Note'
+	| 'PrivateNote'
 	| 'Email'
 	| 'Story'
 	| 'Order'

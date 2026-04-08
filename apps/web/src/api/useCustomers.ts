@@ -16,6 +16,19 @@ export interface CustomerChannel {
 	displayName: string | null
 }
 
+export interface CustomerAddress {
+	id: string
+	label: string            // "Home", "Work", "Shipping"
+	address: string          // Street address
+	subDistrict: string | null
+	district: string | null
+	province: string | null
+	postalCode: string | null
+	country: string
+	isDefault: boolean
+	note: string | null      // "ประตูสีแดง ชั้น 3"
+}
+
 export type SuggestedActionType = 'chat' | 'followup' | 'welcome'
 
 export interface CustomerListItem {
@@ -25,6 +38,7 @@ export interface CustomerListItem {
 	email: string | null
 	phone: string | null
 	avatar: string | null
+	addresses: CustomerAddress[]
 	channels: CustomerChannel[]
 	tags: CustomerTag[]
 	ltv: number
@@ -142,7 +156,7 @@ export function useUpdateCustomer() {
 	const queryClient = useQueryClient()
 
 	return useMutation({
-		mutationFn: ({ id, body }: { id: string; body: { name?: string; email?: string; phone?: string; customerType?: string } }) =>
+		mutationFn: ({ id, body }: { id: string; body: { name?: string; email?: string; phone?: string; customerType?: string; addresses?: CustomerAddress[] } }) =>
 			api.customers.update(companyId, id, body),
 		onSuccess: (_data, { id }) => {
 			queryClient.invalidateQueries({ queryKey: ['customers', companyId] })

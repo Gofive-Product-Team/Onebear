@@ -6,6 +6,8 @@ using OneBear.Application.Common.Interfaces;
 using OneBear.Application.Messaging;
 using OneBear.Application.RealTime.Dtos;
 using OneBear.Domain.Common;
+using OneBear.Domain.Entities;
+using OneBear.Domain.Interfaces.Repositories;
 
 namespace OneBear.API.Hubs;
 
@@ -17,19 +19,22 @@ public class ChatHub : Hub
     private readonly IAttendanceService _attendanceService;
     private readonly ITypingTracker _typingTracker;
     private readonly MessageOrchestrator _orchestrator;
+    private readonly IChatRoomRepository _roomRepo;
 
     public ChatHub(
         ILogger<ChatHub> logger,
         IRoomAuthorizationService roomAuth,
         IAttendanceService attendanceService,
         ITypingTracker typingTracker,
-        MessageOrchestrator orchestrator)
+        MessageOrchestrator orchestrator,
+        IChatRoomRepository roomRepo)
     {
         _logger = logger;
         _roomAuth = roomAuth;
         _attendanceService = attendanceService;
         _typingTracker = typingTracker;
         _orchestrator = orchestrator;
+        _roomRepo = roomRepo;
     }
 
     public override async Task OnConnectedAsync()
@@ -126,6 +131,23 @@ public class ChatHub : Hub
         await Groups.AddToGroupAsync(connectionId, $"presence:{roomId}");
         await _attendanceService.RecordAttendAsync(connectionId, roomId, userId);
 
+        // Persist attendance to MongoDB so room list API returns it
+        try
+        {
+            string companyId = Context.User!.GetCompanyId();
+            ChatRoom? room = await _roomRepo.GetByIdAsync(roomId, companyId, CancellationToken.None);
+            if (room is not null && !(room.AttendedUserIds?.Contains(userId) ?? false))
+            {
+                room.AttendedUserIds ??= new List<string>();
+                room.AttendedUserIds.Add(userId);
+                await _roomRepo.UpdateAsync(room, CancellationToken.None);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to persist attendance for room {RoomId}", roomId);
+        }
+
         await Clients.Group($"room:{roomId}").SendAsync("AttendanceChanged", new AttendanceDto
         {
             UserId = userId,
@@ -147,6 +169,22 @@ public class ChatHub : Hub
 
         await Groups.RemoveFromGroupAsync(connectionId, $"presence:{roomId}");
         await _attendanceService.RecordExitAsync(connectionId, roomId);
+
+        // Remove from MongoDB
+        try
+        {
+            string companyId = Context.User!.GetCompanyId();
+            ChatRoom? room = await _roomRepo.GetByIdAsync(roomId, companyId, CancellationToken.None);
+            if (room is not null && (room.AttendedUserIds?.Contains(userId) ?? false))
+            {
+                room.AttendedUserIds.Remove(userId);
+                await _roomRepo.UpdateAsync(room, CancellationToken.None);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to remove attendance for room {RoomId}", roomId);
+        }
 
         await Clients.Group($"room:{roomId}").SendAsync("AttendanceChanged", new AttendanceDto
         {

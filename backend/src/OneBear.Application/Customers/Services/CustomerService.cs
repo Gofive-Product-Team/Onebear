@@ -111,6 +111,8 @@ public class CustomerService
             customer.NationalId = request.NationalId.Trim();
         if (request.TaxId is not null)
             customer.TaxId = request.TaxId.Trim();
+        if (request.Addresses is not null)
+            customer.Addresses = request.Addresses;
 
         customer.UpdatedBy = userId;
         customer = _tagRecalcService.RecalculateTagsAsync(customer);

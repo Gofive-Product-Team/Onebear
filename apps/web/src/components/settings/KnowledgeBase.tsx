@@ -433,7 +433,7 @@ function InsightsTab() {
 		)
 	}
 
-	const sorted = [...(questions ?? [])].sort((a, b) => b.frequency - a.frequency)
+	const sorted = (Array.isArray(questions) ? [...questions] : []).sort((a, b) => b.frequency - a.frequency)
 
 	return (
 		<div className="space-y-3">

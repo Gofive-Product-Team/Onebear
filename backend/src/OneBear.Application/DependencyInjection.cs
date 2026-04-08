@@ -11,6 +11,7 @@ using OneBear.Application.Integrations.Services;
 using OneBear.Application.Chatbot.Services;
 using OneBear.Application.Notifications.Services;
 using OneBear.Application.Customers.Services;
+using OneBear.Application.Dashboard;
 using OneBear.Application.Auth.Services;
 using OneBear.Domain.Interfaces;
 
@@ -54,6 +55,9 @@ public static class DependencyInjection
         services.AddScoped<IPaymentLinkService, StubPaymentLinkService>();
         services.AddScoped<ISlipVerificationService, StubSlipVerificationService>();
         services.AddScoped<IProductCatalogService, StubProductCatalogService>();
+
+        // Dashboard
+        services.AddScoped<DashboardService>();
 
         // CRM
         services.AddScoped<CustomerService>();

@@ -11,7 +11,7 @@ var builder = Host.CreateApplicationBuilder(args);
 
 // Application + Infrastructure services (repos, cache, adapters, etc.)
 builder.Services.AddApplication();
-builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddInfrastructure(builder.Configuration, skipMassTransit: true);
 
 // Worker-specific: SignalR notifier (logging-only; in prod use Azure SignalR REST API)
 builder.Services.AddSingleton<ISignalRNotifier, WorkerSignalRNotifier>();

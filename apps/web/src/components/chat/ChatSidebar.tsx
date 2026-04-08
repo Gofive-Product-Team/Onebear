@@ -1,11 +1,15 @@
+import { useState, useCallback } from 'react'
+import { Bell, Calendar, X, CheckCircle, XCircle, RotateCcw } from 'lucide-react'
 import { cn } from '@one-bear/ui'
 import type { ChatRoom, ChatState } from '@one-bear/shared-types'
-import { useResolveRoom, useCloseRoom } from '@/api/useRooms'
+import { useResolveRoom, useCloseRoom, useReopenRoom, useUpdateFollowUp } from '@/api/useRooms'
+import { useMemberName } from '@/api/useMembers'
 import { usePresence } from '@/hooks/usePresence'
 import { useAuthStore } from '@/stores/auth-store'
 import { Avatar } from '@/components/ui/Avatar'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/Dialog'
 import { PlatformIcon } from './PlatformIcon'
 import { TimerDisplay } from './TimerDisplay'
 import type { HubConnection } from '@microsoft/signalr'
@@ -37,6 +41,34 @@ function formatMs(ms: number): string {
 	return `${hours}h ${mins}m`
 }
 
+function formatFollowUpDate(timestamp: number): string {
+	const d = new Date(timestamp)
+	return d.toLocaleString('en-US', {
+		month: 'short',
+		day: 'numeric',
+		year: 'numeric',
+		hour: '2-digit',
+		minute: '2-digit',
+	})
+}
+
+function toDatetimeLocalValue(timestamp: number): string {
+	const d = new Date(timestamp)
+	const offset = d.getTimezoneOffset()
+	const local = new Date(d.getTime() - offset * 60_000)
+	return local.toISOString().slice(0, 16)
+}
+
+function SidebarAssignedAgent({ userId }: { userId: string }) {
+	const name = useMemberName(userId)
+	return (
+		<div className="flex items-center gap-2">
+			<Avatar fallback={(name ?? '?').charAt(0).toUpperCase()} size="sm" />
+			<span className="text-sm text-t2">{name}</span>
+		</div>
+	)
+}
+
 export function ChatSidebar({ room, connection }: Props) {
 	const user = useAuthStore((s) => s.user)
 	const companyId = user?.companyId ?? ''
@@ -44,11 +76,76 @@ export function ChatSidebar({ room, connection }: Props) {
 	const { attendingUsers } = usePresence(connection, room.id)
 	const resolveRoom = useResolveRoom(companyId)
 	const closeRoom = useCloseRoom(companyId)
+	const reopenRoom = useReopenRoom(companyId)
+	const updateFollowUp = useUpdateFollowUp(companyId, room.id)
+
+	const [confirmAction, setConfirmAction] = useState<'resolve' | 'close' | 'reopen' | null>(null)
+	const [isFollowUpEditing, setIsFollowUpEditing] = useState(false)
+	const [followUpDate, setFollowUpDate] = useState('')
+	const [followUpNote, setFollowUpNote] = useState('')
+
+	const hasFollowUp = room.followupTimestamp != null && room.followupTimestamp > 0
+	const isFollowUpPast = hasFollowUp && room.followupTimestamp! < Date.now()
+
+	const handleStartEditFollowUp = useCallback(() => {
+		if (hasFollowUp) {
+			setFollowUpDate(toDatetimeLocalValue(room.followupTimestamp!))
+			setFollowUpNote(room.followupContent ?? '')
+		} else {
+			setFollowUpDate('')
+			setFollowUpNote('')
+		}
+		setIsFollowUpEditing(true)
+	}, [hasFollowUp, room.followupTimestamp, room.followupContent])
+
+	const handleSaveFollowUp = useCallback(() => {
+		if (!followUpDate) return
+		const timestamp = new Date(followUpDate).getTime()
+		updateFollowUp.mutate(
+			{ followupTimestamp: timestamp, content: followUpNote || undefined },
+			{
+				onSuccess: () => setIsFollowUpEditing(false),
+			},
+		)
+	}, [followUpDate, followUpNote, updateFollowUp])
+
+	const handleRemoveFollowUp = useCallback(() => {
+		updateFollowUp.mutate(
+			{ followupTimestamp: null, content: null },
+			{
+				onSuccess: () => setIsFollowUpEditing(false),
+			},
+		)
+	}, [updateFollowUp])
+
+	const confirmMessages: Record<'resolve' | 'close' | 'reopen', string> = {
+		resolve: 'Are you sure you want to resolve this conversation? The customer will not be notified.',
+		close: 'Are you sure you want to close this conversation? It can be reopened later.',
+		reopen: 'Are you sure you want to reopen this conversation? It will move back to the active queue.',
+	}
+
+	const handleConfirm = useCallback(() => {
+		if (!confirmAction) return
+		const onDone = () => setConfirmAction(null)
+		if (confirmAction === 'resolve') {
+			resolveRoom.mutate(room.id, { onSuccess: onDone })
+		} else if (confirmAction === 'close') {
+			closeRoom.mutate(room.id, { onSuccess: onDone })
+		} else if (confirmAction === 'reopen') {
+			reopenRoom.mutate(room.id, { onSuccess: onDone })
+		}
+	}, [confirmAction, room.id, resolveRoom, closeRoom, reopenRoom])
+
+	const isPending =
+		(confirmAction === 'resolve' && resolveRoom.isPending) ||
+		(confirmAction === 'close' && closeRoom.isPending) ||
+		(confirmAction === 'reopen' && reopenRoom.isPending)
 
 	const state = room.state as ChatState
 	const stateInfo = stateLabels[state] ?? stateLabels.New
 	const customerName = room.customerName ?? 'Unknown Customer'
-	const isOpen = state === 'New' || state === 'InProgress'
+	const isInProgress = state === 'InProgress'
+	const isClosedOrResolved = state === 'Resolved' || state === 'Closed'
 
 	return (
 		<div className="flex flex-col h-full bg-bg-page border-l border-border animate-slide-in overflow-y-auto">
@@ -78,25 +175,38 @@ export function ChatSidebar({ room, connection }: Props) {
 					<span className={cn('h-2.5 w-2.5 rounded-full', stateInfo.color)} />
 					<span className="text-sm font-medium text-t2">{stateInfo.label}</span>
 				</div>
-				{isOpen && (
+				{isInProgress && (
 					<div className="flex gap-2">
 						<Button
 							variant="outline"
 							size="sm"
 							className="flex-1"
-							onClick={() => resolveRoom.mutate(room.id)}
-							loading={resolveRoom.isPending}
+							onClick={() => setConfirmAction('resolve')}
 						>
+							<CheckCircle className="h-3.5 w-3.5 mr-1" />
 							Resolve
 						</Button>
 						<Button
 							variant="ghost"
 							size="sm"
 							className="flex-1"
-							onClick={() => closeRoom.mutate(room.id)}
-							loading={closeRoom.isPending}
+							onClick={() => setConfirmAction('close')}
 						>
+							<XCircle className="h-3.5 w-3.5 mr-1" />
 							Close
+						</Button>
+					</div>
+				)}
+				{isClosedOrResolved && (
+					<div className="flex gap-2">
+						<Button
+							variant="outline"
+							size="sm"
+							className="flex-1 text-green-700 border-green-300 hover:bg-green-50"
+							onClick={() => setConfirmAction('reopen')}
+						>
+							<RotateCcw className="h-3.5 w-3.5 mr-1" />
+							Reopen
 						</Button>
 					</div>
 				)}
@@ -164,10 +274,7 @@ export function ChatSidebar({ room, connection }: Props) {
 			<div className="p-4 border-b border-border">
 				<SectionTitle>Assigned To</SectionTitle>
 				{room.assignToUserId ? (
-					<div className="flex items-center gap-2">
-						<Avatar fallback={room.assignToUserId.charAt(0).toUpperCase()} size="sm" />
-						<span className="text-sm text-t2">{room.assignToUserId}</span>
-					</div>
+					<SidebarAssignedAgent userId={room.assignToUserId} />
 				) : (
 					<p className="text-sm text-t3 italic">Unassigned</p>
 				)}
@@ -203,15 +310,123 @@ export function ChatSidebar({ room, connection }: Props) {
 				<p className="text-sm text-t3 italic">No tags</p>
 			</div>
 
-			{/* Follow-up placeholder */}
+			{/* Follow-up */}
 			<div className="p-4 border-b border-border">
 				<SectionTitle>Follow-up</SectionTitle>
-				<button
-					type="button"
-					className="text-xs text-primary hover:text-primary-light font-medium"
-				>
-					Set follow-up reminder
-				</button>
+
+				{isFollowUpEditing ? (
+					/* Edit / Create form */
+					<div className="flex flex-col gap-2">
+						<div>
+							<label htmlFor="followup-date" className="text-[11px] font-medium text-t3 mb-0.5 block">
+								Date & Time
+							</label>
+							<input
+								id="followup-date"
+								type="datetime-local"
+								value={followUpDate}
+								onChange={(e) => setFollowUpDate(e.target.value)}
+								className={cn(
+									'w-full rounded-md border border-border-input bg-bg-input px-2.5 py-1.5 text-sm text-t1',
+									'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',
+								)}
+							/>
+						</div>
+						<div>
+							<label htmlFor="followup-note" className="text-[11px] font-medium text-t3 mb-0.5 block">
+								Note (optional)
+							</label>
+							<textarea
+								id="followup-note"
+								value={followUpNote}
+								onChange={(e) => setFollowUpNote(e.target.value)}
+								placeholder="What to follow up on..."
+								rows={2}
+								className={cn(
+									'w-full resize-none rounded-md border border-border-input bg-bg-input px-2.5 py-1.5 text-sm',
+									'placeholder:text-t3',
+									'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',
+								)}
+							/>
+						</div>
+						<div className="flex gap-2">
+							<Button
+								variant="outline"
+								size="sm"
+								className="flex-1"
+								onClick={handleSaveFollowUp}
+								loading={updateFollowUp.isPending}
+								disabled={!followUpDate}
+							>
+								Save
+							</Button>
+							<Button
+								variant="ghost"
+								size="sm"
+								className="flex-1"
+								onClick={() => setIsFollowUpEditing(false)}
+							>
+								Cancel
+							</Button>
+						</div>
+					</div>
+				) : hasFollowUp ? (
+					/* Display existing follow-up */
+					<div className="flex flex-col gap-1.5">
+						<div className={cn(
+							'flex items-start gap-2 rounded-lg px-2.5 py-2 text-sm border',
+							isFollowUpPast
+								? 'bg-red-50 border-red-200'
+								: 'bg-amber-50 border-amber-200',
+						)}>
+							<Bell className={cn(
+								'h-4 w-4 mt-0.5 shrink-0',
+								isFollowUpPast ? 'text-red-500' : 'text-amber-500',
+							)} />
+							<div className="flex-1 min-w-0">
+								<div className={cn(
+									'text-xs font-semibold',
+									isFollowUpPast ? 'text-red-700' : 'text-amber-700',
+								)}>
+									{formatFollowUpDate(room.followupTimestamp!)}
+								</div>
+								{isFollowUpPast && (
+									<span className="text-[10px] font-medium text-red-500">Overdue</span>
+								)}
+								{room.followupContent && (
+									<p className="text-xs text-t2 mt-0.5 break-words">{room.followupContent}</p>
+								)}
+							</div>
+							<button
+								type="button"
+								onClick={handleRemoveFollowUp}
+								disabled={updateFollowUp.isPending}
+								className="shrink-0 text-t3 hover:text-error transition-colors"
+								aria-label="Remove follow-up"
+							>
+								<X className="h-3.5 w-3.5" />
+							</button>
+						</div>
+						<button
+							type="button"
+							onClick={handleStartEditFollowUp}
+							className="text-xs text-primary hover:text-primary-light font-medium flex items-center gap-1"
+						>
+							<Calendar className="h-3 w-3" />
+							Edit follow-up
+						</button>
+					</div>
+				) : (
+					/* No follow-up set */
+					<button
+						type="button"
+						onClick={handleStartEditFollowUp}
+						className="text-xs text-primary hover:text-primary-light font-medium flex items-center gap-1"
+					>
+						<Calendar className="h-3 w-3" />
+						Set follow-up reminder
+					</button>
+				)}
 			</div>
 
 			{/* Notes placeholder */}
@@ -227,6 +442,35 @@ export function ChatSidebar({ room, connection }: Props) {
 					)}
 				/>
 			</div>
+
+			{/* Confirmation dialog for state changes */}
+			<Dialog open={confirmAction !== null} onOpenChange={() => setConfirmAction(null)}>
+				<DialogHeader>
+					<DialogTitle>
+						{confirmAction === 'resolve' && 'Resolve conversation'}
+						{confirmAction === 'close' && 'Close conversation'}
+						{confirmAction === 'reopen' && 'Reopen conversation'}
+					</DialogTitle>
+					<DialogDescription>
+						{confirmAction && confirmMessages[confirmAction]}
+					</DialogDescription>
+				</DialogHeader>
+				<DialogFooter>
+					<Button variant="ghost" size="sm" onClick={() => setConfirmAction(null)} disabled={isPending}>
+						Cancel
+					</Button>
+					<Button
+						size="sm"
+						onClick={handleConfirm}
+						loading={isPending}
+						className={confirmAction === 'reopen' ? 'bg-green-600 hover:bg-green-700' : undefined}
+					>
+						{confirmAction === 'resolve' && 'Resolve'}
+						{confirmAction === 'close' && 'Close'}
+						{confirmAction === 'reopen' && 'Reopen'}
+					</Button>
+				</DialogFooter>
+			</Dialog>
 		</div>
 	)
 }

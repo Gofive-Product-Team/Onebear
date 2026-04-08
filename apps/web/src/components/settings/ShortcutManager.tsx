@@ -84,13 +84,14 @@ function CategorySection({
 	const updateCategoryMutation = useUpdateCategory(integrationId)
 	const deleteCategoryMutation = useDeleteCategory(integrationId)
 
+	const shortcuts = category.shortcuts ?? []
 	const filteredShortcuts = searchQuery
-		? category.shortcuts.filter(
+		? shortcuts.filter(
 				(s) =>
 					s.keyword.toLowerCase().includes(searchQuery.toLowerCase()) ||
 					s.content.toLowerCase().includes(searchQuery.toLowerCase()),
 			)
-		: category.shortcuts
+		: shortcuts
 
 	const handleAdd = useCallback(
 		(data: { keyword: string; content: string; categoryId: string }) => {

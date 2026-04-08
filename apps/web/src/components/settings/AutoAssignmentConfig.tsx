@@ -24,9 +24,9 @@ export function AutoAssignmentConfig() {
 	// Sync local state when config loads
 	useEffect(() => {
 		if (config) {
-			setEnabled(config.enabled)
-			setMode(config.mode)
-			setSelectedAgentIds(config.agentIds)
+			setEnabled(config.enabled ?? false)
+			setMode(config.mode ?? 'round-robin')
+			setSelectedAgentIds(config.agentIds ?? [])
 			setHasChanges(false)
 		}
 	}, [config])
@@ -145,11 +145,11 @@ export function AutoAssignmentConfig() {
 						{/* Agent list */}
 						<div className="flex flex-col gap-1.5">
 							<label className="text-sm font-medium text-gray-700">
-								Agents ({selectedAgentIds.length} selected)
+								Agents ({selectedAgentIds?.length ?? 0} selected)
 							</label>
 							<div className="max-h-64 space-y-1 overflow-y-auto rounded-md border border-gray-200 p-2">
-								{users?.map((user) => {
-									const isSelected = selectedAgentIds.includes(user.id)
+								{(Array.isArray(users) ? users : []).map((user) => {
+									const isSelected = selectedAgentIds?.includes(user.id) ?? false
 									return (
 										<label
 											key={user.id}
@@ -165,12 +165,12 @@ export function AutoAssignmentConfig() {
 												className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
 											/>
 											<Avatar
-												fallback={user.displayName.slice(0, 2)}
+												fallback={(user.displayName ?? user.email ?? '?').slice(0, 2)}
 												size="sm"
 											/>
 											<div className="min-w-0 flex-1">
 												<p className="text-sm font-medium text-gray-900">
-													{user.displayName}
+													{user.displayName ?? user.email}
 												</p>
 												<p className="truncate text-xs text-gray-500">
 													{user.email}

@@ -1,11 +1,14 @@
 import { useEffect, useRef, useCallback, useMemo } from 'react'
+import { cn } from '@one-bear/ui'
 import type { ChatMessage } from '@one-bear/shared-types'
 import { useMessages } from '@/api/useMessages'
+import { useMembers } from '@/api/useMembers'
 import { useAuthStore } from '@/stores/auth-store'
 import { MessageBubble } from './MessageBubble'
 import { PinBar } from './PinBar'
 import { usePinnedMessages, usePinMessage, useUnpinMessage } from '@/api/usePinnedMessages'
 import { formatDateSeparator } from '@/lib/date'
+import { Tooltip } from '@/components/ui/Tooltip'
 
 interface TypingUser {
 	userId: string
@@ -16,6 +19,7 @@ interface Props {
 	companyId: string
 	roomId: string
 	typingUsers: TypingUser[]
+	viewingUserIds: string[]
 }
 
 function groupMessagesByDate(messages: ChatMessage[]): Map<string, ChatMessage[]> {
@@ -67,7 +71,53 @@ function TypingIndicator({ users }: { users: TypingUser[] }) {
 	)
 }
 
-export function MessageList({ companyId, roomId, typingUsers }: Props) {
+// ─── Viewing Avatars ────────────────────────────────────────────
+const AVATAR_COLORS = ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500', 'bg-pink-500', 'bg-teal-500', 'bg-red-500', 'bg-indigo-500']
+
+function getAvatarColor(id: string): string {
+	let hash = 0
+	for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash)
+	return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length] ?? 'bg-blue-500'
+}
+
+function ViewingAvatars({ userIds }: { userIds: string[] }) {
+	const { data: members } = useMembers()
+
+	if (userIds.length === 0) return null
+
+	function resolveName(userId: string): string {
+		const member = members?.find((m) => m.keycloakUserId === userId)
+		return member?.displayName ?? member?.email ?? userId
+	}
+
+	function getInitials(userId: string): string {
+		const name = resolveName(userId)
+		const parts = name.trim().split(/\s+/)
+		if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
+		return name.slice(0, 2).toUpperCase()
+	}
+
+	return (
+		<div className="flex items-center justify-end gap-1 px-4 py-1.5">
+			<span className="text-[10px] text-t3 mr-1">Viewing</span>
+			{userIds.map((id, idx) => (
+				<Tooltip key={id} content={resolveName(id)} side="top">
+					<span
+						className={cn(
+							'inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold text-white ring-2 ring-bg-page',
+							getAvatarColor(id),
+						)}
+						style={{ marginLeft: idx === 0 ? 0 : '-4px' }}
+					>
+						{getInitials(id)}
+					</span>
+				</Tooltip>
+			))}
+		</div>
+	)
+}
+
+export function MessageList({ companyId, roomId, typingUsers, viewingUserIds }: Props) {
 	const currentUserId = useAuthStore((s) => s.user?.userId ?? '')
 	const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useMessages(companyId, roomId)
 	const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -143,7 +193,7 @@ export function MessageList({ companyId, roomId, typingUsers }: Props) {
 			{/* Pinned messages bar */}
 			<PinBar pinnedMessages={pinnedMessages} onScrollToMessage={handleScrollToMessage} />
 
-			<div ref={scrollContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto bg-bg-card">
+			<div ref={scrollContainerRef} onScroll={handleScroll} data-message-scroll className="flex-1 overflow-y-auto bg-bg-card">
 				{/* Loading older messages indicator */}
 				{isFetchingNextPage && (
 					<div className="flex justify-center py-3">
@@ -194,6 +244,8 @@ export function MessageList({ companyId, roomId, typingUsers }: Props) {
 
 				{/* Typing indicator */}
 				<TypingIndicator users={typingUsers} />
+
+				{/* Viewing avatars — removed, shown on room card + sidebar instead */}
 
 				{/* Scroll anchor */}
 				<div ref={bottomRef} />

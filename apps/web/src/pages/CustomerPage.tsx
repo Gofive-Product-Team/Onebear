@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useCustomers, useSegmentCounts, useSnoozeCustomer, type SegmentCounts } from '@/api/useCustomers'
 import { CustomerCard } from '@/components/customer/CustomerCard'
-import { CustomerDetailPanel } from '@/components/customer/CustomerDetailPanel'
+import { CustomerDetailModal } from '@/components/customer/CustomerDetailModal'
 import { FilterChips } from '@/components/customer/FilterChips'
 import { SortDropdown } from '@/components/customer/SortDropdown'
 import { CustomerSearch } from '@/components/customer/CustomerSearch'
@@ -292,90 +292,81 @@ export function CustomerPage() {
 				</div>
 			)}
 
-			{/* Content layout: grid + detail panel */}
-			<div className={cn('flex gap-6', selectedCustomerId && 'lg:pr-0')}>
-				{/* Card grid */}
-				<div className="min-w-0 flex-1">
-					<div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-						{/* Loading skeletons */}
-						{isLoading &&
-							Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
+			{/* Card grid */}
+			<div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+				{/* Loading skeletons */}
+				{isLoading &&
+					Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
 
-						{/* Cards */}
-						{!isLoading &&
-							customers.map((customer) => {
-								const card = (
-									<CustomerCard
-										key={customer.id}
-										customer={customer}
-										onClick={() => handleCardClick(customer.id)}
-										onNavigateToProfile={(id) =>
-											navigate({ to: '/customer/$customerId', params: { customerId: id } })
-										}
-										isSelectionMode={isSelectionMode}
-										isSelected={selectedIds.has(customer.id)}
-										onToggleSelect={toggleSelectCustomer}
-									/>
-								)
-
-								if (isSelectionMode) {
-									// No context menu / long-press in selection mode
-									return card
+				{/* Cards */}
+				{!isLoading &&
+					customers.map((customer) => {
+						const card = (
+							<CustomerCard
+								key={customer.id}
+								customer={customer}
+								onClick={() => handleCardClick(customer.id)}
+								onNavigateToProfile={(id) =>
+									navigate({ to: '/customer/$customerId', params: { customerId: id } })
 								}
+								isSelectionMode={isSelectionMode}
+								isSelected={selectedIds.has(customer.id)}
+								onToggleSelect={toggleSelectCustomer}
+							/>
+						)
 
-								const wrappedCard = (
-									<SwipeableCard
-										key={`swipe-${customer.id}`}
-										customerId={customer.id}
-										onFollowup={() => setSwipeFollowupCustomerId(customer.id)}
-										onChat={() =>
-											navigate({ to: '/customer/$customerId', params: { customerId: customer.id } })
-										}
-										onSnooze={() => handleSnooze(customer.id)}
-									>
-										{card}
-									</SwipeableCard>
-								)
+						if (isSelectionMode) {
+							// No context menu / long-press in selection mode
+							return card
+						}
 
-								return (
-									// Desktop: right-click context menu
-									// Mobile: long-press bottom sheet (intercepts click capture to suppress after long-press)
-									//         + swipe actions
-									<CustomerContextMenu key={customer.id} customer={customer}>
-										<CustomerLongPressSheet customer={customer}>
-											{wrappedCard}
-										</CustomerLongPressSheet>
-									</CustomerContextMenu>
-								)
-							})}
+						const wrappedCard = (
+							<SwipeableCard
+								key={`swipe-${customer.id}`}
+								customerId={customer.id}
+								onFollowup={() => setSwipeFollowupCustomerId(customer.id)}
+								onChat={() =>
+									navigate({ to: '/customer/$customerId', params: { customerId: customer.id } })
+								}
+								onSnooze={() => handleSnooze(customer.id)}
+							>
+								{card}
+							</SwipeableCard>
+						)
 
-						{/* Empty state (spans all cols) */}
-						{isEmpty && (
-							<EmptyState search={search} onAdd={() => openAddPanel()} />
-						)}
-					</div>
+						return (
+							// Desktop: right-click context menu
+							// Mobile: long-press bottom sheet (intercepts click capture to suppress after long-press)
+							//         + swipe actions
+							<CustomerContextMenu key={customer.id} customer={customer}>
+								<CustomerLongPressSheet customer={customer}>
+									{wrappedCard}
+								</CustomerLongPressSheet>
+							</CustomerContextMenu>
+						)
+					})}
 
-					{/* Infinite scroll sentinel */}
-					<div ref={sentinelRef} className="h-4" aria-hidden="true" />
-
-					{/* Fetching next page indicator */}
-					{isFetchingNextPage && (
-						<div className="mt-4 flex justify-center">
-							<div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-						</div>
-					)}
-				</div>
-
-				{/* Detail panel — fixed width on large screens */}
-				{selectedCustomerId && (
-					<div className="w-full shrink-0 overflow-y-auto rounded-xl border border-border bg-bg-card shadow-sm lg:w-96">
-						<CustomerDetailPanel
-							customerId={selectedCustomerId}
-							onClose={() => setSelectedCustomerId(null)}
-						/>
-					</div>
+				{/* Empty state (spans all cols) */}
+				{isEmpty && (
+					<EmptyState search={search} onAdd={() => openAddPanel()} />
 				)}
 			</div>
+
+			{/* Infinite scroll sentinel */}
+			<div ref={sentinelRef} className="h-4" aria-hidden="true" />
+
+			{/* Fetching next page indicator */}
+			{isFetchingNextPage && (
+				<div className="mt-4 flex justify-center">
+					<div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+				</div>
+			)}
+
+			{/* Customer detail modal */}
+			<CustomerDetailModal
+				customerId={selectedCustomerId}
+				onClose={() => setSelectedCustomerId(null)}
+			/>
 
 			{/* Add customer panel */}
 			<AddCustomerPanel

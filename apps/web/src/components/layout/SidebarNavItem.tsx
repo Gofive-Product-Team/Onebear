@@ -8,6 +8,7 @@ interface Props {
   label: string
   icon: ReactNode
   hasNotification?: boolean
+  unreadCount?: number
 }
 
 function isActive(currentPath: string, to: string): boolean {
@@ -15,7 +16,7 @@ function isActive(currentPath: string, to: string): boolean {
   return currentPath === to || currentPath.startsWith(to + '/')
 }
 
-export function SidebarNavItem({ to, label, icon, hasNotification }: Props) {
+export function SidebarNavItem({ to, label, icon, hasNotification, unreadCount = 0 }: Props) {
   const currentPath = useRouterState().location.pathname
   const active = isActive(currentPath, to)
 
@@ -33,7 +34,12 @@ export function SidebarNavItem({ to, label, icon, hasNotification }: Props) {
           <span className="absolute left-[-11px] top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-[3px] bg-primary" />
         )}
         <span className="w-[17px] h-[17px]">{icon}</span>
-        {hasNotification && (
+        {hasNotification && unreadCount > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-error text-[9px] font-bold text-white px-1">
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
+        )}
+        {hasNotification && unreadCount === 0 && (
           <span className="absolute top-[9px] right-[9px] w-1.5 h-1.5 rounded-full bg-primary border-[1.5px] border-bg-app animate-pulse-dot" />
         )}
       </Link>

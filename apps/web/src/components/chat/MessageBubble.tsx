@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { StickyNote, Lock } from 'lucide-react'
 import { cn } from '@one-bear/ui'
 import type { ChatMessage } from '@one-bear/shared-types'
 import { Tooltip } from '@/components/ui/Tooltip'
@@ -15,6 +16,12 @@ interface Props {
 
 function DeliveryStatusIcon({ status }: { status: string }) {
 	switch (status) {
+		case 'Pending':
+			return (
+				<svg className="h-3.5 w-3.5 text-t3 animate-spin" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+					<circle cx="8" cy="8" r="6" strokeDasharray="20 12" />
+				</svg>
+			)
 		case 'Sent':
 			return (
 				<svg className="h-3.5 w-3.5 text-t3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -58,6 +65,8 @@ export function MessageBubble({ message, currentUserId, onRetry, onPin, onUnpin 
 	const msgType = message.type.toLowerCase()
 	const senderType = message.senderType?.toLowerCase() ?? ''
 	const isAiMessage = message.isAiMessage === true
+	const isNote = message.type === 'Note' || message.type === 'PrivateNote'
+	const isPrivateNote = message.type === 'PrivateNote'
 
 	// Determine if this message is from the current agent user
 	// Backend sets senderType to "Agent" or "Customer" or null
@@ -65,12 +74,60 @@ export function MessageBubble({ message, currentUserId, onRetry, onPin, onUnpin 
 	const isAgent = senderType === 'agent'
 	const isSystem = msgType === 'system' || senderType === 'system' || senderType === ''
 	const isFailed = message.deliveryStatus === 'Failed'
+	const isPending = message.deliveryStatus === 'Pending'
 
 	// System messages — centered gray pill
 	if (isSystem && msgType === 'system') {
 		return (
 			<div className="flex justify-center py-1">
 				<MessageRenderer message={message} />
+			</div>
+		)
+	}
+
+	// Note messages — full-width amber strip
+	if (isNote) {
+		return (
+			<div className="flex w-full mb-1 justify-center px-4">
+				<div className="w-full max-w-[85%] flex flex-col items-start">
+					{/* Note badge */}
+					<div className="flex items-center gap-1 mb-0.5 px-1">
+						<StickyNote className="h-3 w-3 text-amber-600" />
+						<span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+							Note
+						</span>
+						{isPrivateNote && (
+							<span className="inline-flex items-center gap-0.5 rounded-full bg-amber-200 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
+								<Lock className="h-2.5 w-2.5" />
+								Private
+							</span>
+						)}
+						{message.senderName && (
+							<span className="text-[10px] text-amber-600">{message.senderName}</span>
+						)}
+					</div>
+
+					{/* Note content */}
+					<div
+						className={cn(
+							'w-full rounded-[16px] px-3.5 py-2 text-[13px] break-words',
+							isPrivateNote
+								? 'bg-amber-100 text-amber-900'
+								: 'bg-amber-50 text-amber-900',
+						)}
+					>
+						<MessageRenderer message={message} />
+					</div>
+
+					{/* Timestamp */}
+					<div className="flex items-center gap-1 mt-0.5 px-1">
+						<Tooltip content={formatFullThaiDatetime(message.timestamp)} side="right">
+							<span className="text-[10px] text-amber-500 cursor-default">
+								{formatSmartTimestamp(message.timestamp)}
+							</span>
+						</Tooltip>
+					</div>
+				</div>
 			</div>
 		)
 	}
@@ -117,7 +174,8 @@ export function MessageBubble({ message, currentUserId, onRetry, onPin, onUnpin 
 							isFromAgent
 								? 'bg-primary text-white rounded-[16px_16px_4px_16px]'
 								: 'bg-bg-input text-t1 rounded-[16px_16px_16px_4px]',
-							isFailed && 'ring-2 ring-error/30 bg-error-bg text-error',
+							isPending && 'opacity-60',
+						isFailed && 'ring-2 ring-error/30 bg-error-bg text-error',
 						)}
 					>
 						<MessageRenderer message={message} />

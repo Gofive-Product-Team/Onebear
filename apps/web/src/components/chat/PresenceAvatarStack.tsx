@@ -1,5 +1,6 @@
 import { cn } from '@one-bear/ui'
 import { Tooltip } from '@/components/ui/Tooltip'
+import { useMembers } from '@/api/useMembers'
 
 interface Props {
 	userIds: string[]
@@ -7,7 +8,6 @@ interface Props {
 	maxShow?: number
 }
 
-// Deterministic color per userId so the same user always gets the same color
 const AVATAR_COLORS = [
 	'bg-blue-500',
 	'bg-green-500',
@@ -27,23 +27,33 @@ function getColorForId(userId: string): string {
 	return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length] ?? 'bg-blue-500'
 }
 
-function getInitials(userId: string): string {
-	// userId may be a display name or an id; take first 2 chars and uppercase
-	return userId.slice(0, 2).toUpperCase()
-}
-
 export function PresenceAvatarStack({ userIds, currentUserId, maxShow = 3 }: Props) {
-	const others = userIds.filter((id) => id !== currentUserId)
+	const { data: members } = useMembers()
+	// Show all users including self
+	if (userIds.length === 0) return null
 
-	if (others.length === 0) return null
+	// Resolve userId → display name
+	function resolveName(userId: string): string {
+		const member = members?.find((m) => m.keycloakUserId === userId)
+		return member?.displayName ?? member?.email ?? userId
+	}
 
-	const visible = others.slice(0, maxShow)
-	const overflow = others.length - maxShow
+	function getInitials(userId: string): string {
+		const name = resolveName(userId)
+		const parts = name.trim().split(/\s+/)
+		if (parts.length >= 2) {
+			return (parts[0][0] + parts[1][0]).toUpperCase()
+		}
+		return name.slice(0, 2).toUpperCase()
+	}
+
+	const visible = userIds.slice(0, maxShow)
+	const overflow = userIds.length - maxShow
 
 	const tooltipContent = (
 		<div className="flex flex-col gap-0.5">
-			{others.map((id) => (
-				<span key={id}>{id}</span>
+			{userIds.map((id) => (
+				<span key={id}>{resolveName(id)}</span>
 			))}
 		</div>
 	)
@@ -59,7 +69,7 @@ export function PresenceAvatarStack({ userIds, currentUserId, maxShow = 3 }: Pro
 							getColorForId(id),
 						)}
 						style={{ marginLeft: idx === 0 ? 0 : '-8px' }}
-						aria-label={id}
+						aria-label={resolveName(id)}
 					>
 						{getInitials(id)}
 					</span>

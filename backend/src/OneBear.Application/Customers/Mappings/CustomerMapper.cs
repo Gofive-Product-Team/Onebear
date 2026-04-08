@@ -61,6 +61,7 @@ public static class CustomerMapper
             Email = customer.Email,
             Phone = customer.Phone,
             Avatar = customer.Avatar,
+            Addresses = customer.Addresses ?? new(),
             Channels = customer.Channels.Select(MapChannel).ToList(),
             Tags = tags,
             Ltv = customer.Ltv,

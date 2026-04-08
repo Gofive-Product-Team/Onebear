@@ -40,16 +40,18 @@ export interface RoomFilters {
 	assignedTo?: string
 	platform?: string
 	search?: string
+	sort?: string
 	continuationToken?: string
 }
 
 function buildParams(filters?: RoomFilters): Record<string, string> | undefined {
 	if (!filters) return undefined
 	const params: Record<string, string> = {}
-	if (filters.state) params.state = filters.state
-	if (filters.assignedTo) params.assignedTo = filters.assignedTo
+	if (filters.state) params.status = filters.state
+	if (filters.assignedTo) params.assigneeId = filters.assignedTo
 	if (filters.platform) params.platform = filters.platform
 	if (filters.search) params.search = filters.search
+	if (filters.sort) params.sort = filters.sort
 	if (filters.continuationToken) params.continuationToken = filters.continuationToken
 	return Object.keys(params).length > 0 ? params : undefined
 }
@@ -97,6 +99,19 @@ export function useCloseRoom(companyId: string) {
 
 	return useMutation({
 		mutationFn: (roomId: string) => api.rooms.close(companyId, roomId),
+		onSuccess: (_data, roomId) => {
+			queryClient.invalidateQueries({ queryKey: ['rooms'] })
+			queryClient.invalidateQueries({ queryKey: ['room', companyId, roomId] })
+			queryClient.invalidateQueries({ queryKey: ['badge-count'] })
+		},
+	})
+}
+
+export function useReopenRoom(companyId: string) {
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: (roomId: string) => api.rooms.reopen(companyId, roomId),
 		onSuccess: (_data, roomId) => {
 			queryClient.invalidateQueries({ queryKey: ['rooms'] })
 			queryClient.invalidateQueries({ queryKey: ['room', companyId, roomId] })
@@ -156,6 +171,19 @@ export function useReturnToAi(companyId: string) {
 	return useMutation({
 		mutationFn: (roomId: string) => api.rooms.returnToAi(companyId, roomId),
 		onSuccess: (_data, roomId) => {
+			queryClient.invalidateQueries({ queryKey: ['rooms'] })
+			queryClient.invalidateQueries({ queryKey: ['room', companyId, roomId] })
+		},
+	})
+}
+
+export function useUpdateFollowUp(companyId: string, roomId: string) {
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: (body: { followupTimestamp: number | null; content?: string | null }) =>
+			api.rooms.updateFollowUp(companyId, roomId, body),
+		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ['rooms'] })
 			queryClient.invalidateQueries({ queryKey: ['room', companyId, roomId] })
 		},
