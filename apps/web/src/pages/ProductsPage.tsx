@@ -1041,9 +1041,179 @@ function CsvImportModal({
 	)
 }
 
+// ─── Category Management ─────────────────────────────────────────────────────
+
+interface CategoryItem {
+	id: string
+	name: string
+	count: number
+}
+
+const MOCK_CATEGORIES: CategoryItem[] = [
+	{ id: 'cat-1', name: 'Beauty', count: 24 },
+	{ id: 'cat-2', name: 'Skincare', count: 18 },
+	{ id: 'cat-3', name: 'Clothing', count: 35 },
+	{ id: 'cat-4', name: 'Electronics', count: 12 },
+	{ id: 'cat-5', name: 'Food', count: 8 },
+	{ id: 'cat-6', name: 'Other', count: 5 },
+]
+
+// ─── Variant Template Management ─────────────────────────────────────────────
+
+interface TemplateAxis {
+	name: string
+	values: string[]
+}
+
+interface VariantTemplate {
+	id: string
+	name: string
+	axes: TemplateAxis[]
+}
+
+const MOCK_VARIANT_TEMPLATES: VariantTemplate[] = [
+	{ id: 'tpl-1', name: 'ขนาดเสื้อ', axes: [{ name: 'ขนาด', values: ['S', 'M', 'L', 'XL', 'XXL'] }] },
+	{ id: 'tpl-2', name: 'สีเสื้อพื้นฐาน', axes: [{ name: 'สี', values: ['แดง', 'น้ำเงิน', 'เขียว', 'ดำ', 'ขาว'] }] },
+	{ id: 'tpl-3', name: 'ขนาด+สี', axes: [{ name: 'ขนาด', values: ['S', 'M', 'L'] }, { name: 'สี', values: ['แดง', 'น้ำเงิน', 'ดำ'] }] },
+	{ id: 'tpl-4', name: 'ขนาดครีม', axes: [{ name: 'ขนาด', values: ['15ml', '30ml', '50ml', '100ml'] }] },
+]
+
+function totalCombinations(axes: TemplateAxis[]): number {
+	return axes.reduce((acc, ax) => acc * Math.max(ax.values.length, 1), 1)
+}
+
+// ─── Create Template Modal ────────────────────────────────────────────────────
+
+function CreateTemplateModal({
+	onClose,
+	onSave,
+}: {
+	onClose: () => void
+	onSave: (tpl: VariantTemplate) => void
+}) {
+	const [name, setName] = useState('')
+	const [axes, setAxes] = useState<TemplateAxis[]>([{ name: '', values: [] }])
+	const [axisInputs, setAxisInputs] = useState<string[]>([''])
+
+	function setAxisName(i: number, val: string) {
+		setAxes((prev) => prev.map((ax, idx) => idx === i ? { ...ax, name: val } : ax))
+	}
+
+	function setAxisValuesRaw(i: number, raw: string) {
+		setAxisInputs((prev) => prev.map((v, idx) => idx === i ? raw : v))
+		const values = raw.split(',').map((v) => v.trim()).filter(Boolean)
+		setAxes((prev) => prev.map((ax, idx) => idx === i ? { ...ax, values } : ax))
+	}
+
+	function addAxis() {
+		if (axes.length >= 2) return
+		setAxes((prev) => [...prev, { name: '', values: [] }])
+		setAxisInputs((prev) => [...prev, ''])
+	}
+
+	function removeAxis(i: number) {
+		setAxes((prev) => prev.filter((_, idx) => idx !== i))
+		setAxisInputs((prev) => prev.filter((_, idx) => idx !== i))
+	}
+
+	const preview = generateCombinations(axes)
+	const canSave = name.trim() && axes.every((ax) => ax.name.trim() && ax.values.length > 0)
+
+	function handleSave() {
+		if (!canSave) return
+		onSave({ id: `tpl-${Date.now()}`, name: name.trim(), axes })
+		onClose()
+	}
+
+	return (
+		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+			<div className="mx-4 w-full max-w-lg rounded-xl border border-border bg-bg-card p-6 shadow-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+				<div className="mb-4 flex items-center justify-between">
+					<h2 className="text-lg font-semibold text-t1">สร้าง Variant Template</h2>
+					<button onClick={onClose} className="rounded-lg p-1.5 text-t3 hover:bg-bg-hover">
+						<X className="h-4 w-4" />
+					</button>
+				</div>
+
+				<div className="space-y-4">
+					{/* Template name */}
+					<div>
+						<label className="mb-1 block text-sm font-medium text-t2">ชื่อ Template *</label>
+						<input
+							autoFocus
+							value={name}
+							onChange={(e) => setName(e.target.value)}
+							placeholder="เช่น ขนาด+สีเสื้อ"
+							className="w-full rounded-lg border border-border-input bg-bg-input px-3 py-2 text-sm text-t1 placeholder:text-t3 focus:border-primary focus:outline-none"
+						/>
+					</div>
+
+					{/* Axes */}
+					{axes.map((ax, i) => (
+						<div key={i} className="rounded-lg border border-border bg-bg-input p-3 space-y-2">
+							<div className="flex items-center justify-between">
+								<span className="text-xs font-semibold text-t2">แกนที่ {i + 1}</span>
+								{axes.length > 1 && (
+									<button onClick={() => removeAxis(i)} className="text-t3 hover:text-error">
+										<X className="h-3.5 w-3.5" />
+									</button>
+								)}
+							</div>
+							<input
+								value={ax.name}
+								onChange={(e) => setAxisName(i, e.target.value)}
+								placeholder="ชื่อแกน (เช่น ขนาด, สี)"
+								className="w-full rounded-lg border border-border-input bg-bg-card px-3 py-1.5 text-sm text-t1 placeholder:text-t3 focus:border-primary focus:outline-none"
+							/>
+							<input
+								value={axisInputs[i] ?? ''}
+								onChange={(e) => setAxisValuesRaw(i, e.target.value)}
+								placeholder="ค่า คั่นด้วยจุลภาค (เช่น S, M, L, XL)"
+								className="w-full rounded-lg border border-border-input bg-bg-card px-3 py-1.5 text-sm text-t1 placeholder:text-t3 focus:border-primary focus:outline-none"
+							/>
+							{ax.values.length > 0 && (
+								<div className="flex flex-wrap gap-1">
+									{ax.values.map((v) => (
+										<span key={v} className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">{v}</span>
+									))}
+								</div>
+							)}
+						</div>
+					))}
+
+					{axes.length < 2 && (
+						<button onClick={addAxis} className="flex items-center gap-1.5 text-sm text-primary hover:text-primary/80">
+							<Plus className="h-3.5 w-3.5" /> เพิ่มแกน (สูงสุด 2)
+						</button>
+					)}
+
+					{/* Preview */}
+					{preview.length > 0 && (
+						<div>
+							<p className="mb-1.5 text-xs font-semibold text-t2">Preview combinations ({preview.length} รายการ)</p>
+							<div className="flex flex-wrap gap-1.5 rounded-lg border border-border bg-bg-input p-3">
+								{preview.slice(0, 20).map((c) => (
+									<span key={c.label} className="rounded-full border border-border bg-bg-card px-2.5 py-0.5 text-xs text-t1">{c.label}</span>
+								))}
+								{preview.length > 20 && <span className="text-xs text-t3">+{preview.length - 20} more</span>}
+							</div>
+						</div>
+					)}
+
+					<div className="flex justify-end gap-2 pt-2">
+						<Button variant="outline" onClick={onClose}>ยกเลิก</Button>
+						<Button onClick={handleSave} disabled={!canSave}>บันทึก</Button>
+					</div>
+				</div>
+			</div>
+		</div>
+	)
+}
+
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 export function ProductsPage() {
+	const [mainTab, setMainTab] = useState<'products' | 'categories' | 'variants'>('products')
 	const [search, setSearch] = useState('')
 	const [categoryFilter, setCategoryFilter] = useState('')
 	const [statusFilter, setStatusFilter] = useState('')
@@ -1052,6 +1222,20 @@ export function ProductsPage() {
 	const [showImport, setShowImport] = useState(false)
 	const [importResult, setImportResult] = useState<CsvImportResult | null>(null)
 	const [detailProduct, setDetailProduct] = useState<Product | null>(null)
+
+	// Categories tab state (lifted for header button access)
+	const [showAddCat, setShowAddCat] = useState(false)
+	const [catItems, setCatItems] = useState<CategoryItem[]>(MOCK_CATEGORIES)
+	const [newCatName, setNewCatName] = useState('')
+	const [catEditingId, setCatEditingId] = useState<string | null>(null)
+	const [catEditingName, setCatEditingName] = useState('')
+	const { toast: catToast, show: showCatToast } = useToast()
+
+	// Variants tab state (lifted for header button access)
+	const [showCreateTpl, setShowCreateTpl] = useState(false)
+	const [variantTemplates, setVariantTemplates] = useState<VariantTemplate[]>(MOCK_VARIANT_TEMPLATES)
+	const [expandedTplId, setExpandedTplId] = useState<string | null>(null)
+	const { toast: tplToast, show: showTplToast } = useToast()
 
 	const params = useMemo(() => {
 		const p: Record<string, string> = { pageSize: '50' }
@@ -1105,155 +1289,401 @@ export function ProductsPage() {
 			<div className="flex items-center justify-between">
 				<div>
 					<h1 className="text-2xl font-bold text-t1">Products</h1>
-					<p className="mt-0.5 text-sm text-t2">{products.length} product{products.length !== 1 ? 's' : ''} in catalog</p>
+					<p className="mt-0.5 text-sm text-t2">
+						{mainTab === 'products' && `${products.length} product${products.length !== 1 ? 's' : ''} in catalog`}
+						{mainTab === 'categories' && `${catItems.length} หมวดหมู่`}
+						{mainTab === 'variants' && `${variantTemplates.length} templates`}
+					</p>
 				</div>
 				<div className="flex gap-2">
-					<Button variant="outline" onClick={() => { setImportResult(null); setShowImport(true) }}>
-						<Upload className="mr-1.5 h-3.5 w-3.5" /> Import CSV
-					</Button>
-					<Button onClick={() => { setEditProduct(null); setShowForm(true) }}>
-						<Plus className="mr-1.5 h-3.5 w-3.5" /> Add Product
-					</Button>
+					{mainTab === 'products' && (
+						<>
+							<Button variant="outline" onClick={() => { setImportResult(null); setShowImport(true) }}>
+								<Upload className="mr-1.5 h-3.5 w-3.5" /> Import CSV
+							</Button>
+							<Button onClick={() => { setEditProduct(null); setShowForm(true) }}>
+								<Plus className="mr-1.5 h-3.5 w-3.5" /> Add Product
+							</Button>
+						</>
+					)}
+					{mainTab === 'categories' && (
+						<Button onClick={() => setShowAddCat(true)}>
+							<Plus className="mr-1.5 h-3.5 w-3.5" /> เพิ่มหมวดหมู่
+						</Button>
+					)}
+					{mainTab === 'variants' && (
+						<Button onClick={() => setShowCreateTpl(true)}>
+							<Plus className="mr-1.5 h-3.5 w-3.5" /> สร้าง Template
+						</Button>
+					)}
 				</div>
 			</div>
 
-			{/* Filters */}
-			<div className="flex flex-wrap items-center gap-3">
-				<div className="relative flex-1 min-w-[200px]">
-					<Search className="absolute left-3 top-2.5 h-4 w-4 text-t3" />
-					<input
-						value={search}
-						onChange={(e) => setSearch(e.target.value)}
-						placeholder="Search products..."
-						className="w-full rounded-lg border border-border-input bg-bg-input py-2 pl-9 pr-3 text-sm text-t1 placeholder:text-t3 focus:border-primary focus:outline-none"
-					/>
-					{search && (
-						<button onClick={() => setSearch('')} className="absolute right-3 top-2.5 text-t3 hover:text-t1">
-							<X className="h-4 w-4" />
+			{/* Top-level Tab Bar */}
+			<div className="flex gap-1 border-b border-border">
+				{(['products', 'categories', 'variants'] as const).map((tab) => {
+					const label = tab === 'products' ? 'สินค้า' : tab === 'categories' ? 'หมวดหมู่' : 'Variant Templates'
+					return (
+						<button
+							key={tab}
+							onClick={() => setMainTab(tab)}
+							className={cn(
+								'px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px',
+								mainTab === tab
+									? 'border-primary text-primary'
+									: 'border-transparent text-t3 hover:text-t1',
+							)}
+						>
+							{label}
 						</button>
-					)}
-				</div>
-				<select
-					value={categoryFilter}
-					onChange={(e) => setCategoryFilter(e.target.value)}
-					className="rounded-lg border border-border-input bg-bg-input px-3 py-2 text-sm text-t1 focus:border-primary focus:outline-none"
-				>
-					<option value="">All Categories</option>
-					{(categories ?? []).map((cat) => <option key={cat} value={cat}>{cat}</option>)}
-				</select>
-				<select
-					value={statusFilter}
-					onChange={(e) => setStatusFilter(e.target.value)}
-					className="rounded-lg border border-border-input bg-bg-input px-3 py-2 text-sm text-t1 focus:border-primary focus:outline-none"
-				>
-					<option value="">All Status</option>
-					<option value="Active">Active</option>
-					<option value="Inactive">Inactive</option>
-				</select>
-				<button
-					onClick={() => setSortOutOfStockFirst((v) => !v)}
-					className={cn(
-						'flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm transition-colors',
-						sortOutOfStockFirst
-							? 'border-error/40 bg-error/10 text-error'
-							: 'border-border-input bg-bg-input text-t3 hover:text-t1',
-					)}
-				>
-					<span className="text-xs">🔴</span>
-					<span className="text-xs">Out of stock ก่อน</span>
-				</button>
+					)
+				})}
 			</div>
 
-			{/* Product Table */}
-			{isLoading ? (
-				<div className="flex h-40 items-center justify-center text-sm text-t3">Loading products...</div>
-			) : products.length === 0 ? (
-				<div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
-					<div className="flex h-20 w-20 items-center justify-center rounded-full bg-bg-input text-t3">
-						<Package className="h-10 w-10" />
+			{/* ── Tab: สินค้า ─────────────────────────────────────────────────────── */}
+			{mainTab === 'products' && (
+				<>
+					{/* Filters */}
+					<div className="flex flex-wrap items-center gap-3">
+						<div className="relative flex-1 min-w-[200px]">
+							<Search className="absolute left-3 top-2.5 h-4 w-4 text-t3" />
+							<input
+								value={search}
+								onChange={(e) => setSearch(e.target.value)}
+								placeholder="Search products..."
+								className="w-full rounded-lg border border-border-input bg-bg-input py-2 pl-9 pr-3 text-sm text-t1 placeholder:text-t3 focus:border-primary focus:outline-none"
+							/>
+							{search && (
+								<button onClick={() => setSearch('')} className="absolute right-3 top-2.5 text-t3 hover:text-t1">
+									<X className="h-4 w-4" />
+								</button>
+							)}
+						</div>
+						<select
+							value={categoryFilter}
+							onChange={(e) => setCategoryFilter(e.target.value)}
+							className="rounded-lg border border-border-input bg-bg-input px-3 py-2 text-sm text-t1 focus:border-primary focus:outline-none"
+						>
+							<option value="">All Categories</option>
+							{(categories ?? []).map((cat) => <option key={cat} value={cat}>{cat}</option>)}
+						</select>
+						<select
+							value={statusFilter}
+							onChange={(e) => setStatusFilter(e.target.value)}
+							className="rounded-lg border border-border-input bg-bg-input px-3 py-2 text-sm text-t1 focus:border-primary focus:outline-none"
+						>
+							<option value="">All Status</option>
+							<option value="Active">Active</option>
+							<option value="Inactive">Inactive</option>
+						</select>
+						<button
+							onClick={() => setSortOutOfStockFirst((v) => !v)}
+							className={cn(
+								'flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm transition-colors',
+								sortOutOfStockFirst
+									? 'border-error/40 bg-error/10 text-error'
+									: 'border-border-input bg-bg-input text-t3 hover:text-t1',
+							)}
+						>
+							<span className="text-xs">🔴</span>
+							<span className="text-xs">Out of stock ก่อน</span>
+						</button>
 					</div>
-					<div>
-						<p className="text-base font-semibold text-t1">No products yet</p>
-						<p className="mt-1 text-sm text-t2">Add your first product to get started.</p>
-					</div>
-					<Button onClick={() => { setEditProduct(null); setShowForm(true) }}>
-						<Plus className="mr-1.5 h-4 w-4" /> Add your first product
-					</Button>
-				</div>
-			) : (
-				<div className="overflow-x-auto rounded-xl border border-border bg-bg-card shadow-sm">
-					<table className="w-full text-left text-sm">
-						<thead className="border-b border-border text-xs font-medium uppercase text-t3">
-							<tr>
-								<th className="px-4 py-3">Product</th>
-								<th className="px-4 py-3">Category</th>
-								<th className="px-4 py-3 text-right">Price</th>
-								<th className="px-4 py-3 text-right">Stock</th>
-								<th className="px-4 py-3">Status</th>
-								<th className="px-4 py-3 text-right">Actions</th>
-							</tr>
-						</thead>
-						<tbody className="divide-y divide-border">
-							{products.map((product) => (
-								<tr
-									key={product.id}
-									className={cn('cursor-pointer transition-colors hover:bg-bg-hover', detailProduct?.id === product.id && 'bg-bg-hover')}
-									onClick={() => setDetailProduct((prev) => prev?.id === product.id ? null : product)}
-								>
-									<td className="px-4 py-3">
-										<div className="flex items-center gap-3">
-											{product.imageUrl ? (
-												<img src={product.imageUrl} alt={product.name} className="h-10 w-10 rounded-lg object-cover" />
-											) : (
-												<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-bg-input text-t3">
-													<Package className="h-4 w-4" />
+
+					{/* Product Table */}
+					{isLoading ? (
+						<div className="flex h-40 items-center justify-center text-sm text-t3">Loading products...</div>
+					) : products.length === 0 ? (
+						<div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
+							<div className="flex h-20 w-20 items-center justify-center rounded-full bg-bg-input text-t3">
+								<Package className="h-10 w-10" />
+							</div>
+							<div>
+								<p className="text-base font-semibold text-t1">No products yet</p>
+								<p className="mt-1 text-sm text-t2">Add your first product to get started.</p>
+							</div>
+							<Button onClick={() => { setEditProduct(null); setShowForm(true) }}>
+								<Plus className="mr-1.5 h-4 w-4" /> Add your first product
+							</Button>
+						</div>
+					) : (
+						<div className="overflow-x-auto rounded-xl border border-border bg-bg-card shadow-sm">
+							<table className="w-full text-left text-sm">
+								<thead className="border-b border-border text-xs font-medium uppercase text-t3">
+									<tr>
+										<th className="px-4 py-3">Product</th>
+										<th className="px-4 py-3">Category</th>
+										<th className="px-4 py-3 text-right">Price</th>
+										<th className="px-4 py-3 text-right">Stock</th>
+										<th className="px-4 py-3">Status</th>
+										<th className="px-4 py-3 text-right">Actions</th>
+									</tr>
+								</thead>
+								<tbody className="divide-y divide-border">
+									{products.map((product) => (
+										<tr
+											key={product.id}
+											className={cn('cursor-pointer transition-colors hover:bg-bg-hover', detailProduct?.id === product.id && 'bg-bg-hover')}
+											onClick={() => setDetailProduct((prev) => prev?.id === product.id ? null : product)}
+										>
+											<td className="px-4 py-3">
+												<div className="flex items-center gap-3">
+													{product.imageUrl ? (
+														<img src={product.imageUrl} alt={product.name} className="h-10 w-10 rounded-lg object-cover" />
+													) : (
+														<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-bg-input text-t3">
+															<Package className="h-4 w-4" />
+														</div>
+													)}
+													<div>
+														<div className="font-medium text-t1">{product.name}</div>
+														{product.description && <div className="max-w-xs truncate text-xs text-t3">{product.description}</div>}
+													</div>
 												</div>
-											)}
-											<div>
-												<div className="font-medium text-t1">{product.name}</div>
-												{product.description && <div className="max-w-xs truncate text-xs text-t3">{product.description}</div>}
-											</div>
-										</div>
-									</td>
-									<td className="px-4 py-3 text-t2">{product.category}</td>
-									<td className="px-4 py-3 text-right font-medium text-t1">{formatPrice(product.price)}</td>
-									<td className="px-4 py-3 text-right">
-										{product.effectiveStock === null ? (
-											<span className="text-t3">Unlimited</span>
-										) : product.effectiveStock <= 0 && !product.allowPreOrder ? (
-											<span className="font-medium text-error">Out of stock</span>
-										) : product.effectiveStock < 0 ? (
-											<span className="text-warning">{product.effectiveStock} (pre-order)</span>
-										) : (
-											<span className="text-t1">{product.effectiveStock}</span>
-										)}
-									</td>
-									<td className="px-4 py-3">
-										<Badge variant={product.status === 'Active' ? 'success' : 'secondary'}>
-											{product.status}
-										</Badge>
-									</td>
-									<td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-										<div className="flex justify-end gap-1">
-											<button onClick={() => handleToggleStatus(product)} className="rounded-lg p-1.5 text-t3 hover:bg-bg-hover hover:text-t1" title={product.status === 'Active' ? 'Deactivate' : 'Activate'}>
-												{product.status === 'Active' ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-											</button>
-											<button onClick={() => { setEditProduct(product); setShowForm(true) }} className="rounded-lg p-1.5 text-t3 hover:bg-bg-hover hover:text-t1" title="Edit">
-												<Pencil className="h-4 w-4" />
-											</button>
-											<button onClick={() => handleDelete(product)} className="rounded-lg p-1.5 text-t3 hover:bg-error-bg hover:text-error" title="Delete">
-												<Trash2 className="h-4 w-4" />
-											</button>
-										</div>
-									</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
-				</div>
+											</td>
+											<td className="px-4 py-3 text-t2">{product.category}</td>
+											<td className="px-4 py-3 text-right font-medium text-t1">{formatPrice(product.price)}</td>
+											<td className="px-4 py-3 text-right">
+												{product.effectiveStock === null ? (
+													<span className="text-t3">Unlimited</span>
+												) : product.effectiveStock <= 0 && !product.allowPreOrder ? (
+													<span className="font-medium text-error">Out of stock</span>
+												) : product.effectiveStock < 0 ? (
+													<span className="text-warning">{product.effectiveStock} (pre-order)</span>
+												) : (
+													<span className="text-t1">{product.effectiveStock}</span>
+												)}
+											</td>
+											<td className="px-4 py-3">
+												<Badge variant={product.status === 'Active' ? 'success' : 'secondary'}>
+													{product.status}
+												</Badge>
+											</td>
+											<td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+												<div className="flex justify-end gap-1">
+													<button onClick={() => handleToggleStatus(product)} className="rounded-lg p-1.5 text-t3 hover:bg-bg-hover hover:text-t1" title={product.status === 'Active' ? 'Deactivate' : 'Activate'}>
+														{product.status === 'Active' ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+													</button>
+													<button onClick={() => { setEditProduct(product); setShowForm(true) }} className="rounded-lg p-1.5 text-t3 hover:bg-bg-hover hover:text-t1" title="Edit">
+														<Pencil className="h-4 w-4" />
+													</button>
+													<button onClick={() => handleDelete(product)} className="rounded-lg p-1.5 text-t3 hover:bg-error-bg hover:text-error" title="Delete">
+														<Trash2 className="h-4 w-4" />
+													</button>
+												</div>
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
+					)}
+				</>
 			)}
 
-			{/* Modals */}
+			{/* ── Tab: หมวดหมู่ ──────────────────────────────────────────────────── */}
+			{mainTab === 'categories' && (
+				<>
+					{/* Toast */}
+					{catToast && (
+						<div className={cn('fixed left-1/2 top-6 z-50 -translate-x-1/2 rounded-full px-4 py-1.5 text-sm text-white shadow-lg', catToast.type === 'success' ? 'bg-gray-800' : 'bg-error')}>
+							{catToast.msg}
+						</div>
+					)}
+
+					{/* Grid */}
+					<div className="grid grid-cols-2 gap-3">
+						{catItems.map((item) => (
+							<div key={item.id} className="flex items-center justify-between rounded-xl border border-border bg-bg-card px-4 py-3 shadow-sm">
+								<div className="flex items-center gap-3 min-w-0 flex-1">
+									{catEditingId === item.id ? (
+										<input
+											autoFocus
+											value={catEditingName}
+											onChange={(e) => setCatEditingName(e.target.value)}
+											onKeyDown={(e) => {
+												if (e.key === 'Enter') {
+													const name = catEditingName.trim()
+													if (name) { setCatItems((prev) => prev.map((c) => c.id === item.id ? { ...c, name } : c)); showCatToast('แก้ไขหมวดหมู่สำเร็จ') }
+													setCatEditingId(null)
+												}
+												if (e.key === 'Escape') setCatEditingId(null)
+											}}
+											className="flex-1 rounded-lg border border-primary bg-bg-input px-2 py-1 text-sm text-t1 focus:outline-none"
+										/>
+									) : (
+										<span className="truncate text-sm font-medium text-t1">{item.name}</span>
+									)}
+									<span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">{item.count} สินค้า</span>
+								</div>
+								<div className="ml-3 flex shrink-0 items-center gap-1">
+									{catEditingId === item.id ? (
+										<>
+											<button
+												onClick={() => {
+													const name = catEditingName.trim()
+													if (name) { setCatItems((prev) => prev.map((c) => c.id === item.id ? { ...c, name } : c)); showCatToast('แก้ไขหมวดหมู่สำเร็จ') }
+													setCatEditingId(null)
+												}}
+												className="rounded-lg p-1.5 text-success hover:bg-bg-hover" title="บันทึก"
+											>
+												<Check className="h-3.5 w-3.5" />
+											</button>
+											<button onClick={() => setCatEditingId(null)} className="rounded-lg p-1.5 text-t3 hover:bg-bg-hover" title="ยกเลิก">
+												<X className="h-3.5 w-3.5" />
+											</button>
+										</>
+									) : (
+										<>
+											<button
+												onClick={() => { setCatEditingId(item.id); setCatEditingName(item.name) }}
+												className="rounded-lg p-1.5 text-t3 hover:bg-bg-hover hover:text-t1" title="แก้ไข"
+											>
+												<Pencil className="h-3.5 w-3.5" />
+											</button>
+											<button
+												onClick={() => {
+													if (window.confirm(`ลบหมวดหมู่ '${item.name}'? สินค้าในหมวดนี้จะถูกย้ายไป Other`)) {
+														setCatItems((prev) => prev.filter((c) => c.id !== item.id))
+														showCatToast(`ลบ '${item.name}' สำเร็จ`)
+													}
+												}}
+												className="rounded-lg p-1.5 text-t3 hover:bg-error-bg hover:text-error" title="ลบ"
+											>
+												<Trash2 className="h-3.5 w-3.5" />
+											</button>
+										</>
+									)}
+								</div>
+							</div>
+						))}
+					</div>
+
+					{/* Add Category Modal */}
+					{showAddCat && (
+						<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowAddCat(false)}>
+							<div className="mx-4 w-full max-w-sm rounded-xl border border-border bg-bg-card p-5 shadow-md" onClick={(e) => e.stopPropagation()}>
+								<div className="mb-4 flex items-center justify-between">
+									<h3 className="text-base font-semibold text-t1">เพิ่มหมวดหมู่</h3>
+									<button onClick={() => setShowAddCat(false)} className="rounded-lg p-1.5 text-t3 hover:bg-bg-hover">
+										<X className="h-4 w-4" />
+									</button>
+								</div>
+								<input
+									autoFocus
+									value={newCatName}
+									onChange={(e) => setNewCatName(e.target.value)}
+									onKeyDown={(e) => {
+										if (e.key === 'Enter') {
+											const name = newCatName.trim()
+											if (name) { setCatItems((prev) => [...prev, { id: `cat-${Date.now()}`, name, count: 0 }]); showCatToast('เพิ่มหมวดหมู่สำเร็จ'); setNewCatName(''); setShowAddCat(false) }
+										}
+									}}
+									placeholder="ชื่อหมวดหมู่..."
+									className="w-full rounded-lg border border-border-input bg-bg-input px-3 py-2 text-sm text-t1 placeholder:text-t3 focus:border-primary focus:outline-none"
+								/>
+								<div className="mt-4 flex justify-end gap-2">
+									<Button variant="outline" onClick={() => setShowAddCat(false)}>ยกเลิก</Button>
+									<Button
+										onClick={() => {
+											const name = newCatName.trim()
+											if (name) { setCatItems((prev) => [...prev, { id: `cat-${Date.now()}`, name, count: 0 }]); showCatToast('เพิ่มหมวดหมู่สำเร็จ'); setNewCatName(''); setShowAddCat(false) }
+										}}
+										disabled={!newCatName.trim()}
+									>
+										บันทึก
+									</Button>
+								</div>
+							</div>
+						</div>
+					)}
+				</>
+			)}
+
+			{/* ── Tab: Variant Templates ─────────────────────────────────────────── */}
+			{mainTab === 'variants' && (
+				<>
+					{/* Toast */}
+					{tplToast && (
+						<div className={cn('fixed left-1/2 top-6 z-50 -translate-x-1/2 rounded-full px-4 py-1.5 text-sm text-white shadow-lg', tplToast.type === 'success' ? 'bg-gray-800' : 'bg-error')}>
+							{tplToast.msg}
+						</div>
+					)}
+
+					<div className="space-y-3">
+						{variantTemplates.map((tpl) => {
+							const isExpanded = expandedTplId === tpl.id
+							const axisCount = tpl.axes.length
+							const valueCount = tpl.axes.reduce((s, ax) => s + ax.values.length, 0)
+							const comboCount = totalCombinations(tpl.axes)
+							return (
+								<div key={tpl.id} className="rounded-xl border border-border bg-bg-card shadow-sm overflow-hidden">
+									{/* Card header */}
+									<div className="flex items-center justify-between px-4 py-3">
+										<button
+											className="flex flex-1 items-center gap-3 text-left"
+											onClick={() => setExpandedTplId(isExpanded ? null : tpl.id)}
+										>
+											<ChevronRight className={cn('h-4 w-4 shrink-0 text-t3 transition-transform', isExpanded && 'rotate-90')} />
+											<div>
+												<span className="text-sm font-semibold text-t1">{tpl.name}</span>
+												<span className="ml-3 text-xs text-t3">{axisCount} แกน · {valueCount} ค่า · {comboCount} combinations</span>
+											</div>
+										</button>
+										<button
+											onClick={() => {
+												if (window.confirm(`ลบ template '${tpl.name}'?`)) {
+													setVariantTemplates((prev) => prev.filter((t) => t.id !== tpl.id))
+													showTplToast(`ลบ '${tpl.name}' สำเร็จ`)
+												}
+											}}
+											className="ml-2 rounded-lg p-1.5 text-t3 hover:bg-error-bg hover:text-error" title="ลบ"
+										>
+											<Trash2 className="h-3.5 w-3.5" />
+										</button>
+									</div>
+
+									{/* Expanded body */}
+									{isExpanded && (
+										<div className="border-t border-border px-4 pb-4 pt-3 space-y-3">
+											{tpl.axes.map((ax, i) => (
+												<div key={i}>
+													<p className="mb-1.5 text-xs font-semibold text-t2">{ax.name}</p>
+													<div className="flex flex-wrap gap-1.5">
+														{ax.values.map((v) => (
+															<span key={v} className="rounded-full border border-border bg-bg-input px-2.5 py-0.5 text-xs text-t1">{v}</span>
+														))}
+													</div>
+												</div>
+											))}
+											<Button
+												size="sm"
+												className="mt-1 bg-success hover:bg-success/90 text-white"
+												onClick={() => showTplToast('เลือก template แล้ว')}
+											>
+												ใช้ template นี้
+											</Button>
+										</div>
+									)}
+								</div>
+							)
+						})}
+					</div>
+
+					{/* Create Template Modal */}
+					{showCreateTpl && (
+						<CreateTemplateModal
+							onClose={() => setShowCreateTpl(false)}
+							onSave={(tpl) => {
+								setVariantTemplates((prev) => [...prev, tpl])
+								showTplToast(`สร้าง '${tpl.name}' สำเร็จ`)
+							}}
+						/>
+					)}
+				</>
+			)}
+
+			{/* Modals (products tab) */}
 			{showForm && (
 				<ProductFormModal
 					product={editProduct}
