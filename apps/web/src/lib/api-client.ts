@@ -383,4 +383,32 @@ export const api = {
 		importCsv: (companyId: string, body: object) =>
 			fetchApi(`/companies/${companyId}/products/import`, { method: 'POST', body: JSON.stringify(body) }),
 	},
+	followUps: {
+		list: (companyId: string, params?: Record<string, string>) =>
+			fetchApi(`/companies/${companyId}/follow-ups${params ? '?' + new URLSearchParams(params) : ''}`),
+		create: (companyId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/follow-ups`, { method: 'POST', body: JSON.stringify(body) }),
+		updateStatus: (companyId: string, followUpId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/follow-ups/${followUpId}/status`, { method: 'PATCH', body: JSON.stringify(body) }),
+		templates: (companyId: string) =>
+			fetchApi(`/companies/${companyId}/follow-ups/templates`),
+	},
+	calendar: {
+		kpi: (companyId: string, role: string) =>
+			fetchApi(`/companies/${companyId}/calendar/kpi?role=${encodeURIComponent(role)}`),
+		revenue: (companyId: string, year: number, month: number) =>
+			fetchApi(`/companies/${companyId}/calendar/revenue?year=${year}&month=${month}`),
+	},
+	aiAgent: {
+		getConfig: (companyId: string) =>
+			fetchApi(`/companies/${companyId}/ai-agent/config`),
+		updateConfig: (companyId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/ai-agent/config`, { method: 'PATCH', body: JSON.stringify(body) }),
+		getStats: (companyId: string) =>
+			fetchApi(`/companies/${companyId}/ai-agent/stats`),
+		getHandoffQueue: (companyId: string) =>
+			fetchApi(`/companies/${companyId}/ai-agent/handoff-queue`),
+		getRecentConversations: (companyId: string) =>
+			fetchApi(`/companies/${companyId}/ai-agent/conversations/recent`),
+	},
 }

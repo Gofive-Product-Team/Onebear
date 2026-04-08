@@ -10,6 +10,8 @@ import {
 	useDeleteProduct,
 	useImportProducts,
 	type Product,
+	type ProductVariant,
+	type ProductRelationship,
 	type CreateProductBody,
 	type CsvImportResult,
 } from '@/api/useProducts'
@@ -24,7 +26,611 @@ import {
 	Eye,
 	EyeOff,
 	Download,
+	ChevronRight,
+	Sparkles,
+	Check,
 } from 'lucide-react'
+
+// ─── Toast helper ─────────────────────────────────────────────────────────────
+
+let _toastTimer: ReturnType<typeof setTimeout> | null = null
+
+function useToast() {
+	const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+	function show(msg: string, type: 'success' | 'error' = 'success') {
+		setToast({ msg, type })
+		if (_toastTimer) clearTimeout(_toastTimer)
+		_toastTimer = setTimeout(() => setToast(null), 3000)
+	}
+	return { toast, show }
+}
+
+// ─── Variant axis types ────────────────────────────────────────────────────────
+
+interface VariantAxis {
+	name: string
+	values: string[]
+}
+
+interface VariantCombination {
+	label: string
+	price: number
+	stock: number
+	enabled: boolean
+}
+
+function generateCombinations(axes: VariantAxis[]): VariantCombination[] {
+	if (axes.length === 0) return []
+	const validAxes = axes.filter((a) => a.values.length > 0)
+	if (validAxes.length === 0) return []
+
+	let combos: string[][] = [[]]
+	for (const axis of validAxes) {
+		const next: string[][] = []
+		for (const combo of combos) {
+			for (const val of axis.values) {
+				next.push([...combo, val])
+			}
+		}
+		combos = next
+	}
+	return combos.map((parts) => ({
+		label: parts.join(' / '),
+		price: 0,
+		stock: 0,
+		enabled: true,
+	}))
+}
+
+// ─── AI suggestion mock data ───────────────────────────────────────────────────
+
+interface AiSuggestion {
+	productId: string
+	productName: string
+	confidence: number
+	approved: boolean | null
+}
+
+function mockAiSuggestions(allProducts: Product[], currentId: string): AiSuggestion[] {
+	return allProducts
+		.filter((p) => p.id !== currentId)
+		.slice(0, 5)
+		.map((p, i) => ({
+			productId: p.id,
+			productName: p.name,
+			confidence: Math.round(90 - i * 12),
+			approved: null,
+		}))
+}
+
+// ─── Product Detail Panel ──────────────────────────────────────────────────────
+
+function ProductDetailPanel({
+	product,
+	allProducts,
+	onClose,
+	onSave,
+	isSaving,
+}: {
+	product: Product
+	allProducts: Product[]
+	onClose: () => void
+	onSave: (data: Partial<CreateProductBody>) => void
+	isSaving: boolean
+}) {
+	const [activeTab, setActiveTab] = useState<'variants' | 'upsell'>('variants')
+	const { toast, show: showToast } = useToast()
+
+	// ── Variants state ──────────────────────────────────────────────────────────
+	const [axes, setAxes] = useState<VariantAxis[]>(() => {
+		// Reconstruct axes from existing variants
+		const typeMap = new Map<string, string[]>()
+		for (const v of product.variants) {
+			const existing = typeMap.get(v.type) ?? []
+			if (!existing.includes(v.value)) existing.push(v.value)
+			typeMap.set(v.type, existing)
+		}
+		return Array.from(typeMap.entries()).map(([name, values]) => ({ name, values }))
+	})
+	const [showAddAxis, setShowAddAxis] = useState(false)
+	const [newAxisName, setNewAxisName] = useState('')
+	const [newAxisValues, setNewAxisValues] = useState('')
+	const [combinations, setCombinations] = useState<VariantCombination[]>([])
+	const [generatedCombos, setGeneratedCombos] = useState(false)
+
+	function handleAddAxis() {
+		if (!newAxisName.trim()) return
+		if (axes.length >= 2) { showToast('สามารถมี variant ได้สูงสุด 2 แกน', 'error'); return }
+		const values = newAxisValues.split(',').map((v) => v.trim()).filter(Boolean)
+		setAxes((prev) => [...prev, { name: newAxisName.trim(), values }])
+		setNewAxisName('')
+		setNewAxisValues('')
+		setShowAddAxis(false)
+		setGeneratedCombos(false)
+	}
+
+	function handleGenerateCombinations() {
+		setCombinations(generateCombinations(axes))
+		setGeneratedCombos(true)
+	}
+
+	function updateCombo(idx: number, field: keyof VariantCombination, value: unknown) {
+		setCombinations((prev) => prev.map((c, i) => i === idx ? { ...c, [field]: value } : c))
+	}
+
+	function handleSaveVariants() {
+		const variants: Omit<ProductVariant, 'id'>[] = generatedCombos
+			? combinations.filter((c) => c.enabled).map((c) => ({
+					type: axes[0]?.name ?? 'Variant',
+					value: c.label,
+					stock: c.stock,
+					priceAdjustment: c.price,
+				}))
+			: axes.flatMap((ax) => ax.values.map((val) => ({
+					type: ax.name,
+					value: val,
+					stock: 0,
+					priceAdjustment: 0,
+				})))
+		console.log('Saving variants:', variants)
+		onSave({ variants })
+		showToast('บันทึก variants สำเร็จ')
+	}
+
+	// ── Upsell / Cross-sell state ───────────────────────────────────────────────
+	const [upsells, setUpsells] = useState<ProductRelationship[]>(product.upsells)
+	const [crossSells, setCrossSells] = useState<ProductRelationship[]>(product.crossSells)
+	const [upsellSearch, setUpsellSearch] = useState('')
+	const [crossSellSearch, setCrossSellSearch] = useState('')
+	const [upsellOverrides, setUpsellOverrides] = useState<Record<string, number>>({})
+	const [crossSellOverrides, setCrossSellOverrides] = useState<Record<string, number>>({})
+	const [upsellAiSuggestions, setUpsellAiSuggestions] = useState<AiSuggestion[] | null>(null)
+	const [crossSellAiSuggestions, setCrossSellAiSuggestions] = useState<AiSuggestion[] | null>(null)
+
+	function addToList(
+		list: ProductRelationship[],
+		setList: (v: ProductRelationship[]) => void,
+		p: Product,
+		maxLen: number,
+	) {
+		if (list.length >= maxLen) { showToast(`สูงสุด ${maxLen} รายการ`, 'error'); return }
+		if (list.some((r) => r.productId === p.id)) return
+		setList([...list, { productId: p.id, productName: p.name, customPrice: null, sortOrder: list.length }])
+	}
+
+	function removeFromList(list: ProductRelationship[], setList: (v: ProductRelationship[]) => void, id: string) {
+		setList(list.filter((r) => r.productId !== id))
+	}
+
+	function handleSaveRelationships() {
+		const upsellsToSave = upsells.map((r) => ({
+			productId: r.productId,
+			customPrice: upsellOverrides[r.productId] ?? r.customPrice,
+			sortOrder: r.sortOrder,
+		}))
+		const crossSellsToSave = crossSells.map((r) => ({
+			productId: r.productId,
+			customPrice: crossSellOverrides[r.productId] ?? r.customPrice,
+			sortOrder: r.sortOrder,
+		}))
+		console.log('Saving relationships:', { upsells: upsellsToSave, crossSells: crossSellsToSave })
+		onSave({ upsells: upsellsToSave, crossSells: crossSellsToSave })
+		showToast('บันทึกความสัมพันธ์สินค้าสำเร็จ')
+	}
+
+	const filteredForUpsell = allProducts.filter(
+		(p) => p.id !== product.id && p.name.toLowerCase().includes(upsellSearch.toLowerCase()),
+	)
+	const filteredForCrossSell = allProducts.filter(
+		(p) => p.id !== product.id && p.name.toLowerCase().includes(crossSellSearch.toLowerCase()),
+	)
+
+	return (
+		<div
+			className="fixed inset-y-0 right-0 z-40 flex w-[420px] flex-col border-l border-border bg-bg-card shadow-xl transition-transform duration-300"
+			style={{ transform: 'translateX(0)' }}
+		>
+			{/* Toast */}
+			{toast && (
+				<div
+					className={cn(
+						'absolute left-1/2 top-4 z-50 -translate-x-1/2 rounded-full px-4 py-1.5 text-sm text-white shadow-lg',
+						toast.type === 'success' ? 'bg-gray-800' : 'bg-error',
+					)}
+				>
+					{toast.msg}
+				</div>
+			)}
+
+			{/* Header */}
+			<div className="flex items-start justify-between border-b border-border px-5 py-4">
+				<div className="min-w-0 flex-1">
+					<div className="flex items-center gap-2">
+						<Package className="h-4 w-4 flex-shrink-0 text-t3" />
+						<h2 className="truncate text-base font-semibold text-t1">{product.name}</h2>
+					</div>
+					<p className="mt-0.5 text-xs text-t3">{product.category} · ฿{product.price.toLocaleString()}</p>
+				</div>
+				<button onClick={onClose} className="ml-3 flex-shrink-0 rounded-lg p-1.5 text-t3 hover:bg-bg-hover hover:text-t1">
+					<X className="h-4 w-4" />
+				</button>
+			</div>
+
+			{/* Tabs */}
+			<div className="flex border-b border-border">
+				{(['variants', 'upsell'] as const).map((tab) => (
+					<button
+						key={tab}
+						onClick={() => setActiveTab(tab)}
+						className={cn(
+							'flex-1 py-3 text-sm font-medium transition-colors',
+							activeTab === tab
+								? 'border-b-2 border-primary text-primary'
+								: 'text-t3 hover:text-t2',
+						)}
+					>
+						{tab === 'variants' ? 'Variants' : 'Upsell / Cross-sell'}
+					</button>
+				))}
+			</div>
+
+			{/* Tab content */}
+			<div className="flex-1 overflow-y-auto p-5">
+				{/* ── Variants tab ────────────────────────────────────────────────── */}
+				{activeTab === 'variants' && (
+					<div className="space-y-4">
+						<div className="flex items-center justify-between">
+							<h3 className="text-sm font-medium text-t1">Variant Axes</h3>
+							{axes.length < 2 && (
+								<button
+									onClick={() => setShowAddAxis(true)}
+									className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-primary hover:bg-bg-hover"
+								>
+									<Plus className="h-3.5 w-3.5" />
+									Add variant type
+								</button>
+							)}
+						</div>
+
+						{/* Existing axes */}
+						{axes.map((ax, i) => (
+							<div key={i} className="rounded-lg border border-border bg-bg-input p-3">
+								<div className="flex items-center justify-between">
+									<span className="text-sm font-medium text-t1">{ax.name}</span>
+									<button
+										onClick={() => { setAxes((prev) => prev.filter((_, j) => j !== i)); setGeneratedCombos(false) }}
+										className="text-t3 hover:text-error"
+									>
+										<X className="h-3.5 w-3.5" />
+									</button>
+								</div>
+								<div className="mt-2 flex flex-wrap gap-1.5">
+									{ax.values.map((val) => (
+										<span key={val} className="rounded-full bg-bg-card px-2.5 py-0.5 text-xs text-t2 border border-border">
+											{val}
+										</span>
+									))}
+								</div>
+							</div>
+						))}
+
+						{/* Add axis inline form */}
+						{showAddAxis && (
+							<div className="rounded-lg border border-primary/40 bg-bg-input p-3 space-y-2">
+								<input
+									value={newAxisName}
+									onChange={(e) => setNewAxisName(e.target.value)}
+									placeholder="Axis name (e.g. Size, Color)"
+									className="w-full rounded-md border border-border-input bg-bg-card px-3 py-1.5 text-sm text-t1 placeholder:text-t3 focus:border-primary focus:outline-none"
+								/>
+								<input
+									value={newAxisValues}
+									onChange={(e) => setNewAxisValues(e.target.value)}
+									placeholder="Values, comma-separated (e.g. S, M, L)"
+									className="w-full rounded-md border border-border-input bg-bg-card px-3 py-1.5 text-sm text-t1 placeholder:text-t3 focus:border-primary focus:outline-none"
+								/>
+								<div className="flex gap-2 justify-end">
+									<button onClick={() => setShowAddAxis(false)} className="text-xs text-t3 hover:text-t1 px-2 py-1">Cancel</button>
+									<Button onClick={handleAddAxis} className="h-7 px-3 text-xs">Add</Button>
+								</div>
+							</div>
+						)}
+
+						{/* Generate combinations */}
+						{axes.length > 0 && (
+							<Button
+								variant="outline"
+								onClick={handleGenerateCombinations}
+								className="w-full"
+							>
+								<ChevronRight className="mr-1.5 h-3.5 w-3.5" />
+								Generate all combinations
+							</Button>
+						)}
+
+						{/* Combination table */}
+						{generatedCombos && combinations.length > 0 && (
+							<div className="rounded-lg border border-border overflow-hidden">
+								<table className="w-full text-sm">
+									<thead className="bg-bg-input text-xs text-t3">
+										<tr>
+											<th className="px-3 py-2 text-left">Variant</th>
+											<th className="px-3 py-2 text-right">Price adj. (฿)</th>
+											<th className="px-3 py-2 text-right">Stock</th>
+											<th className="px-2 py-2 text-center">Active</th>
+										</tr>
+									</thead>
+									<tbody className="divide-y divide-border">
+										{combinations.map((combo, idx) => (
+											<tr key={idx} className={cn('transition-colors', !combo.enabled && 'opacity-40')}>
+												<td className="px-3 py-2 text-t1 text-xs font-medium">{combo.label}</td>
+												<td className="px-3 py-2 text-right">
+													<input
+														type="number"
+														value={combo.price}
+														onChange={(e) => updateCombo(idx, 'price', parseFloat(e.target.value) || 0)}
+														className="w-20 rounded border border-border-input bg-bg-input px-2 py-0.5 text-right text-xs focus:outline-none"
+													/>
+												</td>
+												<td className="px-3 py-2 text-right">
+													<input
+														type="number"
+														value={combo.stock}
+														onChange={(e) => updateCombo(idx, 'stock', parseInt(e.target.value, 10) || 0)}
+														className="w-16 rounded border border-border-input bg-bg-input px-2 py-0.5 text-right text-xs focus:outline-none"
+													/>
+												</td>
+												<td className="px-2 py-2 text-center">
+													<input
+														type="checkbox"
+														checked={combo.enabled}
+														onChange={(e) => updateCombo(idx, 'enabled', e.target.checked)}
+														className="rounded"
+													/>
+												</td>
+											</tr>
+										))}
+									</tbody>
+								</table>
+							</div>
+						)}
+
+						{/* Save variants */}
+						{axes.length > 0 && (
+							<Button onClick={handleSaveVariants} disabled={isSaving} className="w-full">
+								{isSaving ? 'Saving...' : 'Save Variants'}
+							</Button>
+						)}
+					</div>
+				)}
+
+				{/* ── Upsell / Cross-sell tab ──────────────────────────────────────── */}
+				{activeTab === 'upsell' && (
+					<div className="space-y-5">
+						{/* Upsell section */}
+						<div>
+							<div className="mb-2 flex items-center justify-between">
+								<div>
+									<h3 className="text-sm font-medium text-t1">Upsell</h3>
+									<p className="text-xs text-t3">ลูกค้าอาจสนใจ upgrade (สูงสุด 3)</p>
+								</div>
+								<button
+									onClick={() => setUpsellAiSuggestions(mockAiSuggestions(allProducts, product.id))}
+									className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-primary hover:bg-bg-hover"
+								>
+									<Sparkles className="h-3.5 w-3.5" /> AI แนะนำ
+								</button>
+							</div>
+
+							{/* Upsell AI suggestions */}
+							{upsellAiSuggestions && (
+								<div className="mb-3 rounded-lg border border-primary/30 bg-bg-input p-3 space-y-1.5">
+									<p className="text-xs font-medium text-t2 mb-2">AI Suggestions</p>
+									{upsellAiSuggestions.map((s) => (
+										<div key={s.productId} className="flex items-center justify-between text-xs">
+											<span className="text-t1 truncate mr-2">{s.productName}</span>
+											<div className="flex items-center gap-1.5 flex-shrink-0">
+												<Badge variant="secondary" className="text-[10px] px-1.5 py-0">{s.confidence}%</Badge>
+												{s.approved === null ? (
+													<>
+														<button
+															onClick={() => {
+																const p = allProducts.find((x) => x.id === s.productId)
+																if (p) addToList(upsells, setUpsells, p, 3)
+																setUpsellAiSuggestions((prev) => prev?.map((x) => x.productId === s.productId ? { ...x, approved: true } : x) ?? null)
+															}}
+															className="rounded bg-success-bg px-1.5 py-0.5 text-success hover:opacity-80"
+														>Approve</button>
+														<button
+															onClick={() => setUpsellAiSuggestions((prev) => prev?.map((x) => x.productId === s.productId ? { ...x, approved: false } : x) ?? null)}
+															className="rounded bg-error-bg px-1.5 py-0.5 text-error hover:opacity-80"
+														>Reject</button>
+													</>
+												) : s.approved ? (
+													<span className="text-success flex items-center gap-0.5"><Check className="h-3 w-3" /> Added</span>
+												) : (
+													<span className="text-t3">Rejected</span>
+												)}
+											</div>
+										</div>
+									))}
+									<button onClick={() => setUpsellAiSuggestions(null)} className="mt-2 text-xs text-t3 hover:text-t1">Close</button>
+								</div>
+							)}
+
+							{/* Upsell search + add */}
+							{upsells.length < 3 && (
+								<div className="relative mb-2">
+									<Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-t3" />
+									<input
+										value={upsellSearch}
+										onChange={(e) => setUpsellSearch(e.target.value)}
+										placeholder="Search products to add..."
+										className="w-full rounded-lg border border-border-input bg-bg-input py-2 pl-8 pr-3 text-xs text-t1 placeholder:text-t3 focus:border-primary focus:outline-none"
+									/>
+									{upsellSearch && (
+										<div className="absolute z-10 mt-1 w-full rounded-lg border border-border bg-bg-card shadow-md max-h-40 overflow-y-auto">
+											{filteredForUpsell.slice(0, 8).map((p) => (
+												<button
+													key={p.id}
+													onClick={() => { addToList(upsells, setUpsells, p, 3); setUpsellSearch('') }}
+													className="flex w-full items-center justify-between px-3 py-2 text-xs hover:bg-bg-hover text-left"
+												>
+													<span className="text-t1">{p.name}</span>
+													<span className="text-t3">฿{p.price.toLocaleString()}</span>
+												</button>
+											))}
+											{filteredForUpsell.length === 0 && (
+												<p className="px-3 py-2 text-xs text-t3">No products found</p>
+											)}
+										</div>
+									)}
+								</div>
+							)}
+
+							{/* Upsell list */}
+							<div className="space-y-1.5">
+								{upsells.map((r) => (
+									<div key={r.productId} className="flex items-center gap-2 rounded-lg border border-border bg-bg-input p-2.5">
+										<span className="flex-1 truncate text-xs font-medium text-t1">{r.productName}</span>
+										<div className="flex items-center gap-1">
+											<span className="text-t3 text-xs">฿</span>
+											<input
+												type="number"
+												value={upsellOverrides[r.productId] ?? r.customPrice ?? ''}
+												onChange={(e) => setUpsellOverrides((prev) => ({ ...prev, [r.productId]: parseFloat(e.target.value) || 0 }))}
+												placeholder="Custom price"
+												className="w-20 rounded border border-border-input bg-bg-card px-2 py-0.5 text-right text-xs focus:outline-none"
+											/>
+										</div>
+										<button onClick={() => removeFromList(upsells, setUpsells, r.productId)} className="text-t3 hover:text-error">
+											<X className="h-3.5 w-3.5" />
+										</button>
+									</div>
+								))}
+								{upsells.length === 0 && (
+									<p className="py-2 text-center text-xs text-t3">ยังไม่มีสินค้า upsell</p>
+								)}
+							</div>
+						</div>
+
+						{/* Cross-sell section */}
+						<div>
+							<div className="mb-2 flex items-center justify-between">
+								<div>
+									<h3 className="text-sm font-medium text-t1">Cross-sell</h3>
+									<p className="text-xs text-t3">สินค้าที่มักซื้อพร้อมกัน (สูงสุด 3)</p>
+								</div>
+								<button
+									onClick={() => setCrossSellAiSuggestions(mockAiSuggestions(allProducts, product.id))}
+									className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-primary hover:bg-bg-hover"
+								>
+									<Sparkles className="h-3.5 w-3.5" /> AI แนะนำ
+								</button>
+							</div>
+
+							{/* Cross-sell AI suggestions */}
+							{crossSellAiSuggestions && (
+								<div className="mb-3 rounded-lg border border-primary/30 bg-bg-input p-3 space-y-1.5">
+									<p className="text-xs font-medium text-t2 mb-2">AI Suggestions</p>
+									{crossSellAiSuggestions.map((s) => (
+										<div key={s.productId} className="flex items-center justify-between text-xs">
+											<span className="text-t1 truncate mr-2">{s.productName}</span>
+											<div className="flex items-center gap-1.5 flex-shrink-0">
+												<Badge variant="secondary" className="text-[10px] px-1.5 py-0">{s.confidence}%</Badge>
+												{s.approved === null ? (
+													<>
+														<button
+															onClick={() => {
+																const p = allProducts.find((x) => x.id === s.productId)
+																if (p) addToList(crossSells, setCrossSells, p, 3)
+																setCrossSellAiSuggestions((prev) => prev?.map((x) => x.productId === s.productId ? { ...x, approved: true } : x) ?? null)
+															}}
+															className="rounded bg-success-bg px-1.5 py-0.5 text-success hover:opacity-80"
+														>Approve</button>
+														<button
+															onClick={() => setCrossSellAiSuggestions((prev) => prev?.map((x) => x.productId === s.productId ? { ...x, approved: false } : x) ?? null)}
+															className="rounded bg-error-bg px-1.5 py-0.5 text-error hover:opacity-80"
+														>Reject</button>
+													</>
+												) : s.approved ? (
+													<span className="text-success flex items-center gap-0.5"><Check className="h-3 w-3" /> Added</span>
+												) : (
+													<span className="text-t3">Rejected</span>
+												)}
+											</div>
+										</div>
+									))}
+									<button onClick={() => setCrossSellAiSuggestions(null)} className="mt-2 text-xs text-t3 hover:text-t1">Close</button>
+								</div>
+							)}
+
+							{/* Cross-sell search + add */}
+							{crossSells.length < 3 && (
+								<div className="relative mb-2">
+									<Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-t3" />
+									<input
+										value={crossSellSearch}
+										onChange={(e) => setCrossSellSearch(e.target.value)}
+										placeholder="Search products to add..."
+										className="w-full rounded-lg border border-border-input bg-bg-input py-2 pl-8 pr-3 text-xs text-t1 placeholder:text-t3 focus:border-primary focus:outline-none"
+									/>
+									{crossSellSearch && (
+										<div className="absolute z-10 mt-1 w-full rounded-lg border border-border bg-bg-card shadow-md max-h-40 overflow-y-auto">
+											{filteredForCrossSell.slice(0, 8).map((p) => (
+												<button
+													key={p.id}
+													onClick={() => { addToList(crossSells, setCrossSells, p, 3); setCrossSellSearch('') }}
+													className="flex w-full items-center justify-between px-3 py-2 text-xs hover:bg-bg-hover text-left"
+												>
+													<span className="text-t1">{p.name}</span>
+													<span className="text-t3">฿{p.price.toLocaleString()}</span>
+												</button>
+											))}
+											{filteredForCrossSell.length === 0 && (
+												<p className="px-3 py-2 text-xs text-t3">No products found</p>
+											)}
+										</div>
+									)}
+								</div>
+							)}
+
+							{/* Cross-sell list */}
+							<div className="space-y-1.5">
+								{crossSells.map((r) => (
+									<div key={r.productId} className="flex items-center gap-2 rounded-lg border border-border bg-bg-input p-2.5">
+										<span className="flex-1 truncate text-xs font-medium text-t1">{r.productName}</span>
+										<div className="flex items-center gap-1">
+											<span className="text-t3 text-xs">฿</span>
+											<input
+												type="number"
+												value={crossSellOverrides[r.productId] ?? r.customPrice ?? ''}
+												onChange={(e) => setCrossSellOverrides((prev) => ({ ...prev, [r.productId]: parseFloat(e.target.value) || 0 }))}
+												placeholder="Custom price"
+												className="w-20 rounded border border-border-input bg-bg-card px-2 py-0.5 text-right text-xs focus:outline-none"
+											/>
+										</div>
+										<button onClick={() => removeFromList(crossSells, setCrossSells, r.productId)} className="text-t3 hover:text-error">
+											<X className="h-3.5 w-3.5" />
+										</button>
+									</div>
+								))}
+								{crossSells.length === 0 && (
+									<p className="py-2 text-center text-xs text-t3">ยังไม่มีสินค้า cross-sell</p>
+								)}
+							</div>
+						</div>
+
+						{/* Save button */}
+						<Button onClick={handleSaveRelationships} disabled={isSaving} className="w-full">
+							{isSaving ? 'Saving...' : 'Save Relationships'}
+						</Button>
+					</div>
+				)}
+			</div>
+		</div>
+	)
+}
 
 // ─── Product Form Modal ──────────────────────────────────────────────────────
 
@@ -186,7 +792,7 @@ function CsvImportModal({
 
 	function handleImport() {
 		const lines = csvText.trim().split('\n')
-		if (lines.length < 2) return
+		if (lines.length < 2 || !lines[0]) return
 		const headers = lines[0].split(',').map((h) => h.trim().toLowerCase())
 		const rows = lines.slice(1).map((line) => {
 			const values = line.split(',').map((v) => v.trim())
@@ -266,6 +872,7 @@ export function ProductsPage() {
 	const [editProduct, setEditProduct] = useState<Product | null>(null)
 	const [showImport, setShowImport] = useState(false)
 	const [importResult, setImportResult] = useState<CsvImportResult | null>(null)
+	const [detailProduct, setDetailProduct] = useState<Product | null>(null)
 
 	const params = useMemo(() => {
 		const p: Record<string, string> = { pageSize: '50' }
@@ -305,7 +912,7 @@ export function ProductsPage() {
 	}
 
 	return (
-		<div className="mx-auto max-w-7xl space-y-5">
+		<div className={cn('mx-auto space-y-5 transition-all', detailProduct ? 'max-w-full pr-[436px]' : 'max-w-7xl')}>
 			{/* Header */}
 			<div className="flex items-center justify-between">
 				<div>
@@ -388,7 +995,11 @@ export function ProductsPage() {
 						</thead>
 						<tbody className="divide-y divide-border">
 							{products.map((product) => (
-								<tr key={product.id} className="transition-colors hover:bg-bg-hover">
+								<tr
+									key={product.id}
+									className={cn('cursor-pointer transition-colors hover:bg-bg-hover', detailProduct?.id === product.id && 'bg-bg-hover')}
+									onClick={() => setDetailProduct((prev) => prev?.id === product.id ? null : product)}
+								>
 									<td className="px-4 py-3">
 										<div className="flex items-center gap-3">
 											{product.imageUrl ? (
@@ -422,7 +1033,7 @@ export function ProductsPage() {
 											{product.status}
 										</Badge>
 									</td>
-									<td className="px-4 py-3">
+									<td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
 										<div className="flex justify-end gap-1">
 											<button onClick={() => handleToggleStatus(product)} className="rounded-lg p-1.5 text-t3 hover:bg-bg-hover hover:text-t1" title={product.status === 'Active' ? 'Deactivate' : 'Activate'}>
 												{product.status === 'Active' ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -457,6 +1068,22 @@ export function ProductsPage() {
 					onImport={(rows) => importProducts.mutate(rows, { onSuccess: (r) => setImportResult(r) })}
 					isImporting={importProducts.isPending}
 					result={importResult}
+				/>
+			)}
+
+			{/* Product Detail Side Panel */}
+			{detailProduct && (
+				<ProductDetailPanel
+					product={detailProduct}
+					allProducts={products}
+					onClose={() => setDetailProduct(null)}
+					onSave={(data) => {
+						updateProduct.mutate(
+							{ productId: detailProduct.id, body: data },
+							{ onSuccess: () => { /* panel stays open, shows toast internally */ } },
+						)
+					}}
+					isSaving={updateProduct.isPending}
 				/>
 			)}
 		</div>

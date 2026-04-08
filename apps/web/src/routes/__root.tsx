@@ -22,6 +22,11 @@ import { ProductsPage } from '../pages/ProductsPage'
 import { OrdersPage } from '../pages/OrdersPage'
 import { BookingsPage } from '../pages/BookingsPage'
 import { OnboardingPage } from '../pages/OnboardingPage'
+import { FollowUpPage } from '../pages/FollowUpPage'
+import { SlipVerificationPage } from '../pages/SlipVerificationPage'
+import { CalendarKpiPage } from '../pages/CalendarKpiPage'
+import { InsightsPage } from '../pages/InsightsPage'
+import { AiAgentPage } from '../pages/AiAgentPage'
 
 // SignalR context — connection lives at root level, survives route changes
 interface SignalRContextValue {
@@ -220,6 +225,36 @@ const oauthCallbackRoute = createRoute({
 	component: OAuthCallbackPage,
 })
 
+const followUpRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: '/followup',
+	component: FollowUpPage,
+})
+
+const slipsRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: '/slips',
+	component: SlipVerificationPage,
+})
+
+const calendarRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: '/calendar',
+	component: CalendarKpiPage,
+})
+
+const insightsRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: '/insights',
+	component: InsightsPage,
+})
+
+const aiAgentRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: '/ai-agent',
+	component: AiAgentPage,
+})
+
 // Build route tree
 export const routeTree = rootRoute.addChildren([
 	indexRoute,
@@ -244,4 +279,9 @@ export const routeTree = rootRoute.addChildren([
 	bookingsRoute,
 	onboardingRoute,
 	oauthCallbackRoute,
+	followUpRoute,
+	slipsRoute,
+	calendarRoute,
+	insightsRoute,
+	aiAgentRoute,
 ])
