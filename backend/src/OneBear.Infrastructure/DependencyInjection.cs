@@ -66,6 +66,8 @@ public static class DependencyInjection
         services.AddScoped<ISlipVerificationRepository, SlipVerificationRepository>();
         services.AddScoped<ISlipBlacklistRepository, SlipBlacklistRepository>();
         services.AddScoped<IFollowupConfigurationRepository, FollowupConfigurationRepository>();
+        services.AddScoped<IBookingRepository, BookingRepository>();
+        services.AddScoped<IBookingServiceRepository, BookingServiceRepository>();
 
         services.AddTransient<MongoSeeder>();
 

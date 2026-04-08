@@ -46,4 +46,6 @@ public class MongoDbContext
     public IMongoCollection<SlipVerification> SlipVerifications => _database.GetCollection<SlipVerification>("SlipVerifications");
     public IMongoCollection<SlipBlacklist> SlipBlacklists => _database.GetCollection<SlipBlacklist>("SlipBlacklists");
     public IMongoCollection<FollowupConfiguration> FollowupConfigurations => _database.GetCollection<FollowupConfiguration>("FollowupConfigurations");
+    public IMongoCollection<Booking> Bookings => _database.GetCollection<Booking>("Bookings");
+    public IMongoCollection<BookingService> BookingServices => _database.GetCollection<BookingService>("BookingServices");
 }

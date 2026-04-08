@@ -337,6 +337,20 @@ export const api = {
 		updateStatus: (companyId: string, orderId: string, body: object) =>
 			fetchApi(`/companies/${companyId}/orders/${orderId}/status`, { method: 'PUT', body: JSON.stringify(body) }),
 	},
+	bookings: {
+		list: (companyId: string, params?: Record<string, string>) =>
+			fetchApi(`/companies/${companyId}/bookings${params ? '?' + new URLSearchParams(params) : ''}`),
+		get: (companyId: string, bookingId: string) =>
+			fetchApi(`/companies/${companyId}/bookings/${bookingId}`),
+		create: (companyId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/bookings`, { method: 'POST', body: JSON.stringify(body) }),
+		updateStatus: (companyId: string, bookingId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/bookings/${bookingId}/status`, { method: 'PUT', body: JSON.stringify(body) }),
+		services: (companyId: string) =>
+			fetchApi(`/companies/${companyId}/bookings/services`),
+		createService: (companyId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/bookings/services`, { method: 'POST', body: JSON.stringify(body) }),
+	},
 	products: {
 		list: (companyId: string, params?: Record<string, string>) =>
 			fetchApi(`/companies/${companyId}/products${params ? '?' + new URLSearchParams(params) : ''}`),
