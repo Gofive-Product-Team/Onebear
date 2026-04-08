@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import type { HubConnection } from '@microsoft/signalr'
 import { HubConnectionState } from '@microsoft/signalr'
 
@@ -11,6 +12,7 @@ export function useRoomConnection(
 	roomId: string | null,
 	isConnected: boolean,
 ) {
+	const queryClient = useQueryClient()
 	const currentRoomRef = useRef<string | null>(null)
 
 	useEffect(() => {
@@ -33,8 +35,13 @@ export function useRoomConnection(
 				console.log('[useRoomConnection] ✅ Joined room:', roomId)
 				currentRoomRef.current = roomId
 				// Mark as attending (viewing) this room
-				connection.invoke('AttendRoom', roomId).catch((err) => {
-					console.warn('[useRoomConnection] Failed to attend room:', roomId, err)
+				connection.invoke('AttendRoom', roomId).then(() => {
+					console.log('[useRoomConnection] ✅ Attending room:', roomId)
+					// Refetch rooms so RoomCard shows updated attendedUserIds
+					queryClient.invalidateQueries({ queryKey: ['rooms'] })
+					queryClient.invalidateQueries({ queryKey: ['room'] })
+				}).catch((err) => {
+					console.error('[useRoomConnection] ❌ Failed to attend room:', roomId, err)
 				})
 			}).catch((err) => {
 				console.warn('[useRoomConnection] Failed to join room:', roomId, err)
