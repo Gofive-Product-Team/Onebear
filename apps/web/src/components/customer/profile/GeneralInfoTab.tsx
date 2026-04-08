@@ -10,7 +10,7 @@ import { SegmentTag } from '@/components/customer/SegmentTag'
 import { NextBestActionCard } from '@/components/customer/NextBestActionCard'
 import { generateAvatarColor } from '@/components/customer/CustomerCard'
 import { LinkContactDialog } from './LinkContactDialog'
-import { useAddCustomerTag, useRemoveCustomerTag, useCustomerContacts, useUnlinkContact } from '@/api/useCustomers'
+import { useAddCustomerTag, useRemoveCustomerTag, useCustomerContacts, useUnlinkContact, useUpdateCustomer } from '@/api/useCustomers'
 import type { CustomerDetail, ContactListItem } from '@/api/useCustomers'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -281,8 +281,62 @@ interface Props {
 	customer: CustomerDetail
 }
 
+const EMPTY_ADDRESS = {
+	label: 'Home',
+	address: '',
+	subDistrict: '',
+	district: '',
+	province: '',
+	postalCode: '',
+	note: '',
+	isDefault: false,
+}
+
 export function GeneralInfoTab({ customer }: Props) {
 	const [showNoteEditor, setShowNoteEditor] = useState(false)
+	const [showAddAddress, setShowAddAddress] = useState(false)
+	const [newAddress, setNewAddress] = useState(EMPTY_ADDRESS)
+	const updateCustomer = useUpdateCustomer()
+
+	function resetNewAddress() {
+		setNewAddress(EMPTY_ADDRESS)
+	}
+
+	function handleSaveAddress() {
+		const addr = {
+			id: crypto.randomUUID(),
+			label: newAddress.label,
+			address: newAddress.address.trim(),
+			subDistrict: newAddress.subDistrict || null,
+			district: newAddress.district || null,
+			province: newAddress.province || null,
+			postalCode: newAddress.postalCode || null,
+			country: 'Thailand',
+			isDefault: newAddress.isDefault,
+			note: newAddress.note || null,
+		}
+		const existingAddresses = customer.addresses ?? []
+		// If new address is default, unset other defaults
+		const updatedAddresses = addr.isDefault
+			? existingAddresses.map((a) => ({ ...a, isDefault: false }))
+			: [...existingAddresses]
+		updatedAddresses.push(addr)
+
+		updateCustomer.mutate(
+			{ id: customer.id, body: { addresses: updatedAddresses } as Record<string, unknown> },
+			{
+				onSuccess: () => {
+					setShowAddAddress(false)
+					resetNewAddress()
+				},
+			},
+		)
+	}
+
+	function handleDeleteAddress(addressId: string) {
+		const updatedAddresses = (customer.addresses ?? []).filter((a) => a.id !== addressId)
+		updateCustomer.mutate({ id: customer.id, body: { addresses: updatedAddresses } as Record<string, unknown> })
+	}
 
 	return (
 		<div className="space-y-6">
@@ -429,9 +483,122 @@ export function GeneralInfoTab({ customer }: Props) {
 			)}
 
 			{/* Addresses */}
+			<div>
+				<div className="flex items-center justify-between mb-2">
+					<SectionLabel>Addresses ({customer.addresses?.length ?? 0})</SectionLabel>
+					<button
+						type="button"
+						onClick={() => setShowAddAddress(true)}
+						className="text-xs font-medium text-primary hover:text-primary/80"
+					>
+						+ Add Address
+					</button>
+				</div>
+
+				{/* Add address form */}
+				{showAddAddress && (
+					<div className="mb-3 rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
+						<div className="grid grid-cols-2 gap-3">
+							<div>
+								<label className="text-xs font-medium text-t2">Label</label>
+								<select
+									value={newAddress.label}
+									onChange={(e) => setNewAddress({ ...newAddress, label: e.target.value })}
+									className="mt-1 w-full rounded-md border border-border bg-bg-input px-3 py-1.5 text-sm"
+								>
+									<option value="Home">Home / บ้าน</option>
+									<option value="Work">Work / ที่ทำงาน</option>
+									<option value="Shipping">Shipping / จัดส่ง</option>
+									<option value="Other">Other / อื่นๆ</option>
+								</select>
+							</div>
+							<div className="flex items-end">
+								<label className="flex items-center gap-2 text-xs text-t2">
+									<input
+										type="checkbox"
+										checked={newAddress.isDefault}
+										onChange={(e) => setNewAddress({ ...newAddress, isDefault: e.target.checked })}
+										className="rounded border-border"
+									/>
+									Default address
+								</label>
+							</div>
+						</div>
+						<div>
+							<label className="text-xs font-medium text-t2">Address</label>
+							<input
+								value={newAddress.address}
+								onChange={(e) => setNewAddress({ ...newAddress, address: e.target.value })}
+								placeholder="บ้านเลขที่ ถนน ซอย"
+								className="mt-1 w-full rounded-md border border-border bg-bg-input px-3 py-1.5 text-sm"
+							/>
+						</div>
+						<div className="grid grid-cols-2 gap-3">
+							<div>
+								<label className="text-xs font-medium text-t2">Sub-district / ตำบล</label>
+								<input
+									value={newAddress.subDistrict}
+									onChange={(e) => setNewAddress({ ...newAddress, subDistrict: e.target.value })}
+									className="mt-1 w-full rounded-md border border-border bg-bg-input px-3 py-1.5 text-sm"
+								/>
+							</div>
+							<div>
+								<label className="text-xs font-medium text-t2">District / อำเภอ</label>
+								<input
+									value={newAddress.district}
+									onChange={(e) => setNewAddress({ ...newAddress, district: e.target.value })}
+									className="mt-1 w-full rounded-md border border-border bg-bg-input px-3 py-1.5 text-sm"
+								/>
+							</div>
+						</div>
+						<div className="grid grid-cols-2 gap-3">
+							<div>
+								<label className="text-xs font-medium text-t2">Province / จังหวัด</label>
+								<input
+									value={newAddress.province}
+									onChange={(e) => setNewAddress({ ...newAddress, province: e.target.value })}
+									className="mt-1 w-full rounded-md border border-border bg-bg-input px-3 py-1.5 text-sm"
+								/>
+							</div>
+							<div>
+								<label className="text-xs font-medium text-t2">Postal Code</label>
+								<input
+									value={newAddress.postalCode}
+									onChange={(e) => setNewAddress({ ...newAddress, postalCode: e.target.value })}
+									className="mt-1 w-full rounded-md border border-border bg-bg-input px-3 py-1.5 text-sm"
+								/>
+							</div>
+						</div>
+						<div>
+							<label className="text-xs font-medium text-t2">Note</label>
+							<input
+								value={newAddress.note}
+								onChange={(e) => setNewAddress({ ...newAddress, note: e.target.value })}
+								placeholder="เช่น ประตูสีแดง ชั้น 3"
+								className="mt-1 w-full rounded-md border border-border bg-bg-input px-3 py-1.5 text-sm"
+							/>
+						</div>
+						<div className="flex gap-2 justify-end">
+							<button
+								type="button"
+								onClick={() => { setShowAddAddress(false); resetNewAddress() }}
+								className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-t2 hover:bg-bg-hover"
+							>
+								Cancel
+							</button>
+							<button
+								type="button"
+								onClick={handleSaveAddress}
+								disabled={!newAddress.address.trim()}
+								className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/90 disabled:opacity-50"
+							>
+								Save Address
+							</button>
+						</div>
+					</div>
+				)}
+
 			{(customer.addresses?.length ?? 0) > 0 && (
-				<div>
-					<SectionLabel>Addresses ({customer.addresses.length})</SectionLabel>
 					<div className="space-y-2">
 						{customer.addresses.map((addr) => (
 							<div key={addr.id} className="rounded-lg border border-border px-4 py-3 text-sm space-y-1">
@@ -455,11 +622,18 @@ export function GeneralInfoTab({ customer }: Props) {
 									<p className="text-t3">{addr.postalCode}{addr.country && addr.country !== 'Thailand' ? ` · ${addr.country}` : ''}</p>
 								)}
 								{addr.note && <p className="text-xs text-t3 italic">{addr.note}</p>}
+								<button
+									type="button"
+									onClick={() => handleDeleteAddress(addr.id)}
+									className="mt-1 text-xs text-error hover:text-error/80"
+								>
+									Remove
+								</button>
 							</div>
 						))}
 					</div>
-				</div>
-			)}
+				)}
+			</div>
 
 			{/* CRM Stats */}
 			<div>
