@@ -417,32 +417,45 @@ function ProductDetailPanel({
 				{/* ── Info tab ────────────────────────────────────────────────────── */}
 				{activeTab === 'info' && (
 					<div className="space-y-4">
-						{/* Image preview */}
+						{/* Image upload */}
 						<div>
-							{infoImageUrl ? (
-								<img
-									src={infoImageUrl}
-									alt={infoName}
-									className="mb-3 h-40 w-full rounded-xl object-cover border border-border"
-								/>
-							) : (
-								<div className="mb-3 flex h-40 w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-teal-400/60 bg-teal-50/30">
-									<div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100">
-										<Package className="h-5 w-5 text-teal-600" />
+							<label className="mb-1.5 block text-xs font-medium text-t2">รูปสินค้า</label>
+							<label className="block cursor-pointer">
+								{infoImageUrl ? (
+									<img
+										src={infoImageUrl}
+										alt={infoName}
+										className="mb-2 h-40 w-full rounded-xl object-cover border border-border"
+									/>
+								) : (
+									<div className="mb-2 flex h-40 w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-bg-input hover:border-primary/60 transition-colors">
+										<div className="flex h-10 w-10 items-center justify-center rounded-full bg-bg-hover">
+											<Upload className="h-5 w-5 text-t3" />
+										</div>
+										<p className="text-xs text-t3">คลิกเพื่อแนบรูปภาพ</p>
+										<p className="text-[10px] text-t3">PNG, JPG, WEBP สูงสุด 10MB</p>
 									</div>
-									<p className="text-xs text-t3">ยังไม่มีรูปสินค้า</p>
-									<p className="text-[10px] text-teal-600">วางลิงก์รูปด้านล่าง</p>
-								</div>
-							)}
-							<label className="mb-1 block text-xs font-medium text-t2">Image URL</label>
-							<input
-								value={infoImageUrl}
-								onChange={(e) => setInfoImageUrl(e.target.value)}
-								placeholder="https://example.com/image.jpg"
-								className="w-full rounded-xl border border-border-input bg-bg-input px-3 py-2 text-sm text-t1 placeholder:text-t3 focus:border-primary focus:outline-none"
-							/>
-							{!infoImageUrl && (
-								<p className="mt-1.5 text-[11px] text-warning">⚠️ สินค้าที่มีรูปจะได้รับการแนะนำจาก AI ดีกว่า</p>
+								)}
+								<input
+									type="file"
+									accept="image/*"
+									className="sr-only"
+									onChange={(e) => {
+										const file = e.target.files?.[0]
+										if (file) setInfoImageUrl(URL.createObjectURL(file))
+									}}
+								/>
+							</label>
+							{infoImageUrl ? (
+								<button
+									type="button"
+									onClick={() => setInfoImageUrl('')}
+									className="mt-1 text-[11px] text-error hover:underline"
+								>
+									ลบรูปภาพ
+								</button>
+							) : (
+								<p className="mt-1 text-[11px] text-warning">⚠️ สินค้าที่มีรูปจะได้รับการแนะนำจาก AI ดีกว่า</p>
 							)}
 						</div>
 
@@ -502,7 +515,18 @@ function ProductDetailPanel({
 							</label>
 						</div>
 
-						{/* สถานะ */}
+						{/* รายละเอียดสินค้า */}
+						<div>
+							<label className="mb-1 block text-xs font-medium text-t2">รายละเอียดสินค้า</label>
+							<textarea
+								rows={3}
+								value={infoDesc}
+								onChange={(e) => setInfoDesc(e.target.value)}
+								className="w-full rounded-xl border border-border-input bg-bg-input px-3 py-2 text-sm text-t1 placeholder:text-t3 focus:border-primary focus:outline-none resize-none"
+							/>
+						</div>
+
+						{/* สถานะ — placed last before save */}
 						<div>
 							<label className="mb-1.5 block text-xs font-medium text-t2">สถานะ</label>
 							<div className="flex gap-2">
@@ -515,31 +539,20 @@ function ProductDetailPanel({
 											: 'bg-bg-input text-t3 hover:text-t1',
 									)}
 								>
-									🟢 Active
+									🟢 เปิดขาย
 								</button>
 								<button
 									onClick={() => setInfoStatus('Inactive')}
 									className={cn(
 										'flex-1 rounded-xl py-2 text-sm font-medium transition-colors',
 										infoStatus === 'Inactive'
-											? 'bg-primary text-white'
+											? 'bg-error/90 text-white'
 											: 'bg-bg-input text-t3 hover:text-t1',
 									)}
 								>
-									🔴 Inactive
+									🔴 ปิดขาย
 								</button>
 							</div>
-						</div>
-
-						{/* รายละเอียดสินค้า */}
-						<div>
-							<label className="mb-1 block text-xs font-medium text-t2">รายละเอียดสินค้า</label>
-							<textarea
-								rows={3}
-								value={infoDesc}
-								onChange={(e) => setInfoDesc(e.target.value)}
-								className="w-full rounded-xl border border-border-input bg-bg-input px-3 py-2 text-sm text-t1 placeholder:text-t3 focus:border-primary focus:outline-none resize-none"
-							/>
 						</div>
 
 						{/* Save */}
@@ -1075,27 +1088,41 @@ function ProductFormModal({
 						/>
 					</div>
 					<div>
-						<label className="mb-1 block text-sm font-medium text-t2">Image URL</label>
-						<div className="flex gap-3">
-							<div className="shrink-0">
-								{imageUrl ? (
+						<label className="mb-1.5 block text-sm font-medium text-t2">รูปสินค้า</label>
+						<label className="block cursor-pointer">
+							{imageUrl ? (
+								<div className="flex items-center gap-3 mb-1">
 									<img src={imageUrl} alt="preview" className="h-16 w-16 rounded-lg object-cover border border-border" onError={(e) => { (e.target as HTMLImageElement).src = svgPlaceholder('?', '#374151') }} />
-								) : (
-									<div className="flex h-16 w-16 items-center justify-center rounded-lg border border-dashed border-border bg-bg-input">
-										<Package className="h-6 w-6 text-t3" />
+									<div className="flex-1">
+										<p className="text-xs text-t2">มีรูปแนบแล้ว</p>
+										<p className="text-[11px] text-t3">คลิกเพื่อเปลี่ยนรูป</p>
 									</div>
-								)}
-							</div>
-							<div className="flex-1">
-								<input
-									value={imageUrl}
-									onChange={(e) => setImageUrl(e.target.value)}
-									className="w-full rounded-lg border border-border-input bg-bg-input px-3 py-2 text-sm text-t1 placeholder:text-t3 focus:border-primary focus:outline-none"
-									placeholder="https://..."
-								/>
-								<p className="mt-1 text-xs text-t3">ใส่ URL รูปภาพสินค้า — สินค้าที่มีรูปจะได้รับการแนะนำจาก AI ดีกว่า</p>
-							</div>
-						</div>
+								</div>
+							) : (
+								<div className="flex h-20 w-full items-center justify-center gap-3 rounded-lg border-2 border-dashed border-border bg-bg-input hover:border-primary/60 transition-colors mb-1">
+									<Upload className="h-5 w-5 text-t3" />
+									<div>
+										<p className="text-sm font-medium text-t2">แนบรูปภาพ</p>
+										<p className="text-xs text-t3">PNG, JPG, WEBP สูงสุด 10MB</p>
+									</div>
+								</div>
+							)}
+							<input
+								type="file"
+								accept="image/*"
+								className="sr-only"
+								onChange={(e) => {
+									const file = e.target.files?.[0]
+									if (file) setImageUrl(URL.createObjectURL(file))
+								}}
+							/>
+						</label>
+						{imageUrl && (
+							<button type="button" onClick={() => setImageUrl('')} className="text-[11px] text-error hover:underline">
+								ลบรูปภาพ
+							</button>
+						)}
+						<p className="mt-1 text-xs text-t3">สินค้าที่มีรูปจะได้รับการแนะนำจาก AI ดีกว่า</p>
 					</div>
 					<label className="flex items-center gap-2 text-sm text-t2">
 						<input type="checkbox" checked={allowPreOrder} onChange={(e) => setAllowPreOrder(e.target.checked)} className="rounded" />
