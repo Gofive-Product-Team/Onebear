@@ -134,6 +134,8 @@ services:
         - VITE_KEYCLOAK_CLIENT_ID=onebear-spa
         - VITE_REDIRECT_URI=http://localhost:3000/auth/callback
         - VITE_POST_LOGOUT_REDIRECT_URI=http://localhost:3000
+    environment:
+      - API_BASE_URL=${API_BASE_URL:-http://api:8080}
     container_name: onebear-web
     ports:
       - "3000:80"
