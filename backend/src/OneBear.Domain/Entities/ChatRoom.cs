@@ -33,6 +33,9 @@ public class ChatRoom : MongoEntity, IAuditableEntity
     [JsonPropertyName("userMessageTimestamp")]
     public long? UserMessageTimestamp { get; set; }
 
+    [JsonPropertyName("lastMessageContent")]
+    public string? LastMessageContent { get; set; }
+
     [JsonPropertyName("lastMessageTimestamp")]
     public long? LastMessageTimestamp { get; set; }
 

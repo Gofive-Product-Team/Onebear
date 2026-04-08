@@ -95,6 +95,7 @@ public static class MessageMappingHelpers
         FollowupTimestamp = room.FollowupTimestamp,
         FollowupContent = room.FollowupContent,
         CreatedTimestamp = room.CreatedTimestamp,
+        LastMessage = room.LastMessageContent,
         LastMessageTimestamp = room.LastMessageTimestamp,
         IsPinned = room.IsPinned,
         PinnedTimestamp = room.PinnedTimestamp,

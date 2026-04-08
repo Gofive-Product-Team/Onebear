@@ -178,6 +178,15 @@ public class MessageOrchestrator
         };
         await _messageRepo.CreateAsync(chatMessage, ct);
 
+        // Step 5.1: Update last message on room
+        await _roomStateService.UpdateRoomWithRetryAsync(room, r =>
+        {
+            r.LastMessageContent = chatMessage.Content?.Length > 100
+                ? chatMessage.Content[..100] + "..."
+                : chatMessage.Content;
+            r.LastMessageTimestamp = chatMessage.Timestamp;
+        }, ct);
+
         // Step 5.5: Auto-create/link Customer CRM record (best-effort)
         try
         {
@@ -318,6 +327,15 @@ public class MessageOrchestrator
             CreatedTimestamp = now
         };
         await _messageRepo.CreateAsync(chatMessage, ct);
+
+        // Update last message on room
+        await _roomStateService.UpdateRoomWithRetryAsync(room, r =>
+        {
+            r.LastMessageContent = chatMessage.Content?.Length > 100
+                ? chatMessage.Content[..100] + "..."
+                : chatMessage.Content;
+            r.LastMessageTimestamp = chatMessage.Timestamp;
+        }, ct);
 
         // Step 3: Auto-assign sender
         Result<ChatRoom> assignResult =
