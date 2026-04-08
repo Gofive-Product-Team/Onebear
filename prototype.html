@@ -104,7 +104,7 @@ a { color: var(--accent); text-decoration: none; }
 .sidebar-divider { width: 32px; height: 1px; background: var(--border); margin: 6px 0; }
 .sidebar-spacer { flex: 1; }
 .nav-btn {
-  width: 40px; height: 40px;
+  width: 44px; height: 44px;
   border-radius: 10px;
   background: transparent;
   border: none;
@@ -115,7 +115,7 @@ a { color: var(--accent); text-decoration: none; }
   transition: all 150ms cubic-bezier(0.4,0,0.2,1);
   flex-shrink: 0;
 }
-.nav-btn svg { width: 17px; height: 17px; }
+.nav-btn svg { width: 18px; height: 18px; }
 .nav-btn:hover { background: var(--bg-hover); color: var(--text-2); }
 .nav-btn.active {
   background: var(--primary-alpha);
@@ -619,7 +619,8 @@ input[type=range]::-webkit-slider-thumb {
   display: flex; align-items: center; gap: 8px;
   padding: 8px 10px; border-radius: 8px; font-size: 13px;
   color: var(--text-2); cursor: pointer; transition: all 150ms;
-  margin-bottom: 2px;
+  margin-bottom: 2px; width: 100%; text-align: left;
+  background: none; border: none; font-family: inherit;
 }
 .settings-nav-item:hover { background: var(--bg-surface-2); color: var(--text-1); }
 .settings-nav-item.active-setting { background: var(--bg-active); color: var(--primary); font-weight: 600; border-left: 3px solid var(--primary); padding-left: 7px; }
@@ -752,39 +753,69 @@ body.onboarding-mode #content { width: 100%; }
 <div id="app">
 
 <!-- ══════════════════════ SIDEBAR ══════════════════════ -->
-<nav id="sidebar">
-  <div class="sidebar-logo">🐻</div>
-  <button class="nav-btn active" onclick="showScreen(0,this)" title="Onboarding" aria-label="Onboarding">
-    🏠<span class="tip">Onboarding</span>
+<nav id="sidebar" aria-label="Main navigation">
+  <div class="sidebar-logo" aria-label="Onebear">🐻</div>
+
+  <!-- Core -->
+  <button class="nav-btn active" onclick="showScreen(0,this)" aria-label="Onboarding">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12L12 3l9 9M5 10v9a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1v-9"/></svg>
+    <span class="tip">Onboarding</span>
   </button>
-  <button class="nav-btn" onclick="showScreen(1,this)" title="Inbox" aria-label="Inbox">
-    💬<span class="tip">Inbox</span>
+  <button class="nav-btn" onclick="showScreen(1,this)" aria-label="Inbox">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+    <span class="tip">Inbox</span>
   </button>
-  <button class="nav-btn" onclick="showScreen(2,this)" title="CRM" aria-label="CRM">
-    👥<span class="tip">CRM</span>
+  <button class="nav-btn" onclick="showScreen(2,this)" aria-label="CRM">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+    <span class="tip">CRM</span>
   </button>
-  <button class="nav-btn" onclick="showScreen(3,this)" title="Products" aria-label="Products">
-    📦<span class="tip">Products</span>
+  <button class="nav-btn" onclick="showScreen(3,this)" aria-label="Products">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+    <span class="tip">Products</span>
   </button>
+
   <div class="sidebar-divider"></div>
-  <button class="nav-btn" onclick="showScreen(6,this)" title="Orders" aria-label="Orders">
-    🛒<span class="tip">Orders</span>
+
+  <!-- AI Features -->
+  <button class="nav-btn" onclick="showScreen(4,this)" aria-label="AI Sales Agent">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+    <span class="tip">AI Sales Agent</span>
   </button>
-  <button class="nav-btn" onclick="showScreen(7,this)" title="Slip Verify" aria-label="Slip Verify">
-    🧾<span class="tip">Slip Verify</span>
+  <button class="nav-btn" onclick="showScreen(5,this)" aria-label="Follow-up">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    <span class="tip">Follow-up</span>
   </button>
-  <button class="nav-btn" onclick="showScreen(8,this)" title="Calendar &amp; KPI" aria-label="Calendar & KPI">
-    📊<span class="tip">Calendar &amp; KPI</span>
+
+  <div class="sidebar-divider"></div>
+
+  <!-- Operations -->
+  <button class="nav-btn" onclick="showScreen(6,this)" aria-label="Orders">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+    <span class="tip">Orders</span>
   </button>
-  <button class="nav-btn" onclick="showScreen(9,this)" title="Bookings" aria-label="Bookings">
-    📅<span class="tip">Bookings</span>
+  <button class="nav-btn" onclick="showScreen(7,this)" aria-label="Slip Verify">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    <span class="tip">Slip Verify</span>
   </button>
-  <button class="nav-btn" onclick="showScreen(10,this)" title="AI Analyst" aria-label="AI Analyst">
-    🔍<span class="tip">AI Analyst</span>
+  <button class="nav-btn" onclick="showScreen(8,this)" aria-label="Calendar &amp; KPI">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    <span class="tip">Calendar &amp; KPI</span>
   </button>
+  <button class="nav-btn" onclick="showScreen(9,this)" aria-label="Bookings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    <span class="tip">Bookings</span>
+  </button>
+  <button class="nav-btn" onclick="showScreen(10,this)" aria-label="AI Analyst">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <span class="tip">AI Analyst</span>
+  </button>
+
   <div class="sidebar-spacer"></div>
-  <button class="nav-btn" onclick="showScreen(11,this)" title="Settings" aria-label="Settings">
-    ⚙️<span class="tip">Settings</span>
+
+  <!-- Settings -->
+  <button class="nav-btn" onclick="showScreen(11,this)" aria-label="Settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    <span class="tip">Settings</span>
   </button>
 </nav>
 
@@ -919,21 +950,27 @@ body.onboarding-mode #content { width: 100%; }
           </div>
           <div class="ob-features">
             <div class="ob-feature">
-              <div class="ob-feature-icon">✅</div>
+              <div class="ob-feature-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>
+              </div>
               <div>
                 <div style="font-size:14px;font-weight:600">ตอบลูกค้าอัตโนมัติ</div>
                 <div style="font-size:12px;color:var(--text-3)">ตอบทันทีตลอด 24 ชั่วโมง — ความมั่นใจ ≥70%</div>
               </div>
             </div>
             <div class="ob-feature">
-              <div class="ob-feature-icon">✅</div>
+              <div class="ob-feature-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>
+              </div>
               <div>
                 <div style="font-size:14px;font-weight:600">รับออเดอร์ & Upsell</div>
                 <div style="font-size:12px;color:var(--text-3)">แนะนำสินค้าเพิ่มอัตโนมัติ ไม่เกิน 1 ครั้ง/session</div>
               </div>
             </div>
             <div class="ob-feature">
-              <div class="ob-feature-icon">✅</div>
+              <div class="ob-feature-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>
+              </div>
               <div>
                 <div style="font-size:14px;font-weight:600">ส่ง Follow-up อัตโนมัติ</div>
                 <div style="font-size:12px;color:var(--text-3)">ติดตามลูกค้าหลัง 2 ชม. — ส่งในเวลา 09:00–21:00</div>
@@ -950,8 +987,10 @@ body.onboarding-mode #content { width: 100%; }
       <!-- ── Step 3: Complete ── -->
       <div id="ob-content-3" style="display:none">
         <div style="text-align:center;margin-bottom:32px">
-          <div style="width:100px;height:100px;border-radius:50%;background:rgba(3,157,145,0.15);border:3px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:52px;margin:0 auto 20px">✅</div>
-          <h2 style="font-size:28px;font-weight:700;margin-bottom:8px">ยินดีต้อนรับสู่ Onebear! 🎉</h2>
+          <div style="width:100px;height:100px;border-radius:50%;background:rgba(3,157,145,0.15);border:3px solid var(--accent);display:flex;align-items:center;justify-content:center;margin:0 auto 20px">
+            <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <h2 style="font-size:28px;font-weight:700;margin-bottom:8px">ยินดีต้อนรับสู่ Onebear!</h2>
           <p style="color:var(--text-3);font-size:15px">ร้านค้าของคุณพร้อมแล้ว มาเริ่มจัดการลูกค้าด้วยกัน</p>
         </div>
         <div class="ob-success-stats">
@@ -964,24 +1003,32 @@ body.onboarding-mode #content { width: 100%; }
             <div class="ob-stat-text">ออเดอร์</div>
           </div>
           <div class="ob-stat-card">
-            <div class="ob-stat-num" style="font-size:20px">🤖</div>
+            <div style="display:flex;justify-content:center;margin-bottom:4px">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </div>
             <div class="ob-stat-text">AI พร้อมทำงาน</div>
           </div>
         </div>
         <!-- Quick-start tutorials -->
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;margin-top:8px">
-          <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:10px;padding:14px;text-align:center;cursor:pointer" onclick="showScreen(3,null);showToast('เปิดหน้าสินค้า','info')">
-            <div style="font-size:24px;margin-bottom:6px">📦</div>
+          <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:border-color 150ms" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor=''" onclick="showScreen(3,null);showToast('เปิดหน้าสินค้า','info')">
+            <div style="display:flex;justify-content:center;margin-bottom:8px">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            </div>
             <div style="font-size:12px;font-weight:600">เพิ่มสินค้า</div>
             <div style="font-size:10px;color:var(--text-3);margin-top:2px">ตั้งค่าแคตตาล็อก</div>
           </div>
-          <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:10px;padding:14px;text-align:center;cursor:pointer" onclick="showScreen(4,null);showToast('เปิด AI Agent','info')">
-            <div style="font-size:24px;margin-bottom:6px">🤖</div>
+          <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:border-color 150ms" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor=''" onclick="showScreen(4,null);showToast('เปิด AI Agent','info')">
+            <div style="display:flex;justify-content:center;margin-bottom:8px">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </div>
             <div style="font-size:12px;font-weight:600">ตั้งค่า AI</div>
             <div style="font-size:10px;color:var(--text-3);margin-top:2px">ปรับโทน & ความมั่นใจ</div>
           </div>
-          <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:10px;padding:14px;text-align:center;cursor:pointer" onclick="showScreen(1,document.querySelector('[onclick*=\'showScreen(1\']'))">
-            <div style="font-size:24px;margin-bottom:6px">💬</div>
+          <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:border-color 150ms" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor=''" onclick="showScreen(1,document.querySelector('[onclick*=\'showScreen(1\']'))">
+            <div style="display:flex;justify-content:center;margin-bottom:8px">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            </div>
             <div style="font-size:12px;font-weight:600">เริ่มแชท</div>
             <div style="font-size:10px;color:var(--text-3);margin-top:2px">ดูรายการแชท</div>
           </div>
@@ -2990,7 +3037,7 @@ body.onboarding-mode #content { width: 100%; }
 <!-- ══ SCREEN 11: SETTINGS ══ -->
 <div class="screen" id="screen-11">
   <div class="page-header">
-    <span style="font-size:20px">⚙️</span>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
     <h1>Settings</h1>
   </div>
   <div class="settings-layout" style="flex:1;overflow:hidden">
@@ -2998,32 +3045,65 @@ body.onboarding-mode #content { width: 100%; }
     <div class="settings-nav">
       <div class="settings-nav-group">
         <div class="settings-nav-group-title">GENERAL</div>
-        <div class="settings-nav-item active-setting" onclick="selectSetting(this,'general')">🏠 ทั่วไป</div>
-        <div class="settings-nav-item" onclick="selectSetting(this,'notifications')">🔔 การแจ้งเตือน</div>
+        <button class="settings-nav-item active-setting" onclick="selectSetting(this,'general')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12L12 3l9 9M5 10v9a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1v-9"/></svg>
+          ทั่วไป
+        </button>
+        <button class="settings-nav-item" onclick="selectSetting(this,'notifications')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+          การแจ้งเตือน
+        </button>
       </div>
       <div class="settings-nav-group">
         <div class="settings-nav-group-title">TEAM</div>
-        <div class="settings-nav-item" onclick="selectSetting(this,'team')">👥 สมาชิกทีม</div>
-        <div class="settings-nav-item" onclick="selectSetting(this,'permissions')">🔑 สิทธิ์การใช้งาน</div>
+        <button class="settings-nav-item" onclick="selectSetting(this,'team')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+          สมาชิกทีม
+        </button>
+        <button class="settings-nav-item" onclick="selectSetting(this,'permissions')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          สิทธิ์การใช้งาน
+        </button>
       </div>
       <div class="settings-nav-group">
         <div class="settings-nav-group-title">INTEGRATIONS</div>
-        <div class="settings-nav-item" onclick="selectSetting(this,'channels')">📡 ช่องทาง</div>
-        <div class="settings-nav-item" onclick="selectSetting(this,'webhooks')">🔗 Webhooks</div>
+        <button class="settings-nav-item" onclick="selectSetting(this,'channels')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.42 9a16 16 0 0121.16 0M5 12.55a11 11 0 0114.08 0M10.54 15.55a5 5 0 013 0"/><circle cx="12" cy="20" r="1" fill="currentColor"/></svg>
+          ช่องทาง
+        </button>
+        <button class="settings-nav-item" onclick="selectSetting(this,'webhooks')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+          Webhooks
+        </button>
       </div>
       <div class="settings-nav-group">
         <div class="settings-nav-group-title">FINANCE</div>
-        <div class="settings-nav-item" onclick="selectSetting(this,'billing')">💳 การชำระเงิน</div>
-        <div class="settings-nav-item" onclick="selectSetting(this,'backup')">💾 การสำรองข้อมูล</div>
+        <button class="settings-nav-item" onclick="selectSetting(this,'billing')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          การชำระเงิน
+        </button>
+        <button class="settings-nav-item" onclick="selectSetting(this,'backup')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+          การสำรองข้อมูล
+        </button>
       </div>
       <div class="settings-nav-group">
         <div class="settings-nav-group-title">AI</div>
-        <div class="settings-nav-item" onclick="selectSetting(this,'aibot')">🤖 AI Chatbot</div>
-        <div class="settings-nav-item" onclick="selectSetting(this,'followup')">📮 Follow-up</div>
+        <button class="settings-nav-item" onclick="selectSetting(this,'aibot')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          AI Chatbot
+        </button>
+        <button class="settings-nav-item" onclick="selectSetting(this,'followup')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Follow-up
+        </button>
       </div>
       <div class="settings-nav-group">
         <div class="settings-nav-group-title">SYSTEM</div>
-        <div class="settings-nav-item" onclick="selectSetting(this,'audit')">🔒 Audit Logs <span style="font-size:10px">Super Admin</span></div>
+        <button class="settings-nav-item" onclick="selectSetting(this,'audit')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Audit Logs <span style="font-size:10px;opacity:0.6">Super Admin</span>
+        </button>
       </div>
     </div>
 
@@ -3329,7 +3409,7 @@ body.onboarding-mode #content { width: 100%; }
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">เพิ่มลูกค้าใหม่</div>
-      <button class="modal-close" onclick="closeModal('modal-add-customer')">✕</button>
+      <button class="modal-close" onclick="closeModal('modal-add-customer')" aria-label="ปิด"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div style="display:flex;flex-direction:column;gap:16px">
       <div class="form-group"><label class="form-label">ชื่อ <span class="req">*</span></label><input class="input" placeholder="ชื่อ-นามสกุล"></div>
@@ -3355,7 +3435,7 @@ body.onboarding-mode #content { width: 100%; }
           <div style="display:flex;gap:6px;margin-top:4px"><span class="badge badge-cyan">✨ New</span><span class="badge badge-green">💚 LINE</span></div>
         </div>
       </div>
-      <button class="modal-close" onclick="closeModal('modal-crm-detail')">✕</button>
+      <button class="modal-close" onclick="closeModal('modal-crm-detail')" aria-label="ปิด"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="tab-bar" style="margin-bottom:16px">
       <button class="tab-btn active">ประวัติ</button>
@@ -3386,7 +3466,7 @@ body.onboarding-mode #content { width: 100%; }
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">เพิ่มสินค้าใหม่</div>
-      <button class="modal-close" onclick="closeModal('modal-add-product')">✕</button>
+      <button class="modal-close" onclick="closeModal('modal-add-product')" aria-label="ปิด"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px">
       <div class="section-title">ข้อมูลพื้นฐาน</div>
@@ -3425,7 +3505,7 @@ body.onboarding-mode #content { width: 100%; }
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">แก้ไขสินค้า</div>
-      <button class="modal-close" onclick="closeModal('modal-edit-product')">✕</button>
+      <button class="modal-close" onclick="closeModal('modal-edit-product')" aria-label="ปิด"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px">
       <div class="form-group"><label class="form-label">ชื่อสินค้า</label><input class="input" value="เสื้อยืดโลโก้"></div>
@@ -3449,7 +3529,7 @@ body.onboarding-mode #content { width: 100%; }
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">สร้างออเดอร์ใหม่</div>
-      <button class="modal-close" onclick="closeModal('modal-create-order')">✕</button>
+      <button class="modal-close" onclick="closeModal('modal-create-order')" aria-label="ปิด"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px">
       <div class="form-group"><label class="form-label">ลูกค้า <span class="req">*</span></label><input class="input" placeholder="ค้นหาลูกค้า..."></div>
@@ -3469,7 +3549,7 @@ body.onboarding-mode #content { width: 100%; }
   <div class="modal" style="max-width:440px">
     <div class="modal-header">
       <div class="modal-title">เชิญสมาชิกทีม</div>
-      <button class="modal-close" onclick="closeModal('modal-invite')">✕</button>
+      <button class="modal-close" onclick="closeModal('modal-invite')" aria-label="ปิด"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px">
       <div class="form-group"><label class="form-label">Email <span class="req">*</span></label><input class="input" type="email" placeholder="name@example.com"></div>
@@ -3487,7 +3567,7 @@ body.onboarding-mode #content { width: 100%; }
   <div class="modal" style="max-width:440px">
     <div class="modal-header">
       <div class="modal-title">นัดหมายใหม่</div>
-      <button class="modal-close" onclick="closeModal('modal-new-booking')">✕</button>
+      <button class="modal-close" onclick="closeModal('modal-new-booking')" aria-label="ปิด"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px">
       <div class="form-group"><label class="form-label">ลูกค้า <span class="req">*</span></label><input class="input" placeholder="ค้นหาชื่อลูกค้า..."></div>
