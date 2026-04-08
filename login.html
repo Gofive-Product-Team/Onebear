@@ -568,6 +568,34 @@ body{
 .sso-link:hover{color:var(--primary-mid);}
 .sso-link svg{width:13px;height:13px;}
 
+/* select field */
+.field-select{
+  width:100%;height:48px;
+  padding:0 40px 0 41px;
+  background:var(--input-bg);
+  border:1.5px solid var(--input-border);
+  border-radius:var(--r-lg);
+  font-size:14px;color:var(--text-1);font-family:inherit;
+  appearance:none;-webkit-appearance:none;
+  cursor:pointer;
+  transition:border-color var(--tr-f),box-shadow var(--tr-f);
+}
+.field-select:focus{
+  border-color:var(--input-focus);
+  box-shadow:0 0 0 3px var(--primary-alpha);
+  outline:none;
+}
+.field-select.err{border-color:var(--error)!important;box-shadow:0 0 0 3px var(--error-bg)!important;}
+.field-select option{background:var(--bg-2);color:var(--text-1);}
+.select-chevron{
+  position:absolute;right:13px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text-3);pointer-events:none;
+  transition:color var(--tr-f),transform var(--tr-f);
+}
+.select-chevron svg{width:15px;height:15px;}
+.field-wrap:focus-within .select-chevron{color:var(--primary-mid);}
+
 /* two-col name row */
 .field-row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 @media(max-width:375px){.field-row-2{grid-template-columns:1fr;}}
@@ -967,6 +995,27 @@ body{
           <div class="field-error" id="rCompanyErr" role="alert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Required</span></div>
         </div>
 
+        <!-- employee size -->
+        <div class="field">
+          <label class="field-label" for="rEmpSize">Number of employees</label>
+          <div class="field-wrap">
+            <div class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+            <select id="rEmpSize" class="field-select" aria-required="true">
+              <option value="" disabled selected>Select team size</option>
+              <option value="1-10">1 – 10</option>
+              <option value="11-25">11 – 25</option>
+              <option value="26-50">26 – 50</option>
+              <option value="51-100">51 – 100</option>
+              <option value="101-200">101 – 200</option>
+              <option value="201-500">201 – 500</option>
+              <option value="501-1000">501 – 1,000</option>
+              <option value="1000+">1,000+</option>
+            </select>
+            <div class="select-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9 12,15 18,9"/></svg></div>
+          </div>
+          <div class="field-error" id="rEmpSizeErr" role="alert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Please select team size</span></div>
+        </div>
+
         <!-- email -->
         <div class="field">
           <label class="field-label" for="rEmail">Work email</label>
@@ -1183,6 +1232,7 @@ addRipple('registerBtn');
 const rFirst   = document.getElementById('rFirst');
 const rLast    = document.getElementById('rLast');
 const rCompany = document.getElementById('rCompany');
+const rEmpSize = document.getElementById('rEmpSize');
 const rEmail   = document.getElementById('rEmail');
 const rPass    = document.getElementById('rPass');
 const rConfirm = document.getElementById('rConfirm');
@@ -1193,8 +1243,9 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
   const checks = [
     [rFirst,   document.getElementById('rFirstErr'),   v => v.trim().length>0,              'First name is required'],
     [rLast,    document.getElementById('rLastErr'),    v => v.trim().length>0,              'Last name is required'],
-    [rCompany, document.getElementById('rCompanyErr'), v => v.trim().length>0,              'Company name is required'],
-    [rEmail,   document.getElementById('rEmailErr'),   v => validEmail(v),                  'Enter a valid email'],
+    [rCompany, document.getElementById('rCompanyErr'), v => v.trim().length>0,  'Company name is required'],
+    [rEmpSize, document.getElementById('rEmpSizeErr'), v => v !== '',           'Please select team size'],
+    [rEmail,   document.getElementById('rEmailErr'),   v => validEmail(v),      'Enter a valid email'],
     [rPass,    document.getElementById('rPassErr'),    v => v.length>=8,                    'At least 8 characters'],
     [rConfirm, document.getElementById('rConfirmErr'), v => v===rPass.value && v.length>0,  'Passwords do not match'],
   ];
