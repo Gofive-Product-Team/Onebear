@@ -13,6 +13,7 @@ import { BillingSettings } from '@/components/settings/BillingSettings'
 import { AuditLogSettings } from '@/components/settings/AuditLogSettings'
 import { PaymentConfigSettings } from '@/components/settings/PaymentConfigSettings'
 import { AiSalesAgentSettings } from '@/components/settings/AiSalesAgentSettings'
+import { CustomFieldsSettings } from '@/components/settings/CustomFieldsSettings'
 
 type SettingsSection =
 	| 'workspace'
@@ -25,6 +26,7 @@ type SettingsSection =
 	| 'ai-sales-agent'
 	| 'notifications'
 	| 'team'
+	| 'custom-fields'
 	| 'payment-config'
 	| 'billing'
 	| 'audit-log'
@@ -49,6 +51,8 @@ const sections: SectionDef[] = [
 	{ id: 'shortcuts',       label: 'Shortcuts',          group: 'messaging',  icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
 	{ id: 'chatbot',         label: 'AI Chatbot',         group: 'messaging',  icon: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
 	{ id: 'ai-sales-agent',  label: 'AI Sales Agent',     group: 'messaging',  icon: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
+	// CRM group
+	{ id: 'custom-fields',   label: 'Custom Fields',      group: 'crm',        icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
 	// Payments group
 	{ id: 'payment-config',  label: 'การชำระเงิน',        group: 'payments',   icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
 	// Admin group
@@ -59,6 +63,7 @@ const sections: SectionDef[] = [
 const GROUP_LABELS: Record<string, string> = {
 	general: 'ทั่วไป',
 	messaging: 'Messaging',
+	crm: 'CRM',
 	payments: 'Payments',
 	admin: 'Admin',
 }
@@ -85,6 +90,8 @@ function SectionContent({ section }: { section: SettingsSection }) {
 			return <TeamTab />
 		case 'notifications':
 			return <NotificationSettings />
+		case 'custom-fields':
+			return <CustomFieldsSettings />
 		case 'payment-config':
 			return <PaymentConfigSettings />
 		case 'billing':
@@ -98,7 +105,7 @@ export function SettingsPage() {
 	const [activeSection, setActiveSection] = useState<SettingsSection>('workspace')
 
 	// Group sections
-	const groups = ['general', 'messaging', 'payments', 'admin']
+	const groups = ['general', 'messaging', 'crm', 'payments', 'admin']
 
 	return (
 		<div className="mx-auto max-w-7xl space-y-6">

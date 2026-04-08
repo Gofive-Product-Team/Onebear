@@ -204,8 +204,32 @@ function ProductDetailPanel({
 	onSave: (data: Partial<CreateProductBody>) => void
 	isSaving: boolean
 }) {
-	const [activeTab, setActiveTab] = useState<'variants' | 'upsell'>('variants')
+	const [activeTab, setActiveTab] = useState<'info' | 'variants' | 'upsell'>('info')
 	const { toast, show: showToast } = useToast()
+
+	// ── Info tab state ──────────────────────────────────────────────────────────
+	const [infoName, setInfoName] = useState(product.name)
+	const [infoCategory, setInfoCategory] = useState(product.category ?? '')
+	const [infoPrice, setInfoPrice] = useState(product.price.toString())
+	const [infoStock, setInfoStock] = useState(product.stock?.toString() ?? '')
+	const [infoDesc, setInfoDesc] = useState(product.description ?? '')
+	const [infoImageUrl, setInfoImageUrl] = useState(product.imageUrl ?? '')
+	const [infoStatus, setInfoStatus] = useState<'Active' | 'Inactive'>(product.status as 'Active' | 'Inactive')
+	const [infoAllowPreOrder, setInfoAllowPreOrder] = useState(product.allowPreOrder ?? false)
+
+	function handleSaveInfo() {
+		onSave({
+			name: infoName.trim(),
+			category: infoCategory,
+			price: parseFloat(infoPrice) || 0,
+			stock: infoStock === '' ? undefined : parseInt(infoStock, 10),
+			description: infoDesc || undefined,
+			imageUrl: infoImageUrl || undefined,
+			allowPreOrder: infoAllowPreOrder,
+			status: infoStatus,
+		} as Partial<CreateProductBody>)
+		showToast('✅ บันทึกสำเร็จ')
+	}
 
 	// ── Variants state ──────────────────────────────────────────────────────────
 	const [axes, setAxes] = useState<VariantAxis[]>(() => {
@@ -372,7 +396,7 @@ function ProductDetailPanel({
 
 			{/* Tabs */}
 			<div className="flex border-b border-border">
-				{(['variants', 'upsell'] as const).map((tab) => (
+				{(['info', 'variants', 'upsell'] as const).map((tab) => (
 					<button
 						key={tab}
 						onClick={() => setActiveTab(tab)}
@@ -383,13 +407,148 @@ function ProductDetailPanel({
 								: 'text-t3 hover:text-t2',
 						)}
 					>
-						{tab === 'variants' ? 'Variants' : 'Upsell / Cross-sell'}
+						{tab === 'info' ? 'ข้อมูลสินค้า' : tab === 'variants' ? 'Variants' : 'Upsell / Cross-sell'}
 					</button>
 				))}
 			</div>
 
 			{/* Tab content */}
 			<div className="flex-1 overflow-y-auto p-5">
+				{/* ── Info tab ────────────────────────────────────────────────────── */}
+				{activeTab === 'info' && (
+					<div className="space-y-4">
+						{/* Image preview */}
+						<div>
+							{infoImageUrl ? (
+								<img
+									src={infoImageUrl}
+									alt={infoName}
+									className="mb-3 h-40 w-full rounded-xl object-cover border border-border"
+								/>
+							) : (
+								<div className="mb-3 flex h-40 w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-teal-400/60 bg-teal-50/30">
+									<div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100">
+										<Package className="h-5 w-5 text-teal-600" />
+									</div>
+									<p className="text-xs text-t3">ยังไม่มีรูปสินค้า</p>
+									<p className="text-[10px] text-teal-600">วางลิงก์รูปด้านล่าง</p>
+								</div>
+							)}
+							<label className="mb-1 block text-xs font-medium text-t2">Image URL</label>
+							<input
+								value={infoImageUrl}
+								onChange={(e) => setInfoImageUrl(e.target.value)}
+								placeholder="https://example.com/image.jpg"
+								className="w-full rounded-xl border border-border-input bg-bg-input px-3 py-2 text-sm text-t1 placeholder:text-t3 focus:border-primary focus:outline-none"
+							/>
+							{!infoImageUrl && (
+								<p className="mt-1.5 text-[11px] text-warning">⚠️ สินค้าที่มีรูปจะได้รับการแนะนำจาก AI ดีกว่า</p>
+							)}
+						</div>
+
+						{/* ชื่อสินค้า */}
+						<div>
+							<label className="mb-1 block text-xs font-medium text-t2">
+								ชื่อสินค้า <span className="text-error">*</span>
+							</label>
+							<input
+								value={infoName}
+								onChange={(e) => setInfoName(e.target.value)}
+								className="w-full rounded-xl border border-border-input bg-bg-input px-3 py-2 text-sm text-t1 placeholder:text-t3 focus:border-primary focus:outline-none"
+							/>
+						</div>
+
+						{/* หมวดหมู่ */}
+						<div>
+							<label className="mb-1 block text-xs font-medium text-t2">หมวดหมู่</label>
+							<input
+								value={infoCategory}
+								onChange={(e) => setInfoCategory(e.target.value)}
+								className="w-full rounded-xl border border-border-input bg-bg-input px-3 py-2 text-sm text-t1 placeholder:text-t3 focus:border-primary focus:outline-none"
+							/>
+						</div>
+
+						{/* ราคา */}
+						<div>
+							<label className="mb-1 block text-xs font-medium text-t2">
+								ราคา (฿) <span className="text-error">*</span>
+							</label>
+							<input
+								type="number"
+								value={infoPrice}
+								onChange={(e) => setInfoPrice(e.target.value)}
+								className="w-full rounded-xl border border-border-input bg-bg-input px-3 py-2 text-sm text-t1 placeholder:text-t3 focus:border-primary focus:outline-none"
+							/>
+						</div>
+
+						{/* Stock */}
+						<div>
+							<label className="mb-1 block text-xs font-medium text-t2">Stock</label>
+							<input
+								type="number"
+								value={infoStock}
+								onChange={(e) => setInfoStock(e.target.value)}
+								placeholder="Unlimited"
+								className="w-full rounded-xl border border-border-input bg-bg-input px-3 py-2 text-sm text-t1 placeholder:text-t3 focus:border-primary focus:outline-none"
+							/>
+							<label className="mt-1.5 flex cursor-pointer items-center gap-2 text-xs text-t2">
+								<input
+									type="checkbox"
+									checked={infoAllowPreOrder}
+									onChange={(e) => setInfoAllowPreOrder(e.target.checked)}
+									className="rounded"
+								/>
+								อนุญาต Pre-order
+							</label>
+						</div>
+
+						{/* สถานะ */}
+						<div>
+							<label className="mb-1.5 block text-xs font-medium text-t2">สถานะ</label>
+							<div className="flex gap-2">
+								<button
+									onClick={() => setInfoStatus('Active')}
+									className={cn(
+										'flex-1 rounded-xl py-2 text-sm font-medium transition-colors',
+										infoStatus === 'Active'
+											? 'bg-primary text-white'
+											: 'bg-bg-input text-t3 hover:text-t1',
+									)}
+								>
+									🟢 Active
+								</button>
+								<button
+									onClick={() => setInfoStatus('Inactive')}
+									className={cn(
+										'flex-1 rounded-xl py-2 text-sm font-medium transition-colors',
+										infoStatus === 'Inactive'
+											? 'bg-primary text-white'
+											: 'bg-bg-input text-t3 hover:text-t1',
+									)}
+								>
+									🔴 Inactive
+								</button>
+							</div>
+						</div>
+
+						{/* รายละเอียดสินค้า */}
+						<div>
+							<label className="mb-1 block text-xs font-medium text-t2">รายละเอียดสินค้า</label>
+							<textarea
+								rows={3}
+								value={infoDesc}
+								onChange={(e) => setInfoDesc(e.target.value)}
+								className="w-full rounded-xl border border-border-input bg-bg-input px-3 py-2 text-sm text-t1 placeholder:text-t3 focus:border-primary focus:outline-none resize-none"
+							/>
+						</div>
+
+						{/* Save */}
+						<Button onClick={handleSaveInfo} disabled={isSaving} className="w-full">
+							{isSaving ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
+						</Button>
+					</div>
+				)}
+
 				{/* ── Variants tab ────────────────────────────────────────────────── */}
 				{activeTab === 'variants' && (
 					<div className="space-y-4">
