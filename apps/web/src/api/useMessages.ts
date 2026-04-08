@@ -41,6 +41,7 @@ export function useSendMessage(companyId: string, roomId: string | null) {
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ['messages', companyId, roomId] })
 			queryClient.invalidateQueries({ queryKey: ['rooms'] })
+			queryClient.invalidateQueries({ queryKey: ['room', companyId, roomId] })
 		},
 	})
 }

@@ -51,7 +51,8 @@ export function useSignalREvents(connection: HubConnection | null) {
 
 		connection.on('RoomUpdated', (update: RoomUpdateDto) => {
 			console.log('[SignalR Event] RoomUpdated:', update)
-			queryClient.invalidateQueries({ queryKey: ['room', update.roomId] })
+			// Invalidate both singular room and room list queries
+			queryClient.invalidateQueries({ queryKey: ['room'] })
 			queryClient.invalidateQueries({ queryKey: ['rooms'] })
 		})
 
