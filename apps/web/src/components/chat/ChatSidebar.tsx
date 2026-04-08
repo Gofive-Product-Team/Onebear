@@ -3,6 +3,7 @@ import { Bell, Calendar, X, CheckCircle, XCircle, RotateCcw } from 'lucide-react
 import { cn } from '@one-bear/ui'
 import type { ChatRoom, ChatState } from '@one-bear/shared-types'
 import { useResolveRoom, useCloseRoom, useReopenRoom, useUpdateFollowUp } from '@/api/useRooms'
+import { useMemberName } from '@/api/useMembers'
 import { usePresence } from '@/hooks/usePresence'
 import { useAuthStore } from '@/stores/auth-store'
 import { Avatar } from '@/components/ui/Avatar'
@@ -56,6 +57,16 @@ function toDatetimeLocalValue(timestamp: number): string {
 	const offset = d.getTimezoneOffset()
 	const local = new Date(d.getTime() - offset * 60_000)
 	return local.toISOString().slice(0, 16)
+}
+
+function SidebarAssignedAgent({ userId }: { userId: string }) {
+	const name = useMemberName(userId)
+	return (
+		<div className="flex items-center gap-2">
+			<Avatar fallback={(name ?? '?').charAt(0).toUpperCase()} size="sm" />
+			<span className="text-sm text-t2">{name}</span>
+		</div>
+	)
 }
 
 export function ChatSidebar({ room, connection }: Props) {
@@ -263,10 +274,7 @@ export function ChatSidebar({ room, connection }: Props) {
 			<div className="p-4 border-b border-border">
 				<SectionTitle>Assigned To</SectionTitle>
 				{room.assignToUserId ? (
-					<div className="flex items-center gap-2">
-						<Avatar fallback={room.assignToUserId.charAt(0).toUpperCase()} size="sm" />
-						<span className="text-sm text-t2">{room.assignToUserId}</span>
-					</div>
+					<SidebarAssignedAgent userId={room.assignToUserId} />
 				) : (
 					<p className="text-sm text-t3 italic">Unassigned</p>
 				)}

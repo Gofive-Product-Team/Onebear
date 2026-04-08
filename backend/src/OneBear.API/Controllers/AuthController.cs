@@ -204,6 +204,7 @@ public class AuthController : ControllerBase
         var result = members.Select(m => new
         {
             profileId = m.Id,
+            keycloakUserId = m.KeycloakUserId,
             email = m.Email,
             displayName = m.DisplayName,
             roleId = m.RoleId,
