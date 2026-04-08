@@ -322,12 +322,17 @@ export function GeneralInfoTab({ customer }: Props) {
 			: [...existingAddresses]
 		updatedAddresses.push(addr)
 
+		console.log('[Address Save]', { customerId: customer.id, addresses: updatedAddresses })
 		updateCustomer.mutate(
-			{ id: customer.id, body: { addresses: updatedAddresses } as { addresses: CustomerAddress[] } },
+			{ id: customer.id, body: { addresses: updatedAddresses } as any },
 			{
 				onSuccess: () => {
+					console.log('[Address Save] Success!')
 					setShowAddAddress(false)
 					resetNewAddress()
+				},
+				onError: (err) => {
+					console.error('[Address Save] Error:', err)
 				},
 			},
 		)
@@ -335,7 +340,7 @@ export function GeneralInfoTab({ customer }: Props) {
 
 	function handleDeleteAddress(addressId: string) {
 		const updatedAddresses = (customer.addresses ?? []).filter((a) => a.id !== addressId)
-		updateCustomer.mutate({ id: customer.id, body: { addresses: updatedAddresses } as { addresses: CustomerAddress[] } })
+		updateCustomer.mutate({ id: customer.id, body: { addresses: updatedAddresses } as any })
 	}
 
 	return (
