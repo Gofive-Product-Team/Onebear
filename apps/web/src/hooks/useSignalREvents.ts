@@ -95,6 +95,12 @@ export function useSignalREvents(connection: HubConnection | null) {
 			queryClient.setQueryData(['badge-count'], badge)
 		})
 
+		connection.on('AttendanceChanged', (_data: { roomId: string; userId: string; attending: boolean }) => {
+			// Refresh room data to get updated attendedUserIds
+			queryClient.invalidateQueries({ queryKey: ['room'] })
+			queryClient.invalidateQueries({ queryKey: ['rooms'] })
+		})
+
 		connection.on('RoomUpdated', (update: RoomUpdateDto) => {
 			console.log('[SignalR Event] RoomUpdated:', update)
 			// Invalidate both singular room and room list queries
@@ -134,6 +140,7 @@ export function useSignalREvents(connection: HubConnection | null) {
 			connection.off('ReceiveMessage')
 			connection.off('RoomAssigned')
 			connection.off('BadgeUpdated')
+			connection.off('AttendanceChanged')
 			connection.off('RoomUpdated')
 			connection.off('MessageStatusUpdated')
 			connection.off('TypingIndicator')

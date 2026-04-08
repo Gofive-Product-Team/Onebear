@@ -21,16 +21,21 @@ export function useRoomConnection(
 
 		// Leave previous room if switching
 		if (prevRoom && prevRoom !== roomId) {
+			connection.invoke('ExitRoom', prevRoom).catch(() => {})
 			connection.invoke('LeaveRoom', prevRoom).catch((err) => {
 				console.warn('[useRoomConnection] Failed to leave room:', prevRoom, err)
 			})
 		}
 
-		// Join new room
+		// Join new room + attend (mark as viewing)
 		if (roomId !== prevRoom) {
 			connection.invoke('JoinRooms', [roomId]).then(() => {
 				console.log('[useRoomConnection] ✅ Joined room:', roomId)
 				currentRoomRef.current = roomId
+				// Mark as attending (viewing) this room
+				connection.invoke('AttendRoom', roomId).catch((err) => {
+					console.warn('[useRoomConnection] Failed to attend room:', roomId, err)
+				})
 			}).catch((err) => {
 				console.warn('[useRoomConnection] Failed to join room:', roomId, err)
 			})
@@ -38,6 +43,7 @@ export function useRoomConnection(
 
 		return () => {
 			if (currentRoomRef.current && connection.state === HubConnectionState.Connected) {
+				connection.invoke('ExitRoom', currentRoomRef.current).catch(() => {})
 				connection.invoke('LeaveRoom', currentRoomRef.current).catch(() => {})
 				currentRoomRef.current = null
 			}
