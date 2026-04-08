@@ -16,6 +16,7 @@ using OneBear.Application.Auth.Services;
 using OneBear.Application.Products.Services;
 using OneBear.Application.Orders.Services;
 using OneBear.Application.Slips.Services;
+using OneBear.Application.Followup.Services;
 using OneBear.Domain.Interfaces;
 
 public static class DependencyInjection
@@ -60,6 +61,9 @@ public static class DependencyInjection
         // Slips
         services.AddScoped<SlipVerificationManagementService>();
         services.AddScoped<ISlipVerificationService>(sp => sp.GetRequiredService<SlipVerificationManagementService>());
+
+        // Follow-up configuration
+        services.AddScoped<FollowupConfigurationService>();
 
         // Product catalog bridge (AI reads real product data)
         services.AddScoped<IProductCatalogService, ProductCatalogBridge>();
