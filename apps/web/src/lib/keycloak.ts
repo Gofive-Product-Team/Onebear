@@ -1,7 +1,8 @@
 const KEYCLOAK_URL = import.meta.env.VITE_KEYCLOAK_URL as string
-const CLIENT_ID = import.meta.env.VITE_KEYCLOAK_CLIENT_ID as string
-const REDIRECT_URI = import.meta.env.VITE_REDIRECT_URI as string
-const POST_LOGOUT_REDIRECT_URI = import.meta.env.VITE_POST_LOGOUT_REDIRECT_URI as string
+const CLIENT_ID = import.meta.env.VITE_KEYCLOAK_CLIENT_ID as string ?? 'onebear-spa'
+// Auto-detect redirect URIs from current origin if not set in env
+const REDIRECT_URI = import.meta.env.VITE_REDIRECT_URI as string || `${window.location.origin}/auth/callback`
+const POST_LOGOUT_REDIRECT_URI = import.meta.env.VITE_POST_LOGOUT_REDIRECT_URI as string || window.location.origin
 
 function generateRandomString(length: number): string {
 	const array = new Uint8Array(length)
