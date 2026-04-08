@@ -22,7 +22,6 @@ public class UserProfileMiddleware
     [
         "/api/v1/auth/register",
         "/api/v1/health",
-        "/hubs/",
         "/swagger",
         "/api/v1/webhooks/"
     ];
