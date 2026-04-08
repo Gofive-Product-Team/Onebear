@@ -61,7 +61,7 @@ export function RoomCard({ room, isActive, onClick }: Props) {
 				onClick={onClick}
 				onContextMenu={handleContextMenu}
 				className={cn(
-					'relative w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors rounded-xl mx-1 my-px',
+					'relative w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors rounded-xl my-px',
 					'hover:bg-bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary',
 					isActive && 'bg-bg-active hover:bg-bg-active',
 				)}
