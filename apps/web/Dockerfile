@@ -36,7 +36,8 @@ RUN cd apps/web && npx vite build
 # Production — Nginx
 FROM nginx:alpine AS final
 COPY --from=build /app/apps/web/dist /usr/share/nginx/html
-COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
+# Use nginx template + envsubst at container start to inject docker env values
+COPY apps/web/nginx.conf /etc/nginx/templates/default.conf.template
 EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
   CMD wget -qO- http://localhost:80/ || exit 1
