@@ -296,10 +296,51 @@ export function GeneralInfoTab({ customer }: Props) {
 	const [showNoteEditor, setShowNoteEditor] = useState(false)
 	const [showAddAddress, setShowAddAddress] = useState(false)
 	const [newAddress, setNewAddress] = useState(EMPTY_ADDRESS)
+	const [editingAddressId, setEditingAddressId] = useState<string | null>(null)
+	const [editAddress, setEditAddress] = useState(EMPTY_ADDRESS)
 	const updateCustomer = useUpdateCustomer()
 
 	function resetNewAddress() {
 		setNewAddress(EMPTY_ADDRESS)
+	}
+
+	function startEditAddress(addr: CustomerAddress) {
+		setEditingAddressId(addr.id)
+		setEditAddress({
+			label: addr.label || 'Home',
+			address: addr.address || '',
+			subDistrict: addr.subDistrict || '',
+			district: addr.district || '',
+			province: addr.province || '',
+			postalCode: addr.postalCode || '',
+			note: addr.note || '',
+			isDefault: addr.isDefault,
+		})
+	}
+
+	function handleSaveEditAddress() {
+		if (!editingAddressId) return
+		const updatedAddresses = (customer.addresses ?? []).map((a) => {
+			if (a.id !== editingAddressId) {
+				// If edited address becomes default, unset others
+				return editAddress.isDefault ? { ...a, isDefault: false } : a
+			}
+			return {
+				...a,
+				label: editAddress.label,
+				address: editAddress.address.trim(),
+				subDistrict: editAddress.subDistrict || null,
+				district: editAddress.district || null,
+				province: editAddress.province || null,
+				postalCode: editAddress.postalCode || null,
+				note: editAddress.note || null,
+				isDefault: editAddress.isDefault,
+			}
+		})
+		updateCustomer.mutate(
+			{ id: customer.id, body: { addresses: updatedAddresses } as any },
+			{ onSuccess: () => setEditingAddressId(null) },
+		)
 	}
 
 	function handleSaveAddress() {
@@ -607,33 +648,148 @@ export function GeneralInfoTab({ customer }: Props) {
 					<div className="space-y-2">
 						{customer.addresses.map((addr) => (
 							<div key={addr.id} className="rounded-lg border border-border px-4 py-3 text-sm space-y-1">
-								<div className="flex items-center gap-2">
-									<span className="font-medium text-t1">{addr.label || 'Address'}</span>
-									{addr.isDefault && (
-										<span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-											Default
-										</span>
-									)}
-								</div>
-								<p className="text-t1">{addr.address}</p>
-								{(addr.subDistrict || addr.district || addr.province) && (
-									<p className="text-t2">
-										{[addr.subDistrict, addr.district, addr.province]
-											.filter(Boolean)
-											.join(', ')}
-									</p>
+								{editingAddressId === addr.id ? (
+									/* Edit mode */
+									<div className="space-y-3">
+										<div className="grid grid-cols-2 gap-3">
+											<div>
+												<label className="text-xs font-medium text-t2">Label</label>
+												<select
+													value={editAddress.label}
+													onChange={(e) => setEditAddress({ ...editAddress, label: e.target.value })}
+													className="mt-1 w-full rounded-md border border-border bg-bg-input px-3 py-1.5 text-sm"
+												>
+													<option value="Home">Home / บ้าน</option>
+													<option value="Work">Work / ที่ทำงาน</option>
+													<option value="Shipping">Shipping / จัดส่ง</option>
+													<option value="Other">Other / อื่นๆ</option>
+												</select>
+											</div>
+											<div className="flex items-end">
+												<label className="flex items-center gap-2 text-xs text-t2">
+													<input
+														type="checkbox"
+														checked={editAddress.isDefault}
+														onChange={(e) => setEditAddress({ ...editAddress, isDefault: e.target.checked })}
+														className="rounded border-border"
+													/>
+													Default address
+												</label>
+											</div>
+										</div>
+										<div>
+											<label className="text-xs font-medium text-t2">Address</label>
+											<input
+												value={editAddress.address}
+												onChange={(e) => setEditAddress({ ...editAddress, address: e.target.value })}
+												className="mt-1 w-full rounded-md border border-border bg-bg-input px-3 py-1.5 text-sm"
+											/>
+										</div>
+										<div className="grid grid-cols-2 gap-3">
+											<div>
+												<label className="text-xs font-medium text-t2">Sub-district</label>
+												<input
+													value={editAddress.subDistrict}
+													onChange={(e) => setEditAddress({ ...editAddress, subDistrict: e.target.value })}
+													className="mt-1 w-full rounded-md border border-border bg-bg-input px-3 py-1.5 text-sm"
+												/>
+											</div>
+											<div>
+												<label className="text-xs font-medium text-t2">District</label>
+												<input
+													value={editAddress.district}
+													onChange={(e) => setEditAddress({ ...editAddress, district: e.target.value })}
+													className="mt-1 w-full rounded-md border border-border bg-bg-input px-3 py-1.5 text-sm"
+												/>
+											</div>
+										</div>
+										<div className="grid grid-cols-2 gap-3">
+											<div>
+												<label className="text-xs font-medium text-t2">Province</label>
+												<input
+													value={editAddress.province}
+													onChange={(e) => setEditAddress({ ...editAddress, province: e.target.value })}
+													className="mt-1 w-full rounded-md border border-border bg-bg-input px-3 py-1.5 text-sm"
+												/>
+											</div>
+											<div>
+												<label className="text-xs font-medium text-t2">Postal Code</label>
+												<input
+													value={editAddress.postalCode}
+													onChange={(e) => setEditAddress({ ...editAddress, postalCode: e.target.value })}
+													className="mt-1 w-full rounded-md border border-border bg-bg-input px-3 py-1.5 text-sm"
+												/>
+											</div>
+										</div>
+										<div>
+											<label className="text-xs font-medium text-t2">Note</label>
+											<input
+												value={editAddress.note}
+												onChange={(e) => setEditAddress({ ...editAddress, note: e.target.value })}
+												className="mt-1 w-full rounded-md border border-border bg-bg-input px-3 py-1.5 text-sm"
+											/>
+										</div>
+										<div className="flex gap-2 justify-end">
+											<button
+												type="button"
+												onClick={() => setEditingAddressId(null)}
+												className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-t2 hover:bg-bg-hover"
+											>
+												Cancel
+											</button>
+											<button
+												type="button"
+												onClick={handleSaveEditAddress}
+												disabled={!editAddress.address.trim() || updateCustomer.isPending}
+												className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/90 disabled:opacity-50"
+											>
+												Save
+											</button>
+										</div>
+									</div>
+								) : (
+									/* Display mode */
+									<>
+										<div className="flex items-center justify-between">
+											<div className="flex items-center gap-2">
+												<span className="font-medium text-t1">{addr.label || 'Address'}</span>
+												{addr.isDefault && (
+													<span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+														Default
+													</span>
+												)}
+											</div>
+											<div className="flex items-center gap-2">
+												<button
+													type="button"
+													onClick={() => startEditAddress(addr)}
+													className="text-xs text-primary hover:text-primary/80"
+												>
+													Edit
+												</button>
+												<button
+													type="button"
+													onClick={() => handleDeleteAddress(addr.id)}
+													className="text-xs text-error hover:text-error/80"
+												>
+													Remove
+												</button>
+											</div>
+										</div>
+										<p className="text-t1">{addr.address}</p>
+										{(addr.subDistrict || addr.district || addr.province) && (
+											<p className="text-t2">
+												{[addr.subDistrict, addr.district, addr.province]
+													.filter(Boolean)
+													.join(', ')}
+											</p>
+										)}
+										{addr.postalCode && (
+											<p className="text-t3">{addr.postalCode}{addr.country && addr.country !== 'Thailand' ? ` · ${addr.country}` : ''}</p>
+										)}
+										{addr.note && <p className="text-xs text-t3 italic">{addr.note}</p>}
+									</>
 								)}
-								{addr.postalCode && (
-									<p className="text-t3">{addr.postalCode}{addr.country && addr.country !== 'Thailand' ? ` · ${addr.country}` : ''}</p>
-								)}
-								{addr.note && <p className="text-xs text-t3 italic">{addr.note}</p>}
-								<button
-									type="button"
-									onClick={() => handleDeleteAddress(addr.id)}
-									className="mt-1 text-xs text-error hover:text-error/80"
-								>
-									Remove
-								</button>
 							</div>
 						))}
 					</div>
