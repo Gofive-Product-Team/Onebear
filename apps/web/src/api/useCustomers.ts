@@ -156,7 +156,7 @@ export function useUpdateCustomer() {
 	const queryClient = useQueryClient()
 
 	return useMutation({
-		mutationFn: ({ id, body }: { id: string; body: { name?: string; email?: string; phone?: string; customerType?: string } }) =>
+		mutationFn: ({ id, body }: { id: string; body: { name?: string; email?: string; phone?: string; customerType?: string; addresses?: CustomerAddress[] } }) =>
 			api.customers.update(companyId, id, body),
 		onSuccess: (_data, { id }) => {
 			queryClient.invalidateQueries({ queryKey: ['customers', companyId] })

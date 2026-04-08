@@ -11,7 +11,7 @@ import { NextBestActionCard } from '@/components/customer/NextBestActionCard'
 import { generateAvatarColor } from '@/components/customer/CustomerCard'
 import { LinkContactDialog } from './LinkContactDialog'
 import { useAddCustomerTag, useRemoveCustomerTag, useCustomerContacts, useUnlinkContact, useUpdateCustomer } from '@/api/useCustomers'
-import type { CustomerDetail, ContactListItem } from '@/api/useCustomers'
+import type { CustomerDetail, ContactListItem, CustomerAddress } from '@/api/useCustomers'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -323,7 +323,7 @@ export function GeneralInfoTab({ customer }: Props) {
 		updatedAddresses.push(addr)
 
 		updateCustomer.mutate(
-			{ id: customer.id, body: { addresses: updatedAddresses } as Record<string, unknown> },
+			{ id: customer.id, body: { addresses: updatedAddresses } as { addresses: CustomerAddress[] } },
 			{
 				onSuccess: () => {
 					setShowAddAddress(false)
@@ -335,7 +335,7 @@ export function GeneralInfoTab({ customer }: Props) {
 
 	function handleDeleteAddress(addressId: string) {
 		const updatedAddresses = (customer.addresses ?? []).filter((a) => a.id !== addressId)
-		updateCustomer.mutate({ id: customer.id, body: { addresses: updatedAddresses } as Record<string, unknown> })
+		updateCustomer.mutate({ id: customer.id, body: { addresses: updatedAddresses } as { addresses: CustomerAddress[] } })
 	}
 
 	return (
