@@ -103,10 +103,10 @@ export function MessageBubble({ message, currentUserId, onRetry, onPin, onUnpin 
 					{/* Note content */}
 					<div
 						className={cn(
-							'w-full rounded-[16px] px-3.5 py-2 text-[13px] break-words border',
+							'w-full rounded-[16px] px-3.5 py-2 text-[13px] break-words',
 							isPrivateNote
-								? 'bg-amber-100 border-amber-300 text-amber-900'
-								: 'bg-amber-50 border-amber-200 text-amber-900',
+								? 'bg-amber-100 text-amber-900'
+								: 'bg-amber-50 text-amber-900',
 						)}
 					>
 						<MessageRenderer message={message} />
