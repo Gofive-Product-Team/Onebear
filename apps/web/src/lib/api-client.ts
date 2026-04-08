@@ -337,6 +337,10 @@ export const api = {
 		updateStatus: (companyId: string, orderId: string, body: object) =>
 			fetchApi(`/companies/${companyId}/orders/${orderId}/status`, { method: 'PUT', body: JSON.stringify(body) }),
 	},
+	insights: {
+		daily: (companyId: string, date?: string) =>
+			fetchApi(`/companies/${companyId}/insights/daily${date ? '?date=' + date : ''}`),
+	},
 	bookings: {
 		list: (companyId: string, params?: Record<string, string>) =>
 			fetchApi(`/companies/${companyId}/bookings${params ? '?' + new URLSearchParams(params) : ''}`),

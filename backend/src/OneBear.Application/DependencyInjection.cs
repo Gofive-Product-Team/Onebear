@@ -18,6 +18,7 @@ using OneBear.Application.Orders.Services;
 using OneBear.Application.Slips.Services;
 using OneBear.Application.Followup.Services;
 using OneBear.Application.Bookings.Services;
+using OneBear.Application.Insights.Services;
 using OneBear.Domain.Interfaces;
 
 public static class DependencyInjection
@@ -68,6 +69,9 @@ public static class DependencyInjection
 
         // Bookings
         services.AddScoped<BookingManagementService>();
+
+        // AI Insights
+        services.AddScoped<InsightsService>();
 
         // Product catalog bridge (AI reads real product data)
         services.AddScoped<IProductCatalogService, ProductCatalogBridge>();
