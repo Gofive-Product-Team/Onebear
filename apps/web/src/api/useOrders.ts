@@ -82,7 +82,7 @@ export interface CreateOrderBody {
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 
 export function useOrders(params?: Record<string, string>) {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 
 	return useQuery({
 		queryKey: ['orders', companyId, params],
@@ -92,7 +92,7 @@ export function useOrders(params?: Record<string, string>) {
 }
 
 export function useOrder(orderId: string | null) {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 
 	return useQuery({
 		queryKey: ['order', companyId, orderId],
@@ -102,7 +102,7 @@ export function useOrder(orderId: string | null) {
 }
 
 export function useOrderSummary() {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 
 	return useQuery({
 		queryKey: ['order-summary', companyId],
@@ -112,7 +112,7 @@ export function useOrderSummary() {
 }
 
 export function useCreateOrder() {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 	const queryClient = useQueryClient()
 
 	return useMutation({
@@ -125,7 +125,7 @@ export function useCreateOrder() {
 }
 
 export function useUpdateOrderStatus() {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 	const queryClient = useQueryClient()
 
 	return useMutation({

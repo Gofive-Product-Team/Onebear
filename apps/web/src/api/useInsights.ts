@@ -44,7 +44,7 @@ export interface DailyInsights {
 }
 
 export function useDailyInsights(date?: string) {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 	return useQuery({
 		queryKey: ['insights-daily', companyId, date],
 		queryFn: () => api.insights.daily(companyId!, date) as Promise<DailyInsights>,

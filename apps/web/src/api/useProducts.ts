@@ -77,7 +77,7 @@ export interface CsvImportResult {
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 
 export function useProducts(params?: Record<string, string>) {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 
 	return useQuery({
 		queryKey: ['products', companyId, params],
@@ -87,7 +87,7 @@ export function useProducts(params?: Record<string, string>) {
 }
 
 export function useProduct(productId: string | null) {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 
 	return useQuery({
 		queryKey: ['product', companyId, productId],
@@ -97,7 +97,7 @@ export function useProduct(productId: string | null) {
 }
 
 export function useProductCategories() {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 
 	return useQuery({
 		queryKey: ['product-categories', companyId],
@@ -107,7 +107,7 @@ export function useProductCategories() {
 }
 
 export function useCreateProduct() {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 	const queryClient = useQueryClient()
 
 	return useMutation({
@@ -120,7 +120,7 @@ export function useCreateProduct() {
 }
 
 export function useUpdateProduct() {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 	const queryClient = useQueryClient()
 
 	return useMutation({
@@ -135,7 +135,7 @@ export function useUpdateProduct() {
 }
 
 export function useDeleteProduct() {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 	const queryClient = useQueryClient()
 
 	return useMutation({
@@ -148,7 +148,7 @@ export function useDeleteProduct() {
 }
 
 export function useImportProducts() {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 	const queryClient = useQueryClient()
 
 	return useMutation({

@@ -26,7 +26,7 @@ export interface SlipVerification {
 }
 
 export function usePendingSlips() {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 	return useQuery({
 		queryKey: ['slips-pending', companyId],
 		queryFn: () => api.slips.pending(companyId!) as Promise<SlipVerification[]>,
@@ -35,7 +35,7 @@ export function usePendingSlips() {
 }
 
 export function useSlipByOrder(orderId: string | null) {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 	return useQuery({
 		queryKey: ['slip', companyId, orderId],
 		queryFn: () => api.slips.getByOrder(companyId!, orderId!) as Promise<SlipVerification>,
@@ -44,7 +44,7 @@ export function useSlipByOrder(orderId: string | null) {
 }
 
 export function useSubmitSlip() {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 	const queryClient = useQueryClient()
 	return useMutation({
 		mutationFn: (body: { orderId: string; imageUrl: string }) =>
@@ -58,7 +58,7 @@ export function useSubmitSlip() {
 }
 
 export function useReviewSlip() {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 	const queryClient = useQueryClient()
 	return useMutation({
 		mutationFn: ({ slipId, body }: { slipId: string; body: { action: string; rejectionReasonCode?: string; adminNote?: string } }) =>

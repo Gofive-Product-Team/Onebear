@@ -38,7 +38,7 @@ export interface BookingServiceItem {
 }
 
 export function useBookings(params?: Record<string, string>) {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 	return useQuery({
 		queryKey: ['bookings', companyId, params],
 		queryFn: () => api.bookings.list(companyId!, params) as Promise<BookingsResponse>,
@@ -47,7 +47,7 @@ export function useBookings(params?: Record<string, string>) {
 }
 
 export function useBookingServices() {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 	return useQuery({
 		queryKey: ['booking-services', companyId],
 		queryFn: () => api.bookings.services(companyId!) as Promise<BookingServiceItem[]>,
@@ -56,7 +56,7 @@ export function useBookingServices() {
 }
 
 export function useCreateBooking() {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 	const qc = useQueryClient()
 	return useMutation({
 		mutationFn: (body: object) => api.bookings.create(companyId!, body),
@@ -65,7 +65,7 @@ export function useCreateBooking() {
 }
 
 export function useUpdateBookingStatus() {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 	const qc = useQueryClient()
 	return useMutation({
 		mutationFn: ({ bookingId, body }: { bookingId: string; body: object }) =>
@@ -75,7 +75,7 @@ export function useUpdateBookingStatus() {
 }
 
 export function useCreateBookingService() {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 	const qc = useQueryClient()
 	return useMutation({
 		mutationFn: (body: object) => api.bookings.createService(companyId!, body),

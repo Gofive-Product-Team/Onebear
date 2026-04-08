@@ -32,7 +32,7 @@ export interface OnboardingState {
 }
 
 export function useOnboardingState() {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 	return useQuery({
 		queryKey: ['onboarding', companyId],
 		queryFn: () => api.onboarding.get(companyId!) as Promise<OnboardingState>,
@@ -41,7 +41,7 @@ export function useOnboardingState() {
 }
 
 export function useConnectChannel() {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 	const qc = useQueryClient()
 	return useMutation({
 		mutationFn: (body: { platform: string; channelName?: string; integrationId?: string }) =>
@@ -51,7 +51,7 @@ export function useConnectChannel() {
 }
 
 export function useAdvanceToStep2() {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 	const qc = useQueryClient()
 	return useMutation({
 		mutationFn: () => api.onboarding.advanceStep2(companyId!),
@@ -60,7 +60,7 @@ export function useAdvanceToStep2() {
 }
 
 export function useCompleteStep2() {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 	const qc = useQueryClient()
 	return useMutation({
 		mutationFn: (body: { products: OnboardingProduct[] }) =>
@@ -70,7 +70,7 @@ export function useCompleteStep2() {
 }
 
 export function useDismissTutorial() {
-	const companyId = useAuthStore((s) => s.companyId)
+	const companyId = useAuthStore((s) => s.user?.companyId ?? '')
 	const qc = useQueryClient()
 	return useMutation({
 		mutationFn: (body: { tutorialKey: string }) =>
