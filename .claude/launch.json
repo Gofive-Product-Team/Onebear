@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "onebear-chat",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "-l", "8081", "/Users/warisara/Desktop/Onebear"],
+      "runtimeExecutable": "/opt/homebrew/bin/node",
+      "runtimeArgs": ["/Users/warisara/Desktop/Onebear/.claude/worktrees/eloquent-einstein/server.js"],
       "port": 8081
     }
   ]
