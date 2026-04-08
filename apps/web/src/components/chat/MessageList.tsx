@@ -193,7 +193,7 @@ export function MessageList({ companyId, roomId, typingUsers, viewingUserIds }: 
 			{/* Pinned messages bar */}
 			<PinBar pinnedMessages={pinnedMessages} onScrollToMessage={handleScrollToMessage} />
 
-			<div ref={scrollContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto bg-bg-card">
+			<div ref={scrollContainerRef} onScroll={handleScroll} data-message-scroll className="flex-1 overflow-y-auto bg-bg-card">
 				{/* Loading older messages indicator */}
 				{isFetchingNextPage && (
 					<div className="flex justify-center py-3">

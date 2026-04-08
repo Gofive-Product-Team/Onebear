@@ -64,15 +64,16 @@ export function useSendMessage(companyId: string, roomId: string | null) {
 				timestamp: Date.now(),
 			}
 
-			// Add to the latest page
+			// Add to the first page (newest messages page — API returns newest-first)
+			// Prepend so after reverse() in MessageList it appears at the bottom
 			queryClient.setQueryData<{ pages: PagedResponse<ChatMessage>[]; pageParams: unknown[] }>(
 				['messages', companyId, roomId],
 				(old) => {
 					if (!old || !old.pages.length) return old
 					const newPages = [...old.pages]
-					const lastPage = { ...newPages[newPages.length - 1] }
-					lastPage.data = [...lastPage.data, optimisticMessage]
-					newPages[newPages.length - 1] = lastPage
+					const firstPage = { ...newPages[0] }
+					firstPage.data = [optimisticMessage, ...firstPage.data]
+					newPages[0] = firstPage
 					return { ...old, pages: newPages }
 				},
 			)

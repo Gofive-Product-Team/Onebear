@@ -107,19 +107,21 @@ export function Composer({ companyId, roomId, platform, sendTyping }: Props) {
 		const content = isRichMode ? editor.getHTML() : editor.getText()
 		const messageType = isNoteMode ? 'Note' : 'text'
 
-		send(
-			{ content, messageType },
-			{
-				onSuccess: () => {
-					editor.commands.clearContent(true)
-					if (isTypingRef.current) {
-						sendTyping(false)
-						isTypingRef.current = false
-					}
-					setAttachments([])
-				},
-			},
-		)
+		// Clear editor immediately (optimistic — don't wait for API)
+		editor.commands.clearContent(true)
+		if (isTypingRef.current) {
+			sendTyping(false)
+			isTypingRef.current = false
+		}
+		setAttachments([])
+
+		// Scroll to bottom after optimistic message appears
+		requestAnimationFrame(() => {
+			const scrollEl = document.querySelector('[data-message-scroll]')
+			if (scrollEl) scrollEl.scrollTop = scrollEl.scrollHeight
+		})
+
+		send({ content, messageType })
 	}, [editor, isPending, isRichMode, isNoteMode, send, sendTyping])
 
 	const handleEmojiSelect = useCallback(
