@@ -315,6 +315,16 @@ export const api = {
 		whatsappToken: (companyId: string, body: object) =>
 			fetchApi(`/companies/${companyId}/oauth/whatsapp/token`, { method: 'POST', body: JSON.stringify(body) }),
 	},
+	slips: {
+		submit: (companyId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/slips`, { method: 'POST', body: JSON.stringify(body) }),
+		pending: (companyId: string) =>
+			fetchApi(`/companies/${companyId}/slips/pending`),
+		getByOrder: (companyId: string, orderId: string) =>
+			fetchApi(`/companies/${companyId}/slips/order/${orderId}`),
+		review: (companyId: string, slipId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/slips/${slipId}/review`, { method: 'PUT', body: JSON.stringify(body) }),
+	},
 	orders: {
 		list: (companyId: string, params?: Record<string, string>) =>
 			fetchApi(`/companies/${companyId}/orders${params ? '?' + new URLSearchParams(params) : ''}`),

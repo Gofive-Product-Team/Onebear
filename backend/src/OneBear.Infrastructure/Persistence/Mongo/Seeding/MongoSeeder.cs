@@ -322,7 +322,25 @@ public class MongoSeeder
                 .Ascending(o => o.SoftHoldExpiresAt)
                 .Ascending(o => o.Status), ct);
 
-        _logger.LogInformation("MongoDB indexes created/verified (50 total)");
+        // SlipVerifications: 2 indexes
+        await CreateIndexAsync(_context.SlipVerifications, "ix_slips_company_order",
+            Builders<SlipVerification>.IndexKeys
+                .Ascending(s => s.CompanyId)
+                .Ascending(s => s.OrderId)
+                .Descending(s => s.CreatedTimestamp), ct);
+
+        await CreateIndexAsync(_context.SlipVerifications, "ix_slips_company_status",
+            Builders<SlipVerification>.IndexKeys
+                .Ascending(s => s.CompanyId)
+                .Ascending(s => s.Status), ct);
+
+        // SlipBlacklists: 1 index
+        await CreateIndexAsync(_context.SlipBlacklists, "ix_blacklist_company_fingerprint",
+            Builders<SlipBlacklist>.IndexKeys
+                .Ascending(b => b.CompanyId)
+                .Ascending(b => b.Fingerprint), ct);
+
+        _logger.LogInformation("MongoDB indexes created/verified (53 total)");
     }
 
     private async Task CreateIndexAsync<T>(

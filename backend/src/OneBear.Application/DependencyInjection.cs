@@ -15,6 +15,7 @@ using OneBear.Application.Dashboard;
 using OneBear.Application.Auth.Services;
 using OneBear.Application.Products.Services;
 using OneBear.Application.Orders.Services;
+using OneBear.Application.Slips.Services;
 using OneBear.Domain.Interfaces;
 
 public static class DependencyInjection
@@ -56,9 +57,12 @@ public static class DependencyInjection
         services.AddScoped<OrderManagementService>();
         services.AddScoped<IOrderService>(sp => sp.GetRequiredService<OrderManagementService>());
 
+        // Slips
+        services.AddScoped<SlipVerificationManagementService>();
+        services.AddScoped<ISlipVerificationService>(sp => sp.GetRequiredService<SlipVerificationManagementService>());
+
         // Stubs for services not yet fully implemented
         services.AddScoped<IPaymentLinkService, StubPaymentLinkService>();
-        services.AddScoped<ISlipVerificationService, StubSlipVerificationService>();
         services.AddScoped<IProductCatalogService, StubProductCatalogService>();
 
         // Products

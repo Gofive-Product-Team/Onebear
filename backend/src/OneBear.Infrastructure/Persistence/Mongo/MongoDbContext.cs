@@ -43,4 +43,6 @@ public class MongoDbContext
     public IMongoCollection<Role> Roles => _database.GetCollection<Role>("Roles");
     public IMongoCollection<Product> Products => _database.GetCollection<Product>("Products");
     public IMongoCollection<Order> Orders => _database.GetCollection<Order>("Orders");
+    public IMongoCollection<SlipVerification> SlipVerifications => _database.GetCollection<SlipVerification>("SlipVerifications");
+    public IMongoCollection<SlipBlacklist> SlipBlacklists => _database.GetCollection<SlipBlacklist>("SlipBlacklists");
 }
