@@ -122,19 +122,31 @@ public class UserProfileMiddleware
         identity.AddClaim(new Claim(AuthConstants.ClaimPermissions,
             JsonSerializer.Serialize(profile.Permissions)));
 
-        // Fire-and-forget: update LastLoginTimestamp
-        _ = Task.Run(async () =>
+        // Update LastLoginTimestamp at most once every 5 minutes to avoid concurrency conflicts
+        long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        bool shouldUpdate = profile.LastLoginTimestamp is null ||
+            (now - profile.LastLoginTimestamp.Value) > 300_000; // 5 min
+
+        if (shouldUpdate)
         {
-            try
+            _ = Task.Run(async () =>
             {
-                profile.LastLoginTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-                await userProfileRepo.UpdateAsync(profile, CancellationToken.None);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to update LastLoginTimestamp for {Sub}", sub);
-            }
-        });
+                try
+                {
+                    // Use fresh read + update to avoid version conflict
+                    UserProfile? fresh = await userProfileRepo.GetByKeycloakUserIdAsync(sub, CancellationToken.None);
+                    if (fresh is not null)
+                    {
+                        fresh.LastLoginTimestamp = now;
+                        await userProfileRepo.UpdateAsync(fresh, CancellationToken.None);
+                    }
+                }
+                catch
+                {
+                    // Best-effort, silently ignore conflicts
+                }
+            });
+        }
 
         await _next(context);
     }
