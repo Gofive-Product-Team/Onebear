@@ -48,4 +48,5 @@ public class MongoDbContext
     public IMongoCollection<FollowupConfiguration> FollowupConfigurations => _database.GetCollection<FollowupConfiguration>("FollowupConfigurations");
     public IMongoCollection<Booking> Bookings => _database.GetCollection<Booking>("Bookings");
     public IMongoCollection<BookingService> BookingServices => _database.GetCollection<BookingService>("BookingServices");
+    public IMongoCollection<OnboardingState> OnboardingStates => _database.GetCollection<OnboardingState>("OnboardingStates");
 }

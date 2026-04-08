@@ -337,6 +337,18 @@ export const api = {
 		updateStatus: (companyId: string, orderId: string, body: object) =>
 			fetchApi(`/companies/${companyId}/orders/${orderId}/status`, { method: 'PUT', body: JSON.stringify(body) }),
 	},
+	onboarding: {
+		get: (companyId: string) =>
+			fetchApi(`/companies/${companyId}/onboarding`),
+		connectChannel: (companyId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/onboarding/channels`, { method: 'POST', body: JSON.stringify(body) }),
+		advanceStep2: (companyId: string) =>
+			fetchApi(`/companies/${companyId}/onboarding/advance-step2`, { method: 'POST' }),
+		completeStep2: (companyId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/onboarding/complete-step2`, { method: 'POST', body: JSON.stringify(body) }),
+		dismissTutorial: (companyId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/onboarding/dismiss-tutorial`, { method: 'POST', body: JSON.stringify(body) }),
+	},
 	insights: {
 		daily: (companyId: string, date?: string) =>
 			fetchApi(`/companies/${companyId}/insights/daily${date ? '?date=' + date : ''}`),
