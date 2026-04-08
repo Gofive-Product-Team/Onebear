@@ -106,6 +106,9 @@ export function RoomCard({ room, isActive, onClick }: Props) {
 					<div className="flex items-center justify-between gap-2">
 						<div className="flex items-center gap-1.5 min-w-0">
 							<span className={cn('h-2 w-2 shrink-0 rounded-full', stateColor)} />
+							{(room.state === 'Resolved' || room.state === 'Closed') && (
+								<span className="text-[10px] text-t3 font-medium">{room.state}</span>
+							)}
 							<span className={cn('truncate text-sm', isBold ? 'font-bold text-gray-900' : 'font-medium text-gray-700')}>
 								{customerName}
 							</span>

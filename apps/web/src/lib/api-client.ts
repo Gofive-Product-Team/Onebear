@@ -88,6 +88,8 @@ export const api = {
 			fetchApi(`/companies/${companyId}/rooms/${roomId}/resolve`, { method: 'POST' }),
 		close: (companyId: string, roomId: string) =>
 			fetchApi(`/companies/${companyId}/rooms/${roomId}/close`, { method: 'POST' }),
+		reopen: (companyId: string, roomId: string) =>
+			fetchApi(`/companies/${companyId}/rooms/${roomId}/reopen`, { method: 'POST' }),
 		pin: (companyId: string, roomId: string) =>
 			fetchApi(`/companies/${companyId}/rooms/${roomId}/pin`, { method: 'POST' }),
 		unpin: (companyId: string, roomId: string) =>

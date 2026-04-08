@@ -107,6 +107,19 @@ export function useCloseRoom(companyId: string) {
 	})
 }
 
+export function useReopenRoom(companyId: string) {
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: (roomId: string) => api.rooms.reopen(companyId, roomId),
+		onSuccess: (_data, roomId) => {
+			queryClient.invalidateQueries({ queryKey: ['rooms'] })
+			queryClient.invalidateQueries({ queryKey: ['room', companyId, roomId] })
+			queryClient.invalidateQueries({ queryKey: ['badge-count'] })
+		},
+	})
+}
+
 export function usePinRoom(companyId: string) {
 	const queryClient = useQueryClient()
 

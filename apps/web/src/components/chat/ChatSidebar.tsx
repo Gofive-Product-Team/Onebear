@@ -1,13 +1,14 @@
 import { useState, useCallback } from 'react'
-import { Bell, Calendar, X } from 'lucide-react'
+import { Bell, Calendar, X, CheckCircle, XCircle, RotateCcw } from 'lucide-react'
 import { cn } from '@one-bear/ui'
 import type { ChatRoom, ChatState } from '@one-bear/shared-types'
-import { useResolveRoom, useCloseRoom, useUpdateFollowUp } from '@/api/useRooms'
+import { useResolveRoom, useCloseRoom, useReopenRoom, useUpdateFollowUp } from '@/api/useRooms'
 import { usePresence } from '@/hooks/usePresence'
 import { useAuthStore } from '@/stores/auth-store'
 import { Avatar } from '@/components/ui/Avatar'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/Dialog'
 import { PlatformIcon } from './PlatformIcon'
 import { TimerDisplay } from './TimerDisplay'
 import type { HubConnection } from '@microsoft/signalr'
@@ -64,8 +65,10 @@ export function ChatSidebar({ room, connection }: Props) {
 	const { attendingUsers } = usePresence(connection, room.id)
 	const resolveRoom = useResolveRoom(companyId)
 	const closeRoom = useCloseRoom(companyId)
+	const reopenRoom = useReopenRoom(companyId)
 	const updateFollowUp = useUpdateFollowUp(companyId, room.id)
 
+	const [confirmAction, setConfirmAction] = useState<'resolve' | 'close' | 'reopen' | null>(null)
 	const [isFollowUpEditing, setIsFollowUpEditing] = useState(false)
 	const [followUpDate, setFollowUpDate] = useState('')
 	const [followUpNote, setFollowUpNote] = useState('')
@@ -104,10 +107,34 @@ export function ChatSidebar({ room, connection }: Props) {
 		)
 	}, [updateFollowUp])
 
+	const confirmMessages: Record<'resolve' | 'close' | 'reopen', string> = {
+		resolve: 'Are you sure you want to resolve this conversation? The customer will not be notified.',
+		close: 'Are you sure you want to close this conversation? It can be reopened later.',
+		reopen: 'Are you sure you want to reopen this conversation? It will move back to the active queue.',
+	}
+
+	const handleConfirm = useCallback(() => {
+		if (!confirmAction) return
+		const onDone = () => setConfirmAction(null)
+		if (confirmAction === 'resolve') {
+			resolveRoom.mutate(room.id, { onSuccess: onDone })
+		} else if (confirmAction === 'close') {
+			closeRoom.mutate(room.id, { onSuccess: onDone })
+		} else if (confirmAction === 'reopen') {
+			reopenRoom.mutate(room.id, { onSuccess: onDone })
+		}
+	}, [confirmAction, room.id, resolveRoom, closeRoom, reopenRoom])
+
+	const isPending =
+		(confirmAction === 'resolve' && resolveRoom.isPending) ||
+		(confirmAction === 'close' && closeRoom.isPending) ||
+		(confirmAction === 'reopen' && reopenRoom.isPending)
+
 	const state = room.state as ChatState
 	const stateInfo = stateLabels[state] ?? stateLabels.New
 	const customerName = room.customerName ?? 'Unknown Customer'
 	const isOpen = state === 'New' || state === 'InProgress'
+	const isClosedOrResolved = state === 'Resolved' || state === 'Closed'
 
 	return (
 		<div className="flex flex-col h-full bg-bg-page border-l border-border animate-slide-in overflow-y-auto">
@@ -143,19 +170,32 @@ export function ChatSidebar({ room, connection }: Props) {
 							variant="outline"
 							size="sm"
 							className="flex-1"
-							onClick={() => resolveRoom.mutate(room.id)}
-							loading={resolveRoom.isPending}
+							onClick={() => setConfirmAction('resolve')}
 						>
+							<CheckCircle className="h-3.5 w-3.5 mr-1" />
 							Resolve
 						</Button>
 						<Button
 							variant="ghost"
 							size="sm"
 							className="flex-1"
-							onClick={() => closeRoom.mutate(room.id)}
-							loading={closeRoom.isPending}
+							onClick={() => setConfirmAction('close')}
 						>
+							<XCircle className="h-3.5 w-3.5 mr-1" />
 							Close
+						</Button>
+					</div>
+				)}
+				{isClosedOrResolved && (
+					<div className="flex gap-2">
+						<Button
+							variant="outline"
+							size="sm"
+							className="flex-1 text-green-700 border-green-300 hover:bg-green-50"
+							onClick={() => setConfirmAction('reopen')}
+						>
+							<RotateCcw className="h-3.5 w-3.5 mr-1" />
+							Reopen
 						</Button>
 					</div>
 				)}
@@ -394,6 +434,35 @@ export function ChatSidebar({ room, connection }: Props) {
 					)}
 				/>
 			</div>
+
+			{/* Confirmation dialog for state changes */}
+			<Dialog open={confirmAction !== null} onOpenChange={() => setConfirmAction(null)}>
+				<DialogHeader>
+					<DialogTitle>
+						{confirmAction === 'resolve' && 'Resolve conversation'}
+						{confirmAction === 'close' && 'Close conversation'}
+						{confirmAction === 'reopen' && 'Reopen conversation'}
+					</DialogTitle>
+					<DialogDescription>
+						{confirmAction && confirmMessages[confirmAction]}
+					</DialogDescription>
+				</DialogHeader>
+				<DialogFooter>
+					<Button variant="ghost" size="sm" onClick={() => setConfirmAction(null)} disabled={isPending}>
+						Cancel
+					</Button>
+					<Button
+						size="sm"
+						onClick={handleConfirm}
+						loading={isPending}
+						className={confirmAction === 'reopen' ? 'bg-green-600 hover:bg-green-700' : undefined}
+					>
+						{confirmAction === 'resolve' && 'Resolve'}
+						{confirmAction === 'close' && 'Close'}
+						{confirmAction === 'reopen' && 'Reopen'}
+					</Button>
+				</DialogFooter>
+			</Dialog>
 		</div>
 	)
 }
