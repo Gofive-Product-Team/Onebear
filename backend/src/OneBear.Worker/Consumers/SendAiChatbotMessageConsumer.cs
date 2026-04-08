@@ -6,6 +6,7 @@ using MassTransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using OneBear.Application.Events;
+using OneBear.Domain.Common;
 using OneBear.Domain.Entities;
 using OneBear.Domain.Interfaces;
 using OneBear.Domain.Interfaces.Repositories;
@@ -16,6 +17,7 @@ public class SendAiChatbotMessageConsumer : IConsumer<SendAiChatbotMessage>
     private readonly IChatbotConfigurationRepository _chatbotRepo;
     private readonly IChatMessageRepository _messageRepo;
     private readonly IAiActivityLogger _activityLogger;
+    private readonly IProductCatalogService _productCatalog;
     private readonly IConfiguration _configuration;
     private readonly ILogger<SendAiChatbotMessageConsumer> _logger;
 
@@ -24,6 +26,7 @@ public class SendAiChatbotMessageConsumer : IConsumer<SendAiChatbotMessage>
         IChatbotConfigurationRepository chatbotRepo,
         IChatMessageRepository messageRepo,
         IAiActivityLogger activityLogger,
+        IProductCatalogService productCatalog,
         IConfiguration configuration,
         ILogger<SendAiChatbotMessageConsumer> logger)
     {
@@ -31,6 +34,7 @@ public class SendAiChatbotMessageConsumer : IConsumer<SendAiChatbotMessage>
         _chatbotRepo = chatbotRepo;
         _messageRepo = messageRepo;
         _activityLogger = activityLogger;
+        _productCatalog = productCatalog;
         _configuration = configuration;
         _logger = logger;
     }
@@ -67,6 +71,10 @@ public class SendAiChatbotMessageConsumer : IConsumer<SendAiChatbotMessage>
         // Fetch last 20 messages from room for history context
         List<ChatMessage> history = await _messageRepo.GetRecentByRoomAsync(msg.RoomId, 20, ct);
 
+        // Fetch product catalog for AI context
+        var productsResult = await _productCatalog.GetActiveProductsAsync(msg.CompanyId, ct);
+        var products = productsResult is Result<List<ProductCatalogItem>>.Success ps ? ps.Value : new List<ProductCatalogItem>();
+
         // Build the SalesBear-compatible AI service request payload
         var requestPayload = new
         {
@@ -96,7 +104,11 @@ public class SendAiChatbotMessageConsumer : IConsumer<SendAiChatbotMessage>
                 upsellEnabled = config.UpsellEnabled,
                 crossSellEnabled = config.CrossSellEnabled,
                 upsellMaxPricePercent = config.UpsellMaxPricePercent,
-                crossSellMaxItems = config.CrossSellMaxItems
+                crossSellMaxItems = config.CrossSellMaxItems,
+                products = products.Select(p => new
+                {
+                    p.Id, p.Name, p.Description, p.Price, p.ImageUrl, p.IsActive
+                }).ToList()
             },
             timestamp = DateTimeOffset.UtcNow.ToString("o")
         };

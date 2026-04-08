@@ -61,9 +61,11 @@ public static class DependencyInjection
         services.AddScoped<SlipVerificationManagementService>();
         services.AddScoped<ISlipVerificationService>(sp => sp.GetRequiredService<SlipVerificationManagementService>());
 
+        // Product catalog bridge (AI reads real product data)
+        services.AddScoped<IProductCatalogService, ProductCatalogBridge>();
+
         // Stubs for services not yet fully implemented
         services.AddScoped<IPaymentLinkService, StubPaymentLinkService>();
-        services.AddScoped<IProductCatalogService, StubProductCatalogService>();
 
         // Products
         services.AddScoped<ProductService>();
