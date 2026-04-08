@@ -1,5 +1,6 @@
 import { useAuthStore } from '@/stores/auth-store'
 import { getLogoutUrl } from '@/lib/keycloak'
+import { useBadgeCount } from '@/api/useRooms'
 import { SidebarNavItem } from './SidebarNavItem'
 import { ThemeToggle } from './ThemeToggle'
 
@@ -71,6 +72,9 @@ function LogoutIcon() {
 
 export function Sidebar() {
   const user = useAuthStore((s) => s.user)
+  const companyId = user?.companyId ?? ''
+  const { data: badgeData } = useBadgeCount(companyId)
+  const unreadCount = badgeData?.total ?? 0
   const initials = user?.displayName?.slice(0, 2)?.toUpperCase() ?? 'OB'
 
   const handleLogout = () => {
@@ -87,7 +91,7 @@ export function Sidebar() {
 
       {/* Nav items */}
       <nav className="flex flex-col gap-0.5 w-full px-[11px]">
-        <SidebarNavItem to="/chat" label="Chat" icon={<ChatIcon />} hasNotification />
+        <SidebarNavItem to="/chat" label="Chat" icon={<ChatIcon />} hasNotification unreadCount={unreadCount} />
         <SidebarNavItem to="/customer" label="Customer" icon={<CustomerIcon />} />
         <SidebarNavItem to="/dashboard" label="Dashboard" icon={<DashboardIcon />} />
         <SidebarNavItem to="/settings" label="Settings" icon={<SettingsIcon />} />

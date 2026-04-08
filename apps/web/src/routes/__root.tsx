@@ -8,6 +8,7 @@ import { LoginPage } from '../pages/LoginPage'
 import { RegisterPage } from '../pages/RegisterPage'
 import { AuthCallbackPage } from '../pages/AuthCallbackPage'
 import { ErrorBoundary } from '../components/ErrorBoundary'
+import { NotificationToast } from '../components/ui/NotificationToast'
 import { AppShell } from '../components/layout/AppShell'
 import { ChatLayout } from '../components/chat/ChatLayout'
 import { DashboardPage } from '../pages/DashboardPage'
@@ -56,6 +57,7 @@ function RootLayout() {
 				<AppShell>
 					<Outlet />
 				</AppShell>
+				<NotificationToast />
 			</SignalRContext.Provider>
 		</ErrorBoundary>
 	)
