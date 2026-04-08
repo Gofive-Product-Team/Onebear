@@ -509,8 +509,18 @@ export function FollowUpPage() {
     return p
   }, [statusFilter, search])
 
-  const { data, isLoading } = useFollowUps(params)
-  const items = data?.data ?? []
+  const { data, isLoading, isError } = useFollowUps(params)
+
+  // Mock data for prototype when API is unavailable
+  const MOCK_FOLLOWUPS: FollowUpItem[] = useMemo(() => [
+    { id: '1', customerId: 'c1', customerName: 'สมชาย ใจดี', channelPlatform: 'Line', message: 'สวัสดีครับ ยังสนใจสินค้าอยู่ไหมครับ?', scheduledAt: Date.now() + 3600000, status: 'Queued', templateId: null, roomId: null },
+    { id: '2', customerId: 'c2', customerName: 'นิดา รักสวย', channelPlatform: 'Facebook', message: 'ขอบคุณที่สนใจนะคะ มีสินค้าใหม่มาแล้ว!', scheduledAt: Date.now() - 3600000, status: 'Sent', templateId: null, roomId: null },
+    { id: '3', customerId: 'c3', customerName: 'John Smith', channelPlatform: 'Instagram', message: 'Hi! We have special offers just for you 🎁', scheduledAt: Date.now() + 7200000, status: 'Queued', templateId: null, roomId: null },
+    { id: '4', customerId: 'c4', customerName: 'มณี ทองดี', channelPlatform: 'WhatsApp', message: 'สินค้าที่คุณดูไว้กำลังจะหมดสต็อกแล้วนะคะ', scheduledAt: Date.now() - 7200000, status: 'Failed', templateId: null, roomId: null },
+    { id: '5', customerId: 'c5', customerName: 'วิชัย มีสุข', channelPlatform: 'Line', message: 'ยืนยันการนัดหมายวันพรุ่งนี้เวลา 10:00 น.', scheduledAt: Date.now() + 86400000, status: 'Queued', templateId: null, roomId: null },
+  ], [])
+
+  const items = (isError || (!isLoading && !data)) ? MOCK_FOLLOWUPS : (data?.data ?? [])
 
   const summary = useMemo(() => {
     const all: FollowUpItem[] = data?.data ?? []
@@ -609,7 +619,7 @@ export function FollowUpPage() {
           </div>
 
           {/* List */}
-          {isLoading ? (
+          {isLoading && !isError ? (
             <div className="flex h-40 items-center justify-center text-sm text-t3">Loading follow-ups...</div>
           ) : items.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
