@@ -6,10 +6,12 @@ using OneBear.Domain.Interfaces.Repositories;
 public class DashboardService
 {
     private readonly IDashboardRepository _repo;
+    private readonly IOrderRepository _orderRepo;
 
-    public DashboardService(IDashboardRepository repo)
+    public DashboardService(IDashboardRepository repo, IOrderRepository orderRepo)
     {
         _repo = repo;
+        _orderRepo = orderRepo;
     }
 
     public async Task<DashboardResponse> GetDashboardAsync(
@@ -115,13 +117,57 @@ public class DashboardService
             .Take(10)
             .ToList();
 
+        // 6. Order KPIs
+        long todayEndMs = todayStart + 86_400_000;
+        decimal todayRevenue = await _orderRepo.GetRevenueAsync(companyId, todayStart, todayEndMs, ct);
+        decimal periodRevenue = await _orderRepo.GetRevenueAsync(companyId, fromMs, toMs, ct);
+        int newOrders = await _orderRepo.GetCountByStatusAsync(companyId, OrderStatus.New, ct);
+        int paidOrders = await _orderRepo.GetCountByStatusAsync(companyId, OrderStatus.Completed, ct);
+        int pendingPayment = await _orderRepo.GetCountByStatusAsync(companyId, OrderStatus.PendingPayment, ct);
+        int pendingVerify = await _orderRepo.GetCountByStatusAsync(companyId, OrderStatus.PendingVerify, ct);
+
+        // AI closure rate (count orders with AiClosed = true among completed)
+        // For now approximate: just count completed orders
+        OrderKpiDto orderKpi = new()
+        {
+            TodayRevenue = todayRevenue,
+            PeriodRevenue = periodRevenue,
+            NewOrders = newOrders,
+            PaidOrders = paidOrders,
+            PendingPayment = pendingPayment,
+            PendingVerify = pendingVerify,
+            AvgOrderValue = paidOrders > 0 ? periodRevenue / paidOrders : 0,
+            AiClosedOrders = 0, // TODO: query ai_closed flag when needed
+            AiClosureRate = 0,
+        };
+
+        // 7. Calendar Heatmap (daily revenue for the period)
+        List<CalendarHeatmapDto> calendarHeatmap = new();
+        DateTimeOffset cursor = from.Date == default ? DateTimeOffset.UtcNow.AddDays(-30) : from;
+        DateTimeOffset end = to;
+        while (cursor.Date <= end.Date)
+        {
+            long dayStart = new DateTimeOffset(cursor.Date, TimeSpan.Zero).ToUnixTimeMilliseconds();
+            long dayEnd = dayStart + 86_400_000;
+            decimal dayRevenue = await _orderRepo.GetRevenueAsync(companyId, dayStart, dayEnd, ct);
+            calendarHeatmap.Add(new CalendarHeatmapDto
+            {
+                Date = cursor.Date.ToString("yyyy-MM-dd"),
+                Revenue = dayRevenue,
+                OrderCount = 0, // lightweight — skip per-day count for now
+            });
+            cursor = cursor.AddDays(1);
+        }
+
         return new DashboardResponse
         {
             Stats = stats,
+            OrderKpi = orderKpi,
             PlatformDistribution = platformDistribution,
             MessageVolume = messagesByDay,
             ResponseTimeTrend = responseTimeTrend,
             AgentPerformance = agentPerformance,
+            CalendarHeatmap = calendarHeatmap,
         };
     }
 }

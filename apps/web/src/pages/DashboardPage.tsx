@@ -6,6 +6,8 @@ import {
 	useMessageVolume,
 	useResponseTimeTrend,
 	useAgentPerformance,
+	useOrderKpi,
+	useCalendarHeatmap,
 } from '@/api/useDashboard'
 import { StatCard } from '@/components/dashboard/StatCard'
 import { PlatformDistributionChart } from '@/components/dashboard/PlatformDistributionChart'
@@ -60,6 +62,12 @@ export function DashboardPage() {
 	const { data: volumeData, isLoading: volumeLoading } = useMessageVolume(dateRange)
 	const { data: responseData, isLoading: responseLoading } = useResponseTimeTrend(dateRange)
 	const { data: agentData, isLoading: agentLoading } = useAgentPerformance(dateRange)
+	const { data: orderKpi, isLoading: orderKpiLoading } = useOrderKpi(dateRange)
+	const { data: heatmap, isLoading: heatmapLoading } = useCalendarHeatmap(dateRange)
+
+	function formatThb(amount: number) {
+		return new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(amount)
+	}
 
 	return (
 		<div className="mx-auto max-w-7xl space-y-6">
@@ -108,6 +116,79 @@ export function DashboardPage() {
 					</>
 				)}
 			</div>
+
+			{/* Order KPIs */}
+			{orderKpiLoading || !orderKpi ? (
+				<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+					{Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
+				</div>
+			) : (
+				<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+					<div className="rounded-lg border border-border bg-bg-card p-4 shadow-sm">
+						<p className="text-xs font-medium text-t3">Today Revenue</p>
+						<p className="mt-1 text-xl font-bold text-success">{formatThb(orderKpi.todayRevenue)}</p>
+					</div>
+					<div className="rounded-lg border border-border bg-bg-card p-4 shadow-sm">
+						<p className="text-xs font-medium text-t3">Period Revenue</p>
+						<p className="mt-1 text-xl font-bold text-t1">{formatThb(orderKpi.periodRevenue)}</p>
+					</div>
+					<div className="rounded-lg border border-border bg-bg-card p-4 shadow-sm">
+						<p className="text-xs font-medium text-t3">Avg Order Value</p>
+						<p className="mt-1 text-xl font-bold text-t1">{formatThb(orderKpi.avgOrderValue)}</p>
+					</div>
+					<div className="rounded-lg border border-border bg-bg-card p-4 shadow-sm">
+						<p className="text-xs font-medium text-t3">Paid Orders</p>
+						<p className="mt-1 text-xl font-bold text-t1">{orderKpi.paidOrders}</p>
+					</div>
+					<div className="rounded-lg border border-border bg-bg-card p-4 shadow-sm">
+						<p className="text-xs font-medium text-t3">Pending Payment</p>
+						<p className="mt-1 text-xl font-bold text-warning">{orderKpi.pendingPayment}</p>
+					</div>
+					<div className="rounded-lg border border-border bg-bg-card p-4 shadow-sm">
+						<p className="text-xs font-medium text-t3">New Orders</p>
+						<p className="mt-1 text-xl font-bold text-info">{orderKpi.newOrders}</p>
+					</div>
+				</div>
+			)}
+
+			{/* Calendar Heatmap */}
+			{!heatmapLoading && heatmap && heatmap.length > 0 && (
+				<div className="rounded-lg border border-border bg-bg-card p-6 shadow-sm">
+					<h3 className="text-sm font-semibold text-t1">Revenue Calendar</h3>
+					<p className="mb-4 text-xs text-t3">Daily revenue heatmap</p>
+					<div className="flex flex-wrap gap-1">
+						{heatmap.map((day) => {
+							const maxRevenue = Math.max(...heatmap.map((d) => d.revenue), 1)
+							const intensity = day.revenue / maxRevenue
+							const bg = intensity === 0
+								? 'bg-bg-input'
+								: intensity < 0.25
+									? 'bg-primary/20'
+									: intensity < 0.5
+										? 'bg-primary/40'
+										: intensity < 0.75
+											? 'bg-primary/60'
+											: 'bg-primary'
+							return (
+								<div
+									key={day.date}
+									className={`h-5 w-5 rounded-sm ${bg} transition-colors`}
+									title={`${day.date}: ${formatThb(day.revenue)}`}
+								/>
+							)
+						})}
+					</div>
+					<div className="mt-2 flex items-center gap-2 text-xs text-t3">
+						<span>Less</span>
+						<div className="h-3 w-3 rounded-sm bg-bg-input" />
+						<div className="h-3 w-3 rounded-sm bg-primary/20" />
+						<div className="h-3 w-3 rounded-sm bg-primary/40" />
+						<div className="h-3 w-3 rounded-sm bg-primary/60" />
+						<div className="h-3 w-3 rounded-sm bg-primary" />
+						<span>More</span>
+					</div>
+				</div>
+			)}
 
 			{/* 2x2 chart grid */}
 			<div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

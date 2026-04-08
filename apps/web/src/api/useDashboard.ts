@@ -43,6 +43,26 @@ export interface AgentPerformance {
 	roomsHandled: number
 	avgResponseTimeMs: number
 	satisfaction: number
+	revenue: number
+	ordersClosed: number
+}
+
+export interface OrderKpi {
+	todayRevenue: number
+	periodRevenue: number
+	newOrders: number
+	paidOrders: number
+	pendingPayment: number
+	pendingVerify: number
+	avgOrderValue: number
+	aiClosedOrders: number
+	aiClosureRate: number
+}
+
+export interface CalendarHeatmapEntry {
+	date: string // "2026-04-08"
+	revenue: number
+	orderCount: number
 }
 
 // --- Platform colors ---
@@ -63,10 +83,12 @@ const PLATFORM_COLORS: Record<string, string> = {
 
 interface DashboardApiResponse {
 	stats: DashboardStats
+	orderKpi: OrderKpi
 	platformDistribution: Array<{ platform: string; count: number }>
 	messageVolume: Array<{ date: string; inbound: number; outbound: number }>
 	responseTimeTrend: Array<{ date: string; avgMs: number }>
 	agentPerformance: AgentPerformance[]
+	calendarHeatmap: CalendarHeatmapEntry[]
 }
 
 // --- useCompanyId helper ---
@@ -124,4 +146,14 @@ export function useResponseTimeTrend(dateRange: DateRange) {
 export function useAgentPerformance(dateRange: DateRange) {
 	const { data, isLoading, isError } = useDashboardData(dateRange)
 	return { data: data?.agentPerformance, isLoading, isError }
+}
+
+export function useOrderKpi(dateRange: DateRange) {
+	const { data, isLoading, isError } = useDashboardData(dateRange)
+	return { data: data?.orderKpi, isLoading, isError }
+}
+
+export function useCalendarHeatmap(dateRange: DateRange) {
+	const { data, isLoading, isError } = useDashboardData(dateRange)
+	return { data: data?.calendarHeatmap, isLoading, isError }
 }

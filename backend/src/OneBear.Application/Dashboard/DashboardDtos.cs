@@ -3,10 +3,12 @@ namespace OneBear.Application.Dashboard;
 public class DashboardResponse
 {
     public DashboardStatsDto Stats { get; set; } = new();
+    public OrderKpiDto OrderKpi { get; set; } = new();
     public List<PlatformDistributionDto> PlatformDistribution { get; set; } = new();
     public List<MessageVolumeDto> MessageVolume { get; set; } = new();
     public List<ResponseTimeTrendDto> ResponseTimeTrend { get; set; } = new();
     public List<AgentPerformanceDto> AgentPerformance { get; set; } = new();
+    public List<CalendarHeatmapDto> CalendarHeatmap { get; set; } = new();
 }
 
 public class DashboardStatsDto
@@ -47,4 +49,26 @@ public class AgentPerformanceDto
     public int RoomsHandled { get; set; }
     public long AvgResponseTimeMs { get; set; }
     public double Satisfaction { get; set; }
+    public decimal Revenue { get; set; }
+    public int OrdersClosed { get; set; }
+}
+
+public class OrderKpiDto
+{
+    public decimal TodayRevenue { get; set; }
+    public decimal PeriodRevenue { get; set; }
+    public int NewOrders { get; set; }
+    public int PaidOrders { get; set; }
+    public int PendingPayment { get; set; }
+    public int PendingVerify { get; set; }
+    public decimal AvgOrderValue { get; set; }
+    public int AiClosedOrders { get; set; }
+    public double AiClosureRate { get; set; }
+}
+
+public class CalendarHeatmapDto
+{
+    public string Date { get; set; } = "";  // "2026-04-08"
+    public decimal Revenue { get; set; }
+    public int OrderCount { get; set; }
 }
