@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { ChatMessage, PagedResponse } from '@one-bear/shared-types'
 import { api } from '@/lib/api-client'
+import { useAuthStore } from '@/stores/auth-store'
 
 export function useMessages(companyId: string, roomId: string | null) {
 	return useInfiniteQuery<PagedResponse<ChatMessage>>({
@@ -29,6 +30,7 @@ interface SendMessageBody {
 
 export function useSendMessage(companyId: string, roomId: string | null) {
 	const queryClient = useQueryClient()
+	const user = useAuthStore.getState().user
 
 	return useMutation({
 		mutationFn: (body: SendMessageBody) => {
@@ -38,7 +40,55 @@ export function useSendMessage(companyId: string, roomId: string | null) {
 				messageType: body.messageType ?? 'text',
 			})
 		},
-		onSuccess: () => {
+
+		// Optimistic update: show message immediately with "Pending" status
+		onMutate: async (body) => {
+			if (!roomId) return
+
+			// Cancel in-flight queries so they don't overwrite our optimistic update
+			await queryClient.cancelQueries({ queryKey: ['messages', companyId, roomId] })
+
+			// Snapshot previous data for rollback
+			const previousMessages = queryClient.getQueryData(['messages', companyId, roomId])
+
+			// Create optimistic message
+			const optimisticMessage: ChatMessage = {
+				id: `optimistic-${Date.now()}`,
+				roomId,
+				content: body.content,
+				type: body.messageType ?? 'Text',
+				platform: '',
+				deliveryStatus: 'Pending',
+				senderName: user?.displayName ?? null,
+				senderType: 'Agent',
+				timestamp: Date.now(),
+			}
+
+			// Add to the latest page
+			queryClient.setQueryData<{ pages: PagedResponse<ChatMessage>[]; pageParams: unknown[] }>(
+				['messages', companyId, roomId],
+				(old) => {
+					if (!old || !old.pages.length) return old
+					const newPages = [...old.pages]
+					const lastPage = { ...newPages[newPages.length - 1] }
+					lastPage.data = [...lastPage.data, optimisticMessage]
+					newPages[newPages.length - 1] = lastPage
+					return { ...old, pages: newPages }
+				},
+			)
+
+			return { previousMessages }
+		},
+
+		// On error: rollback to previous data
+		onError: (_err, _body, context) => {
+			if (context?.previousMessages) {
+				queryClient.setQueryData(['messages', companyId, roomId], context.previousMessages)
+			}
+		},
+
+		// On success or error: always refetch to get real data from server
+		onSettled: () => {
 			queryClient.invalidateQueries({ queryKey: ['messages', companyId, roomId] })
 			queryClient.invalidateQueries({ queryKey: ['rooms'] })
 			queryClient.invalidateQueries({ queryKey: ['room', companyId, roomId] })

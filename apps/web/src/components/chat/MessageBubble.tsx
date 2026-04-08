@@ -16,6 +16,12 @@ interface Props {
 
 function DeliveryStatusIcon({ status }: { status: string }) {
 	switch (status) {
+		case 'Pending':
+			return (
+				<svg className="h-3.5 w-3.5 text-t3 animate-spin" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+					<circle cx="8" cy="8" r="6" strokeDasharray="20 12" />
+				</svg>
+			)
 		case 'Sent':
 			return (
 				<svg className="h-3.5 w-3.5 text-t3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -68,6 +74,7 @@ export function MessageBubble({ message, currentUserId, onRetry, onPin, onUnpin 
 	const isAgent = senderType === 'agent'
 	const isSystem = msgType === 'system' || senderType === 'system' || senderType === ''
 	const isFailed = message.deliveryStatus === 'Failed'
+	const isPending = message.deliveryStatus === 'Pending'
 
 	// System messages — centered gray pill
 	if (isSystem && msgType === 'system') {
@@ -167,7 +174,8 @@ export function MessageBubble({ message, currentUserId, onRetry, onPin, onUnpin 
 							isFromAgent
 								? 'bg-primary text-white rounded-[16px_16px_4px_16px]'
 								: 'bg-bg-input text-t1 rounded-[16px_16px_16px_4px]',
-							isFailed && 'ring-2 ring-error/30 bg-error-bg text-error',
+							isPending && 'opacity-60',
+						isFailed && 'ring-2 ring-error/30 bg-error-bg text-error',
 						)}
 					>
 						<MessageRenderer message={message} />
