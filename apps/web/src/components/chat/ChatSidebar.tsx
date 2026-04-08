@@ -133,7 +133,7 @@ export function ChatSidebar({ room, connection }: Props) {
 	const state = room.state as ChatState
 	const stateInfo = stateLabels[state] ?? stateLabels.New
 	const customerName = room.customerName ?? 'Unknown Customer'
-	const isOpen = state === 'New' || state === 'InProgress'
+	const isInProgress = state === 'InProgress'
 	const isClosedOrResolved = state === 'Resolved' || state === 'Closed'
 
 	return (
@@ -164,7 +164,7 @@ export function ChatSidebar({ room, connection }: Props) {
 					<span className={cn('h-2.5 w-2.5 rounded-full', stateInfo.color)} />
 					<span className="text-sm font-medium text-t2">{stateInfo.label}</span>
 				</div>
-				{isOpen && (
+				{isInProgress && (
 					<div className="flex gap-2">
 						<Button
 							variant="outline"
