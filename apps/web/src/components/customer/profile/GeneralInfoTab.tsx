@@ -428,20 +428,35 @@ export function GeneralInfoTab({ customer }: Props) {
 				</div>
 			)}
 
-			{/* Address */}
-			{(customer.address || customer.province || customer.district || customer.postalCode) && (
+			{/* Addresses */}
+			{(customer.addresses?.length ?? 0) > 0 && (
 				<div>
-					<SectionLabel>Address</SectionLabel>
-					<div className="rounded-lg border border-border px-4 py-3 text-sm text-t1 space-y-1">
-						{customer.address && <p>{customer.address}</p>}
-						{(customer.subDistrict || customer.district || customer.province) && (
-							<p className="text-t2">
-								{[customer.subDistrict, customer.district, customer.province]
-									.filter(Boolean)
-									.join(', ')}
-							</p>
-						)}
-						{customer.postalCode && <p className="text-t3">{customer.postalCode}</p>}
+					<SectionLabel>Addresses ({customer.addresses.length})</SectionLabel>
+					<div className="space-y-2">
+						{customer.addresses.map((addr) => (
+							<div key={addr.id} className="rounded-lg border border-border px-4 py-3 text-sm space-y-1">
+								<div className="flex items-center gap-2">
+									<span className="font-medium text-t1">{addr.label || 'Address'}</span>
+									{addr.isDefault && (
+										<span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+											Default
+										</span>
+									)}
+								</div>
+								<p className="text-t1">{addr.address}</p>
+								{(addr.subDistrict || addr.district || addr.province) && (
+									<p className="text-t2">
+										{[addr.subDistrict, addr.district, addr.province]
+											.filter(Boolean)
+											.join(', ')}
+									</p>
+								)}
+								{addr.postalCode && (
+									<p className="text-t3">{addr.postalCode}{addr.country && addr.country !== 'Thailand' ? ` · ${addr.country}` : ''}</p>
+								)}
+								{addr.note && <p className="text-xs text-t3 italic">{addr.note}</p>}
+							</div>
+						))}
 					</div>
 				</div>
 			)}

@@ -29,21 +29,9 @@ public class Customer : MongoEntity, IAuditableEntity
     [JsonPropertyName("avatar")]
     public string? Avatar { get; set; }
 
-    // Address
-    [JsonPropertyName("address")]
-    public string? Address { get; set; }
-
-    [JsonPropertyName("province")]
-    public string? Province { get; set; }
-
-    [JsonPropertyName("district")]
-    public string? District { get; set; }
-
-    [JsonPropertyName("subDistrict")]
-    public string? SubDistrict { get; set; }
-
-    [JsonPropertyName("postalCode")]
-    public string? PostalCode { get; set; }
+    // Addresses (multiple)
+    [JsonPropertyName("addresses")]
+    public List<CustomerAddress> Addresses { get; set; } = new();
 
     [JsonPropertyName("nationalId")]
     public string? NationalId { get; set; }

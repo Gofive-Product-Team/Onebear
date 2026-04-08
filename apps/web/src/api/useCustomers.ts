@@ -16,6 +16,19 @@ export interface CustomerChannel {
 	displayName: string | null
 }
 
+export interface CustomerAddress {
+	id: string
+	label: string            // "Home", "Work", "Shipping"
+	address: string          // Street address
+	subDistrict: string | null
+	district: string | null
+	province: string | null
+	postalCode: string | null
+	country: string
+	isDefault: boolean
+	note: string | null      // "ประตูสีแดง ชั้น 3"
+}
+
 export type SuggestedActionType = 'chat' | 'followup' | 'welcome'
 
 export interface CustomerListItem {
@@ -25,11 +38,7 @@ export interface CustomerListItem {
 	email: string | null
 	phone: string | null
 	avatar: string | null
-	address: string | null
-	province: string | null
-	district: string | null
-	subDistrict: string | null
-	postalCode: string | null
+	addresses: CustomerAddress[]
 	channels: CustomerChannel[]
 	tags: CustomerTag[]
 	ltv: number
