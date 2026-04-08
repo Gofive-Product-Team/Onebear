@@ -245,8 +245,7 @@ export function MessageList({ companyId, roomId, typingUsers, viewingUserIds }: 
 				{/* Typing indicator */}
 				<TypingIndicator users={typingUsers} />
 
-				{/* Viewing avatars */}
-				<ViewingAvatars userIds={viewingUserIds} />
+				{/* Viewing avatars — removed, shown on room card + sidebar instead */}
 
 				{/* Scroll anchor */}
 				<div ref={bottomRef} />
