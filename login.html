@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Onebear — Sign In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,700&display=swap" rel="stylesheet">
+<style>
+
+/* ─── TOKENS ─────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --bg-0:#08080F; --bg-1:#0C0C18; --bg-2:#10101C; --bg-3:#16162A;
+  --input-bg:#0D0D1B; --input-border:rgba(255,255,255,0.09); --input-focus:rgba(3,212,198,0.55);
+  --text-1:#ECEDF8; --text-2:#8888B0; --text-3:#56568A;
+  --primary:#039D91; --primary-mid:#02B5A8; --primary-light:#04D4C6; --primary-vivid:#00E5D5;
+  --primary-glow:rgba(3,212,198,0.45); --primary-alpha:rgba(3,157,145,0.12); --primary-alpha-2:rgba(3,157,145,0.06);
+  --border-s:rgba(255,255,255,0.055); --border-m:rgba(255,255,255,0.10); --border-active:rgba(3,212,198,0.45);
+  --shadow-p:0 4px 24px rgba(3,157,145,0.4); --shadow-p-lg:0 8px 40px rgba(3,157,145,0.55);
+  --error:#EF4444; --error-bg:rgba(239,68,68,0.10); --success:#10B981;
+  --divider:rgba(255,255,255,0.07);
+  --social-bg:rgba(255,255,255,0.04); --social-border:rgba(255,255,255,0.09); --social-hover:rgba(255,255,255,0.08);
+  --card-bg:rgba(255,255,255,0.035); --card-border:rgba(255,255,255,0.07);
+  --bubble-user:rgba(3,157,145,0.22); --bubble-ai:rgba(255,255,255,0.065);
+  --grid-dot:rgba(255,255,255,0.045);
+  --right-bg:#0C0C18;
+}
+[data-theme="light"] {
+  --bg-0:#E8EAF0; --bg-1:#F2F3F8; --bg-2:#FFF; --bg-3:#EDEEF5;
+  --input-bg:#F7F8FC; --input-border:rgba(0,0,0,0.10); --input-focus:rgba(3,157,145,0.55);
+  --text-1:#0A0A1A; --text-2:#44485A; --text-3:#7A7A98;
+  --primary:#039D91; --primary-mid:#02B5A8; --primary-light:#04D4C6; --primary-vivid:#00CFC0;
+  --primary-glow:rgba(3,157,145,0.25); --primary-alpha:rgba(3,157,145,0.09); --primary-alpha-2:rgba(3,157,145,0.05);
+  --border-s:rgba(0,0,0,0.07); --border-m:rgba(0,0,0,0.12); --border-active:rgba(3,157,145,0.40);
+  --shadow-p:0 4px 20px rgba(3,157,145,0.28); --shadow-p-lg:0 8px 32px rgba(3,157,145,0.38);
+  --error:#DC2626; --error-bg:rgba(220,38,38,0.08); --success:#059669;
+  --divider:rgba(0,0,0,0.07);
+  --social-bg:rgba(0,0,0,0.03); --social-border:rgba(0,0,0,0.09); --social-hover:rgba(0,0,0,0.06);
+  --card-bg:rgba(255,255,255,0.7); --card-border:rgba(0,0,0,0.08);
+  --bubble-user:rgba(3,157,145,0.18); --bubble-ai:rgba(0,0,0,0.05);
+  --grid-dot:rgba(0,0,0,0.06);
+  --right-bg:#F2F3F8;
+}
+:root {
+  --r-sm:.375rem; --r-md:.5rem; --r-lg:.75rem; --r-xl:1rem; --r-2xl:1.5rem; --r-full:9999px;
+  --ease-spring:cubic-bezier(.34,1.56,.64,1);
+  --ease-out:cubic-bezier(.22,.68,0,1.2);
+  --tr-f:150ms cubic-bezier(.4,0,.2,1);
+  --tr-n:250ms cubic-bezier(.4,0,.2,1);
+  --tr-s:400ms cubic-bezier(.4,0,.2,1);
+}
+
+/* ─── KEYFRAMES ─────────────────────────────────────────── */
+@keyframes fadeUp   { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadeIn   { from{opacity:0} to{opacity:1} }
+@keyframes float    { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+@keyframes float2   { 0%,100%{transform:translateY(0) rotate(-3deg)} 50%{transform:translateY(-7px) rotate(3deg)} }
+@keyframes spin-slow{ from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+@keyframes spin-rev { from{transform:rotate(0deg)} to{transform:rotate(-360deg)} }
+@keyframes orbit-a  { from{transform:rotate(0deg) translateX(110px) rotate(0deg)} to{transform:rotate(360deg) translateX(110px) rotate(-360deg)} }
+@keyframes orbit-b  { from{transform:rotate(90deg) translateX(85px) rotate(-90deg)} to{transform:rotate(450deg) translateX(85px) rotate(-450deg)} }
+@keyframes orbit-c  { from{transform:rotate(200deg) translateX(135px) rotate(-200deg)} to{transform:rotate(560deg) translateX(135px) rotate(-560deg)} }
+@keyframes orbit-d  { from{transform:rotate(310deg) translateX(70px) rotate(-310deg)} to{transform:rotate(670deg) translateX(70px) rotate(-670deg)} }
+@keyframes pulse-glow { 0%,100%{box-shadow:0 0 0 0 var(--primary-glow)} 50%{box-shadow:0 0 0 10px rgba(0,0,0,0)} }
+@keyframes breathe  { 0%,100%{opacity:.4;transform:scale(1)} 50%{opacity:.9;transform:scale(1.18)} }
+@keyframes shimmer  { 0%{background-position:200% center} 100%{background-position:-200% center} }
+@keyframes gradient-move { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+@keyframes wave-in  { from{opacity:0;transform:translateX(-16px) scale(.94)} to{opacity:1;transform:translateX(0) scale(1)} }
+@keyframes typing   { 0%,60%,100%{opacity:.25;transform:translateY(0)} 30%{opacity:1;transform:translateY(-4px)} }
+@keyframes count-in { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+@keyframes ticker   { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+@keyframes ripple   { from{transform:scale(0);opacity:.5} to{transform:scale(4);opacity:0} }
+@keyframes jiggle   { 0%,100%{transform:rotate(0)} 20%{transform:rotate(-5deg)} 40%{transform:rotate(5deg)} 60%{transform:rotate(-3deg)} 80%{transform:rotate(2deg)} }
+@keyframes pop-in   { 0%{opacity:0;transform:scale(.5) translateY(10px)} 70%{transform:scale(1.1) translateY(-2px)} 100%{opacity:1;transform:scale(1) translateY(0)} }
+@keyframes badge-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
+
+/* ─── RESET ──────────────────────────────────────────────── */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+button{font-family:inherit;cursor:pointer;border:none;background:none;outline:none}
+input,textarea{font-family:inherit;outline:none;border:none;background:none}
+a{color:inherit;text-decoration:none}
+body{
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:14px;line-height:1.5;
+  background:var(--bg-0);color:var(--text-1);
+  display:flex;min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+  transition:background var(--tr-s),color var(--tr-s);
+}
+
+/* ─── PAGE ───────────────────────────────────────────────── */
+.page{display:flex;width:100%;min-height:100vh}
+
+/* ═══════════════════════════════════════════════════════════
+   LEFT PANEL
+══════════════════════════════════════════════════════════════ */
+.left-panel{
+  flex:1;
+  background:var(--bg-0);
+  display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
+  padding:56px 56px 56px 72px;
+  position:relative;overflow:hidden;
+  min-height:100vh;
+  transition:background var(--tr-s), color var(--tr-s);
+}
+
+/* dot grid */
+.left-panel::before{
+  content:'';position:absolute;inset:0;
+  background-image:radial-gradient(var(--grid-dot) 1.2px, transparent 1.2px);
+  background-size:28px 28px;
+  pointer-events:none;z-index:0;
+  mask-image:radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
+}
+
+/* ambient orbs */
+.orb{position:absolute;border-radius:50%;pointer-events:none;z-index:0;}
+.orb-1{
+  width:500px;height:500px;
+  background:radial-gradient(circle, rgba(3,212,198,.22) 0%, transparent 68%);
+  top:-140px;left:-120px;
+  animation:breathe 7s ease-in-out infinite;
+}
+.orb-2{
+  width:350px;height:350px;
+  background:radial-gradient(circle, rgba(3,157,145,.15) 0%, transparent 68%);
+  bottom:-60px;right:-80px;
+  animation:breathe 9s ease-in-out infinite 2s;
+}
+.orb-3{
+  width:200px;height:200px;
+  background:radial-gradient(circle, rgba(100,60,255,.12) 0%, transparent 70%);
+  top:55%;left:10%;
+  animation:breathe 11s ease-in-out infinite 4s;
+}
+
+/* left panel light mode text overrides */
+[data-theme="light"] .brand-name { color: #0A0A1A; }
+[data-theme="light"] .left-hero h1 { color: #0A0A1A; }
+[data-theme="light"] .left-hero p { color: rgba(0,0,0,.55); }
+[data-theme="light"] .stat-value { color: #0A0A1A; }
+[data-theme="light"] .stat-label { color: rgba(0,0,0,.45); }
+[data-theme="light"] .ticker-item { color: rgba(0,0,0,.45); }
+[data-theme="light"] .oc-title { color: rgba(0,0,0,.7); }
+[data-theme="light"] .oc-sub { color: rgba(0,0,0,.35); }
+[data-theme="light"] .oc-b.user { color: rgba(0,0,0,.75); }
+[data-theme="light"] .oc-b.ai { color: rgba(0,0,0,.55); }
+
+/* left content */
+.left-content{
+  position:relative;z-index:1;
+  width:100%;
+  display:flex;flex-direction:column;gap:32px;
+}
+/* constrain text blocks to left side */
+.left-brand,
+.left-hero{
+  max-width:460px;
+}
+/* center graphic, stats, ticker */
+.stats-row,
+.ticker-wrap{
+  max-width:460px;
+  align-self:center;
+}
+
+/* brand */
+.left-brand{display:flex;align-items:center;gap:10px;}
+.brand-logo{
+  width:40px;height:40px;
+  background:linear-gradient(135deg,var(--primary-light),var(--primary));
+  border-radius:13px;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 0 1px rgba(255,255,255,.15) inset,var(--shadow-p);
+  animation:pop-in .6s var(--ease-spring) both;
+  flex-shrink:0;
+}
+.brand-logo svg{width:20px;height:20px;}
+.brand-name{
+  font-size:20px;font-weight:800;color:#FFF;letter-spacing:-.4px;
+  animation:fadeUp .5s ease .1s both;
+}
+
+/* hero */
+.left-hero{display:flex;flex-direction:column;gap:10px;animation:fadeUp .6s ease .2s both;}
+.left-hero h1{
+  font-size:34px;font-weight:800;line-height:1.15;letter-spacing:-.9px;color:#FFF;
+}
+.gradient-word{
+  background:linear-gradient(90deg, #04D4C6, #00E5D5, #3BD4AE, #04D4C6);
+  background-size:200% auto;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  animation:shimmer 3s linear infinite;
+  font-style:italic;
+}
+.left-hero p{font-size:14px;color:rgba(255,255,255,.42);line-height:1.7;max-width:360px;}
+
+/* ── ORBIT RING ─────────────────────────────────────────── */
+.orbit-scene{
+  position:relative;width:280px;height:280px;
+  margin:0 auto;
+  align-self:center;
+  animation:float 6s ease-in-out infinite;
+  flex-shrink:0;
+}
+
+/* ring circles */
+.ring{
+  position:absolute;inset:0;
+  border-radius:50%;
+  border:1px solid rgba(3,212,198,.12);
+  pointer-events:none;
+}
+.ring-1{inset:30px; animation:spin-slow 14s linear infinite;}
+.ring-2{inset:6px;  animation:spin-rev 20s linear infinite;}
+
+/* center chat card */
+.orbit-center{
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:148px;
+  background:rgba(255,255,255,.05);
+  backdrop-filter:blur(16px);
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:20px;
+  padding:14px;
+  display:flex;flex-direction:column;gap:8px;
+  box-shadow:0 12px 40px rgba(0,0,0,.5), 0 0 0 1px rgba(3,212,198,.08) inset;
+}
+.oc-header{display:flex;align-items:center;gap:6px;}
+.oc-dot{
+  width:24px;height:24px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--primary-light),var(--primary));
+  box-shadow:0 2px 8px rgba(3,157,145,.5);
+}
+.oc-dot svg{width:12px;height:12px;}
+.oc-title{font-size:10px;font-weight:700;color:rgba(255,255,255,.7);}
+.oc-sub{font-size:9px;color:rgba(255,255,255,.28);}
+.oc-live{
+  display:flex;align-items:center;gap:3px;
+  background:rgba(3,212,198,.14);border:1px solid rgba(3,212,198,.25);
+  border-radius:99px;padding:2px 6px;font-size:9px;font-weight:700;
+  color:var(--primary-vivid);letter-spacing:.3px;margin-left:auto;
+  animation:badge-pulse 2s ease-in-out infinite;
+}
+.oc-live-dot{width:5px;height:5px;border-radius:50%;background:var(--primary-vivid);}
+.oc-bubbles{display:flex;flex-direction:column;gap:5px;}
+.oc-b{
+  font-size:9.5px;padding:5px 8px;border-radius:10px;line-height:1.4;
+  word-break:break-word;
+}
+.oc-b.user{
+  background:var(--bubble-user);border:1px solid rgba(3,157,145,.2);
+  color:rgba(255,255,255,.8);border-radius:10px 10px 3px 10px;
+  align-self:flex-end;
+  animation:wave-in .4s ease .4s both;
+}
+.oc-b.ai{
+  background:var(--bubble-ai);border:1px solid rgba(255,255,255,.08);
+  color:rgba(255,255,255,.6);border-radius:10px 10px 10px 3px;
+  animation:wave-in .4s ease .7s both;
+}
+.typing-dots{display:flex;gap:3px;padding:5px 8px;background:var(--bubble-ai);border:1px solid rgba(255,255,255,.08);border-radius:10px 10px 10px 3px;width:fit-content;align-items:center;}
+.typing-dots span{width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.35);animation:typing 1.4s ease-in-out infinite;}
+.typing-dots span:nth-child(2){animation-delay:.2s;}
+.typing-dots span:nth-child(3){animation-delay:.4s;}
+.oc-notif{
+  position:absolute;top:-8px;right:-8px;
+  width:20px;height:20px;
+  background:var(--error);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:800;color:#fff;
+  border:2px solid var(--bg-0);
+  animation:pop-in .5s var(--ease-spring) 1s both;
+  box-shadow:0 2px 8px rgba(239,68,68,.5);
+}
+
+/* orbiting channel icons */
+.orbit-item{
+  position:absolute;top:50%;left:50%;
+  width:36px;height:36px;
+  border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;
+  box-shadow:0 4px 16px rgba(0,0,0,.35);
+  backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.1);
+  transition:transform var(--tr-f);
+}
+.oi-line  {background:rgba(6,199,85,.20);  animation:orbit-a 12s linear infinite;}
+.oi-fb    {background:rgba(24,119,242,.22); animation:orbit-b 16s linear infinite;}
+.oi-ig    {background:rgba(225,48,108,.20); animation:orbit-c 10s linear infinite;}
+.oi-chat  {background:rgba(3,212,198,.18);  animation:orbit-d 18s linear infinite;}
+
+/* ── STATS ROW ────────────────────────────────────────────── */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.stat-card{
+  background:var(--card-bg);
+  border:1px solid var(--card-border);
+  border-radius:var(--r-xl);
+  padding:14px 12px;
+  display:flex;flex-direction:column;gap:5px;
+  transition:transform var(--tr-f),border-color var(--tr-f);
+  cursor:default;
+}
+.stat-card:hover{transform:translateY(-2px);border-color:rgba(3,212,198,.2);}
+.stat-value{
+  font-size:22px;font-weight:800;color:#FFF;letter-spacing:-.6px;line-height:1;
+  font-variant-numeric:tabular-nums;
+}
+.stat-value.accent{color:var(--primary-vivid);}
+.stat-label{font-size:10.5px;color:rgba(255,255,255,.32);font-weight:500;line-height:1.2;}
+.stat-trend{
+  display:flex;align-items:center;gap:3px;
+  font-size:10px;color:var(--primary-vivid);font-weight:700;
+}
+.stat-trend svg{width:9px;height:9px;}
+
+/* ── CHANNEL TICKER ──────────────────────────────────────── */
+.ticker-wrap{
+  overflow:hidden;
+  mask-image:linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+  height:28px;display:flex;align-items:center;
+}
+.ticker-track{
+  display:flex;gap:20px;align-items:center;
+  animation:ticker 18s linear infinite;
+  white-space:nowrap;
+}
+.ticker-item{
+  display:flex;align-items:center;gap:6px;
+  font-size:11px;color:rgba(255,255,255,.35);font-weight:500;
+  padding:4px 10px;background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.07);border-radius:99px;
+  flex-shrink:0;
+}
+.ticker-item svg{width:12px;height:12px;opacity:.6;}
+
+/* ═══════════════════════════════════════════════════════════
+   RIGHT PANEL
+══════════════════════════════════════════════════════════════ */
+.right-panel{
+  width:480px;flex-shrink:0;
+  background:var(--right-bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:48px;position:relative;
+  border-left:1px solid var(--border-s);
+  transition:background var(--tr-s);
+  overflow:hidden;
+}
+
+/* right subtle glow */
+.right-panel::before{
+  content:'';position:absolute;
+  width:320px;height:320px;border-radius:50%;
+  background:radial-gradient(circle, rgba(3,212,198,.07) 0%, transparent 70%);
+  bottom:-80px;left:50%;transform:translateX(-50%);
+  pointer-events:none;
+}
+
+/* theme btn */
+.theme-btn{
+  position:absolute;top:22px;right:22px;
+  width:36px;height:36px;border-radius:var(--r-lg);
+  background:rgba(255,255,255,.04);border:1px solid var(--border-s);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text-2);transition:all var(--tr-f);
+}
+.theme-btn:hover{background:var(--primary-alpha);border-color:var(--border-active);color:var(--primary-light);transform:rotate(20deg);}
+.theme-btn svg{width:16px;height:16px;}
+
+/* form wrapper */
+.form-wrapper{
+  width:100%;max-width:360px;
+  display:flex;flex-direction:column;
+  position:relative;z-index:1;
+  animation:fadeUp .55s ease both;
+}
+
+/* form header */
+.form-header{margin-bottom:28px;display:flex;flex-direction:column;gap:5px;}
+.form-header h2{
+  font-size:26px;font-weight:800;letter-spacing:-.6px;color:var(--text-1);line-height:1.2;
+}
+.form-header p{font-size:13.5px;color:var(--text-2);}
+
+/* animated underline on h2 */
+.h2-wrap{position:relative;display:inline-block;}
+.h2-wrap::after{
+  content:'';position:absolute;bottom:-3px;left:0;
+  height:2px;width:0%;border-radius:99px;
+  background:linear-gradient(90deg,var(--primary-light),var(--primary-vivid));
+  transition:width .6s ease .3s;
+}
+.form-wrapper.loaded .h2-wrap::after{width:80%;}
+
+/* social buttons */
+.social-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+.social-btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  height:44px;border-radius:var(--r-lg);
+  background:var(--social-bg);border:1px solid var(--social-border);
+  color:var(--text-1);font-size:13px;font-weight:500;
+  transition:all var(--tr-f);position:relative;overflow:hidden;
+}
+.social-btn::before{
+  content:'';position:absolute;inset:0;
+  background:var(--social-hover);opacity:0;transition:opacity var(--tr-f);
+}
+.social-btn:hover::before{opacity:1;}
+.social-btn:hover{transform:translateY(-2px);border-color:var(--border-m);}
+.social-btn:active{transform:translateY(0) scale(.97);}
+.social-btn svg{width:18px;height:18px;flex-shrink:0;}
+
+/* divider */
+.divider{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+.dl{flex:1;height:1px;background:var(--divider);}
+.dt{font-size:12px;color:var(--text-3);white-space:nowrap;font-weight:500;}
+
+/* fields */
+.form-fields{display:flex;flex-direction:column;gap:14px;}
+
+.field{display:flex;flex-direction:column;gap:5px;}
+.field-label{font-size:13px;font-weight:600;color:var(--text-1);}
+
+.field-wrap{position:relative;display:flex;align-items:center;}
+.field-icon{
+  position:absolute;left:13px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text-3);pointer-events:none;
+  transition:color var(--tr-f),transform var(--tr-f);z-index:1;
+}
+.field-icon svg{width:16px;height:16px;}
+.field-wrap:focus-within .field-icon{color:var(--primary-mid);transform:scale(1.1);}
+
+.field-input{
+  width:100%;height:48px;
+  padding:0 44px 0 41px;
+  background:var(--input-bg);
+  border:1.5px solid var(--input-border);
+  border-radius:var(--r-lg);
+  font-size:14px;color:var(--text-1);font-family:inherit;
+  transition:border-color var(--tr-f),box-shadow var(--tr-f),background var(--tr-f);
+}
+.field-input::placeholder{color:var(--text-3);}
+.field-input:focus{
+  border-color:var(--input-focus);
+  box-shadow:0 0 0 3px var(--primary-alpha);
+}
+.field-input.err{border-color:var(--error)!important;box-shadow:0 0 0 3px var(--error-bg)!important;}
+
+.field-error{
+  font-size:12px;color:var(--error);
+  display:none;align-items:center;gap:4px;font-weight:500;
+  animation:fadeUp .2s ease;
+}
+.field-error.show{display:flex;}
+.field-error svg{width:13px;height:13px;flex-shrink:0;}
+
+/* eye toggle */
+.eye-btn{
+  position:absolute;right:11px;
+  width:30px;height:30px;border-radius:var(--r-md);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text-3);transition:all var(--tr-f);
+}
+.eye-btn:hover{color:var(--text-2);background:rgba(255,255,255,.05);transform:scale(1.1);}
+.eye-btn svg{width:15px;height:15px;}
+
+/* meta row */
+.form-meta{display:flex;align-items:center;justify-content:space-between;margin:14px 0 20px;}
+
+.remember{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;}
+.remember input{display:none;}
+.cb-custom{
+  width:19px;height:19px;border-radius:5px;
+  border:1.5px solid var(--input-border);background:var(--input-bg);
+  display:flex;align-items:center;justify-content:center;
+  transition:all var(--tr-f);flex-shrink:0;
+}
+.remember input:checked + .cb-custom{
+  background:var(--primary);border-color:var(--primary);
+  box-shadow:var(--shadow-p);animation:jiggle .4s ease;
+}
+.cb-custom svg{width:11px;height:11px;stroke:white;opacity:0;transform:scale(.5);transition:all var(--tr-f);}
+.remember input:checked + .cb-custom svg{opacity:1;transform:scale(1);}
+.remember-label{font-size:13px;color:var(--text-2);}
+
+.forgot-link{
+  font-size:13px;color:var(--primary-mid);font-weight:600;cursor:pointer;
+  transition:all var(--tr-f);position:relative;
+}
+.forgot-link::after{
+  content:'';position:absolute;bottom:-1px;left:0;right:0;
+  height:1px;background:var(--primary-mid);transform:scaleX(0);
+  transition:transform var(--tr-f);transform-origin:left;
+}
+.forgot-link:hover::after{transform:scaleX(1);}
+.forgot-link:hover{color:var(--primary-vivid);}
+
+/* submit button */
+.submit-btn{
+  width:100%;height:50px;border-radius:var(--r-lg);
+  background:linear-gradient(135deg,var(--primary-mid),var(--primary));
+  color:#fff;font-size:15px;font-weight:700;font-family:inherit;
+  cursor:pointer;border:none;position:relative;overflow:hidden;
+  transition:all var(--tr-f);
+  box-shadow:var(--shadow-p);
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  margin-top:20px;margin-bottom:20px;
+}
+/* animated gradient on hover */
+.submit-btn::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(270deg, #04D4C6, #02B5A8, #039D91, #04D4C6);
+  background-size:200% 100%;
+  opacity:0;
+  animation:gradient-move 3s ease infinite;
+  transition:opacity var(--tr-f);
+}
+.submit-btn:hover::before{opacity:1;}
+.submit-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow-p-lg);}
+.submit-btn:active{transform:translateY(0) scale(.98);}
+.submit-btn:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+.submit-btn span,.submit-btn svg{position:relative;z-index:1;}
+.submit-btn svg{width:16px;height:16px;}
+.btn-spinner{
+  width:20px;height:20px;
+  border:2.5px solid rgba(255,255,255,.3);
+  border-top-color:#fff;border-radius:50%;
+  animation:spin-slow .7s linear infinite;
+  display:none;position:relative;z-index:1;
+}
+.submit-btn.loading .btn-label{display:none;}
+.submit-btn.loading .btn-spinner{display:block;}
+
+/* ripple */
+.ripple-el{
+  position:absolute;border-radius:50%;
+  background:rgba(255,255,255,.25);
+  transform:scale(0);animation:ripple .6s ease-out forwards;
+  pointer-events:none;
+}
+
+/* register row */
+.register-row{text-align:center;font-size:13.5px;color:var(--text-2);}
+.register-link{
+  color:var(--primary-mid);font-weight:700;cursor:pointer;
+  transition:color var(--tr-f);
+}
+.register-link:hover{color:var(--primary-vivid);}
+
+/* sso */
+.sso-row{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  margin-top:14px;padding-top:14px;border-top:1px solid var(--divider);
+}
+.sso-text{font-size:12px;color:var(--text-3);}
+.sso-link{
+  font-size:12px;color:var(--text-2);font-weight:600;cursor:pointer;
+  display:flex;align-items:center;gap:3px;transition:color var(--tr-f);
+}
+.sso-link:hover{color:var(--primary-mid);}
+.sso-link svg{width:13px;height:13px;}
+
+/* two-col name row */
+.field-row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media(max-width:375px){.field-row-2{grid-template-columns:1fr;}}
+
+/* register form scroll */
+#viewRegister{overflow-y:auto;max-height:100vh;padding-bottom:24px;}
+
+/* password strength */
+.pw-strength{display:none;flex-direction:column;gap:4px;margin-top:4px;}
+.pw-strength.show{display:flex;}
+.pw-bars{display:flex;gap:3px;}
+.pw-bar{flex:1;height:3px;border-radius:99px;background:var(--border-m);transition:background var(--tr-f);}
+.pw-bar.active-weak   {background:#EF4444;}
+.pw-bar.active-ok     {background:#F59E0B;}
+.pw-bar.active-strong {background:var(--success);}
+.pw-label{font-size:11px;font-weight:600;color:var(--text-3);}
+
+/* success */
+.success-msg{
+  display:none;flex-direction:column;align-items:center;gap:14px;
+  text-align:center;animation:fadeUp .4s ease both;
+  position:relative;z-index:1;
+}
+.success-icon{
+  width:64px;height:64px;border-radius:50%;
+  background:rgba(16,185,129,.15);border:2px solid rgba(16,185,129,.3);
+  display:flex;align-items:center;justify-content:center;
+  animation:pulse-glow 2s ease-in-out infinite;
+}
+.success-icon svg{width:28px;height:28px;stroke:#10B981;}
+.success-msg h3{font-size:20px;font-weight:800;color:var(--text-1);}
+.success-msg p{font-size:13px;color:var(--text-2);line-height:1.6;}
+
+/* ─── RESPONSIVE ─────────────────────────────────────────── */
+
+/* ── Tablet: show condensed left panel ─────────────────── */
+@media(max-width:1100px){
+  .right-panel{width:420px;}
+  .left-hero h1{font-size:28px;}
+  .orbit-scene{width:240px;height:240px;}
+  .oi-line,.oi-fb,.oi-ig,.oi-chat{width:30px;height:30px;}
+}
+
+/* ── Tablet portrait: hide left, full-width right ───────── */
+@media(max-width:900px){
+  .left-panel{display:none;}
+  .right-panel{
+    width:100%;
+    border-left:none;
+    padding:56px 40px;
+  }
+  .form-wrapper{max-width:420px;}
+}
+
+/* ── Mobile landscape ────────────────────────────────────── */
+@media(max-width:900px) and (orientation:landscape){
+  .right-panel{padding:32px 40px;justify-content:flex-start;overflow-y:auto;}
+  .form-header{margin-bottom:20px;}
+  .form-header h2{font-size:22px;}
+  .social-row{margin-bottom:14px;}
+  .divider{margin-bottom:14px;}
+  .form-fields{gap:10px;}
+  .field-input{height:42px;}
+  .form-meta{margin:10px 0 14px;}
+  .submit-btn{height:44px;margin-top:14px;margin-bottom:14px;}
+}
+
+/* ── Mobile ──────────────────────────────────────────────── */
+@media(max-width:480px){
+  .right-panel{padding:40px 22px 48px;}
+  .form-wrapper{max-width:100%;}
+
+  .form-header{margin-bottom:24px;}
+  .form-header h2{font-size:22px;}
+  .form-header p{font-size:13px;}
+
+  .social-row{gap:8px;margin-bottom:16px;}
+  .social-btn{height:46px;font-size:13px;}
+
+  .divider{margin-bottom:16px;}
+
+  .field-input{height:50px;font-size:14px;}
+
+  .form-meta{margin:12px 0 16px;}
+  .remember-label{font-size:12.5px;}
+  .forgot-link{font-size:12.5px;}
+
+  .submit-btn{height:52px;font-size:15px;margin-top:16px;margin-bottom:18px;}
+
+  .register-row{font-size:13px;}
+  .sso-row{margin-top:12px;padding-top:12px;}
+  .sso-text,.sso-link{font-size:12px;}
+
+  /* theme btn stays accessible */
+  .theme-btn{top:16px;right:16px;}
+}
+
+/* ── Small mobile (iPhone SE, 375px) ────────────────────── */
+@media(max-width:375px){
+  .right-panel{padding:36px 18px 44px;}
+  .form-header h2{font-size:20px;}
+  .social-row{grid-template-columns:1fr;}
+  .social-btn{height:48px;}
+  .field-input{height:48px;}
+  .submit-btn{height:50px;font-size:14px;}
+}
+
+/* ── Reduced motion ──────────────────────────────────────── */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:color .15s,border-color .15s,box-shadow .15s,opacity .15s!important;}
+}
+
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ═══════ LEFT PANEL ═══════ -->
+<div class="left-panel">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <div class="left-content">
+
+    <!-- brand -->
+    <div class="left-brand">
+      <div class="brand-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+      </div>
+      <span class="brand-name">Onebear</span>
+    </div>
+
+    <!-- hero -->
+    <div class="left-hero">
+      <h1>One inbox.<br><span class="gradient-word">Infinite reach.</span></h1>
+      <p>Connect LINE, Facebook, Instagram and more into a single AI-powered workspace. Close deals faster, never miss a message.</p>
+    </div>
+
+    <!-- orbit scene -->
+    <div class="orbit-scene">
+      <!-- rings -->
+      <div class="ring ring-1"></div>
+      <div class="ring ring-2"></div>
+
+      <!-- orbiting channel icons -->
+      <div class="orbit-item oi-line">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="#06C755"><rect width="24" height="24" rx="6"/><path d="M20 10.2C20 6.7 16.4 4 12 4S4 6.7 4 10.2c0 3.2 2.8 5.8 6.5 6.3l.5 1.1c.1.3.5.3.6 0l.5-1.1c3.7-.5 7.9-3.1 7.9-6.3z" fill="white"/></svg>
+      </div>
+      <div class="orbit-item oi-fb">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+      </div>
+      <div class="orbit-item oi-ig">
+        <svg width="16" height="16" viewBox="0 0 24 24"><defs><radialGradient id="ig" cx="30%" cy="107%"><stop offset="0%" stop-color="#fdf497"/><stop offset="5%" stop-color="#fdf497"/><stop offset="45%" stop-color="#fd5949"/><stop offset="60%" stop-color="#d6249f"/><stop offset="90%" stop-color="#285AEB"/></radialGradient></defs><path fill="url(#ig)" d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+      </div>
+      <div class="orbit-item oi-chat">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#04D4C6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+      </div>
+
+      <!-- center chat card -->
+      <div class="orbit-center">
+        <div class="oc-notif">3</div>
+        <div class="oc-header">
+          <div class="oc-dot">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div>
+            <div class="oc-title">Somchai P.</div>
+            <div class="oc-sub">LINE · now</div>
+          </div>
+          <div class="oc-live"><div class="oc-live-dot"></div>AI</div>
+        </div>
+        <div class="oc-bubbles">
+          <div class="oc-b user">อยากสั่งซื้อสินค้า</div>
+          <div class="oc-b ai">ยินดีช่วยครับ! สินค้าที่สนใจ?</div>
+          <div class="typing-dots"><span></span><span></span><span></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-value accent" data-target="98.4" data-suffix="%">0%</div>
+        <div class="stat-label">Response rate</div>
+        <div class="stat-trend">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1,8 4,5 7,7 11,3"/></svg>+2.1%
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" data-target="1.8" data-suffix="m">0m</div>
+        <div class="stat-label">Messages/month</div>
+        <div class="stat-trend">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1,8 4,5 7,7 11,3"/></svg>+18%
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" data-target="4" data-suffix="s">0s</div>
+        <div class="stat-label">Avg. AI reply</div>
+        <div class="stat-trend" style="color:#F59E0B">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1,4 4,7 7,5 11,9"/></svg>−30%
+        </div>
+      </div>
+    </div>
+
+    <!-- channel ticker -->
+    <div class="ticker-wrap">
+      <div class="ticker-track" id="ticker">
+        <div class="ticker-item">
+          <svg viewBox="0 0 24 24" fill="#06C755"><rect width="24" height="24" rx="5"/><path d="M20 10.2C20 6.7 16.4 4 12 4S4 6.7 4 10.2c0 3.2 2.8 5.8 6.5 6.3l.5 1.1c.1.3.5.3.6 0l.5-1.1c3.7-.5 7.9-3.1 7.9-6.3z" fill="white"/></svg>
+          LINE
+        </div>
+        <div class="ticker-item">
+          <svg viewBox="0 0 24 24" fill="#1877F2" width="12" height="12"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+          Facebook
+        </div>
+        <div class="ticker-item">
+          <svg viewBox="0 0 24 24" width="12" height="12"><defs><radialGradient id="ig2" cx="30%" cy="107%"><stop offset="0%" stop-color="#fdf497"/><stop offset="45%" stop-color="#fd5949"/><stop offset="60%" stop-color="#d6249f"/><stop offset="90%" stop-color="#285AEB"/></radialGradient></defs><path fill="url(#ig2)" d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+          Instagram
+        </div>
+        <div class="ticker-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#04D4C6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Webchat
+        </div>
+        <div class="ticker-item">
+          <svg viewBox="0 0 24 24" fill="#25D366" width="12" height="12"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+          WhatsApp
+        </div>
+        <div class="ticker-item">
+          <svg viewBox="0 0 24 24" fill="#0088cc" width="12" height="12"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+          Telegram
+        </div>
+        <!-- duplicate for seamless loop -->
+        <div class="ticker-item">
+          <svg viewBox="0 0 24 24" fill="#06C755" width="12" height="12"><rect width="24" height="24" rx="5"/><path d="M20 10.2C20 6.7 16.4 4 12 4S4 6.7 4 10.2c0 3.2 2.8 5.8 6.5 6.3l.5 1.1c.1.3.5.3.6 0l.5-1.1c3.7-.5 7.9-3.1 7.9-6.3z" fill="white"/></svg>
+          LINE
+        </div>
+        <div class="ticker-item">
+          <svg viewBox="0 0 24 24" fill="#1877F2" width="12" height="12"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+          Facebook
+        </div>
+        <div class="ticker-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#04D4C6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Webchat
+        </div>
+        <div class="ticker-item">
+          <svg viewBox="0 0 24 24" fill="#25D366" width="12" height="12"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+          WhatsApp
+        </div>
+        <div class="ticker-item">
+          <svg viewBox="0 0 24 24" fill="#0088cc" width="12" height="12"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+          Telegram
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════ RIGHT PANEL ═══════ -->
+<div class="right-panel">
+  <button class="theme-btn" id="themeBtn" aria-label="Toggle theme">
+    <svg id="iconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+    </svg>
+    <svg id="iconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+  </button>
+
+  <!-- ── VIEW CONTAINER ── -->
+  <div id="viewLogin" class="form-wrapper">
+
+    <div class="form-header">
+      <div class="h2-wrap"><h2>Welcome back</h2></div>
+      <p>Sign in to your Onebear workspace</p>
+    </div>
+
+    <div class="social-row">
+      <button class="social-btn" type="button">
+        <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Google
+      </button>
+      <button class="social-btn" type="button">
+        <svg viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+        Facebook
+      </button>
+    </div>
+
+    <div class="divider"><div class="dl"></div><span class="dt">or sign in with email</span><div class="dl"></div></div>
+
+    <form id="loginForm" novalidate>
+      <div class="form-fields">
+        <div class="field">
+          <label class="field-label" for="emailIn">Email address</label>
+          <div class="field-wrap">
+            <div class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+            <input id="emailIn" class="field-input" type="email" name="email" placeholder="you@company.com" autocomplete="email" aria-required="true"/>
+          </div>
+          <div class="field-error" id="eErr" role="alert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Please enter a valid email</span></div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="passIn">Password</label>
+          <div class="field-wrap">
+            <div class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+            <input id="passIn" class="field-input" type="password" name="password" placeholder="Enter your password" autocomplete="current-password" aria-required="true"/>
+            <button type="button" class="eye-btn" id="eyeBtn" aria-label="Show password">
+              <svg id="eyeO" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg id="eyeC" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
+          <div class="pw-strength" id="pwStrength">
+            <div class="pw-bars"><div class="pw-bar" id="b1"></div><div class="pw-bar" id="b2"></div><div class="pw-bar" id="b3"></div><div class="pw-bar" id="b4"></div></div>
+            <span class="pw-label" id="pwLabel">Weak</span>
+          </div>
+          <div class="field-error" id="pErr" role="alert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Password must be at least 8 characters</span></div>
+        </div>
+      </div>
+
+      <div class="form-meta">
+        <label class="remember">
+          <input type="checkbox" id="rememberMe">
+          <div class="cb-custom" aria-hidden="true"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></div>
+          <span class="remember-label">Remember me</span>
+        </label>
+        <a class="forgot-link" id="forgotLink" href="#">Forgot password?</a>
+      </div>
+
+      <button type="submit" class="submit-btn" id="submitBtn">
+        <span class="btn-label" style="display:flex;align-items:center;gap:8px;position:relative;z-index:1">Sign in <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/></svg></span>
+        <div class="btn-spinner"></div>
+      </button>
+    </form>
+
+    <div class="register-row">Don't have an account? <a class="register-link" id="goRegister" href="#">Start free trial →</a></div>
+    <div class="sso-row">
+      <span class="sso-text">Enterprise?</span>
+      <a class="sso-link" href="#">Sign in with SSO <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9,18 15,12 9,6"/></svg></a>
+    </div>
+  </div>
+
+  <!-- ── REGISTER VIEW ── -->
+  <div id="viewRegister" class="form-wrapper" style="display:none">
+
+    <div class="form-header">
+      <div class="h2-wrap"><h2>Create account</h2></div>
+      <p>Start your free Onebear trial today</p>
+    </div>
+
+    <div class="social-row">
+      <button class="social-btn" type="button">
+        <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Google
+      </button>
+      <button class="social-btn" type="button">
+        <svg viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+        Facebook
+      </button>
+    </div>
+
+    <div class="divider"><div class="dl"></div><span class="dt">or fill in your details</span><div class="dl"></div></div>
+
+    <form id="registerForm" novalidate>
+      <div class="form-fields">
+
+        <!-- name row -->
+        <div class="field-row-2">
+          <div class="field">
+            <label class="field-label" for="rFirst">First name</label>
+            <div class="field-wrap">
+              <div class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+              <input id="rFirst" class="field-input" type="text" placeholder="Jane" autocomplete="given-name" aria-required="true"/>
+            </div>
+            <div class="field-error" id="rFirstErr" role="alert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Required</span></div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="rLast">Last name</label>
+            <div class="field-wrap">
+              <div class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+              <input id="rLast" class="field-input" type="text" placeholder="Smith" autocomplete="family-name" aria-required="true"/>
+            </div>
+            <div class="field-error" id="rLastErr" role="alert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Required</span></div>
+          </div>
+        </div>
+
+        <!-- company -->
+        <div class="field">
+          <label class="field-label" for="rCompany">Company name</label>
+          <div class="field-wrap">
+            <div class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg></div>
+            <input id="rCompany" class="field-input" type="text" placeholder="Acme Co." autocomplete="organization" aria-required="true"/>
+          </div>
+          <div class="field-error" id="rCompanyErr" role="alert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Required</span></div>
+        </div>
+
+        <!-- email -->
+        <div class="field">
+          <label class="field-label" for="rEmail">Work email</label>
+          <div class="field-wrap">
+            <div class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+            <input id="rEmail" class="field-input" type="email" placeholder="you@company.com" autocomplete="email" aria-required="true"/>
+          </div>
+          <div class="field-error" id="rEmailErr" role="alert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Please enter a valid email</span></div>
+        </div>
+
+        <!-- password -->
+        <div class="field">
+          <label class="field-label" for="rPass">Password</label>
+          <div class="field-wrap">
+            <div class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+            <input id="rPass" class="field-input" type="password" placeholder="Min. 8 characters" autocomplete="new-password" aria-required="true"/>
+            <button type="button" class="eye-btn" id="rEyeBtn" aria-label="Show password">
+              <svg id="rEyeO" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg id="rEyeC" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
+          <div class="pw-strength" id="rPwStrength">
+            <div class="pw-bars"><div class="pw-bar" id="rb1"></div><div class="pw-bar" id="rb2"></div><div class="pw-bar" id="rb3"></div><div class="pw-bar" id="rb4"></div></div>
+            <span class="pw-label" id="rPwLabel">Weak</span>
+          </div>
+          <div class="field-error" id="rPassErr" role="alert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Password must be at least 8 characters</span></div>
+        </div>
+
+        <!-- confirm password -->
+        <div class="field">
+          <label class="field-label" for="rConfirm">Confirm password</label>
+          <div class="field-wrap">
+            <div class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+            <input id="rConfirm" class="field-input" type="password" placeholder="Re-enter password" autocomplete="new-password" aria-required="true"/>
+            <button type="button" class="eye-btn" id="rCEyeBtn" aria-label="Show password">
+              <svg id="rCEyeO" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg id="rCEyeC" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
+          <div class="field-error" id="rConfirmErr" role="alert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Passwords do not match</span></div>
+        </div>
+
+      </div>
+
+      <button type="submit" class="submit-btn" id="registerBtn" style="margin-top:18px;margin-bottom:16px">
+        <span class="btn-label" style="display:flex;align-items:center;gap:8px;position:relative;z-index:1">Create account <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/></svg></span>
+        <div class="btn-spinner"></div>
+      </button>
+    </form>
+
+    <div class="register-row">Already have an account? <a class="register-link" id="goLogin" href="#">Sign in →</a></div>
+  </div>
+
+  <!-- ── SUCCESS STATE ── -->
+  <div class="success-msg" id="successMsg">
+    <div class="success-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>
+    </div>
+    <h3>You're in!</h3>
+    <p>Redirecting to your workspace…</p>
+  </div>
+</div>
+
+</div><!-- .page -->
+
+<script>
+// ── THEME ─────────────────────────────────────────────────────
+const html = document.documentElement;
+const themeBtn = document.getElementById('themeBtn');
+const iconSun  = document.getElementById('iconSun');
+const iconMoon = document.getElementById('iconMoon');
+let theme = localStorage.getItem('ob-theme') || 'dark';
+applyTheme(theme);
+themeBtn.addEventListener('click', () => {
+  theme = theme === 'dark' ? 'light' : 'dark';
+  applyTheme(theme);
+  localStorage.setItem('ob-theme', theme);
+});
+function applyTheme(t) {
+  html.setAttribute('data-theme', t);
+  iconSun.style.display  = t === 'dark'  ? 'block' : 'none';
+  iconMoon.style.display = t === 'light' ? 'block' : 'none';
+}
+
+// ── VIEW SWITCHING ────────────────────────────────────────────
+const viewLogin    = document.getElementById('viewLogin');
+const viewRegister = document.getElementById('viewRegister');
+const successMsg   = document.getElementById('successMsg');
+
+function showView(view) {
+  [viewLogin, viewRegister, successMsg].forEach(v => {
+    v.style.opacity = '0';
+    v.style.transform = 'translateY(10px) scale(.98)';
+    v.style.transition = 'all .25s ease';
+  });
+  setTimeout(() => {
+    viewLogin.style.display    = view === 'login'    ? 'flex' : 'none';
+    viewRegister.style.display = view === 'register' ? 'flex' : 'none';
+    successMsg.style.display   = view === 'success'  ? 'flex' : 'none';
+    const active = view === 'login' ? viewLogin : view === 'register' ? viewRegister : successMsg;
+    active.style.flexDirection = 'column';
+    requestAnimationFrame(() => {
+      active.style.opacity = '1';
+      active.style.transform = 'translateY(0) scale(1)';
+    });
+    if (view !== 'success') active.classList.add('loaded');
+  }, 220);
+}
+
+document.getElementById('goRegister').addEventListener('click', e => { e.preventDefault(); showView('register'); });
+document.getElementById('goLogin').addEventListener('click',    e => { e.preventDefault(); showView('login'); });
+
+setTimeout(() => viewLogin.classList.add('loaded'), 100);
+
+// ── HELPERS ───────────────────────────────────────────────────
+function validEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()); }
+function setErr(input, errEl, msg) {
+  input.classList.add('err');
+  errEl.querySelector('span').textContent = msg;
+  errEl.classList.add('show');
+  input.setAttribute('aria-invalid','true');
+}
+function clrErr(input, errEl) {
+  input.classList.remove('err');
+  errEl.classList.remove('show');
+  input.setAttribute('aria-invalid','false');
+}
+function eyeToggle(inputId, openId, closedId, btnId) {
+  const input = document.getElementById(inputId);
+  document.getElementById(btnId).addEventListener('click', () => {
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    document.getElementById(openId).style.display   = show ? 'none'  : 'block';
+    document.getElementById(closedId).style.display = show ? 'block' : 'none';
+  });
+}
+function pwStrengthMeter(inputId, strengthId, labelId, barIds) {
+  const input    = document.getElementById(inputId);
+  const strength = document.getElementById(strengthId);
+  const label    = document.getElementById(labelId);
+  const bars     = barIds.map(id => document.getElementById(id));
+  input.addEventListener('input', () => {
+    const v = input.value;
+    if (!v) { strength.classList.remove('show'); return; }
+    strength.classList.add('show');
+    let score = 0;
+    if (v.length >= 8)  score++;
+    if (v.length >= 12) score++;
+    if (/[A-Z]/.test(v) && /[0-9]/.test(v)) score++;
+    if (/[^A-Za-z0-9]/.test(v)) score++;
+    const cls = score <= 1 ? 'active-weak' : score <= 3 ? 'active-ok' : 'active-strong';
+    bars.forEach((b,i) => { b.className = 'pw-bar'; if (i < score) b.classList.add(cls); });
+    label.textContent = ['Weak','Fair','Good','Strong'][Math.max(0,score-1)];
+    label.style.color = score <= 1 ? 'var(--error)' : score <= 3 ? '#F59E0B' : 'var(--success)';
+  });
+}
+function addRipple(btnId) {
+  document.getElementById(btnId).addEventListener('mousedown', function(e) {
+    const r = this.getBoundingClientRect();
+    const el = document.createElement('span');
+    const size = Math.max(r.width, r.height) * 2;
+    el.className = 'ripple-el';
+    el.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX-r.left-size/2}px;top:${e.clientY-r.top-size/2}px;`;
+    this.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  });
+}
+
+// ── LOGIN ─────────────────────────────────────────────────────
+eyeToggle('passIn','eyeO','eyeC','eyeBtn');
+pwStrengthMeter('passIn','pwStrength','pwLabel',['b1','b2','b3','b4']);
+addRipple('submitBtn');
+
+const emailIn = document.getElementById('emailIn');
+const passIn  = document.getElementById('passIn');
+const eErr    = document.getElementById('eErr');
+const pErr    = document.getElementById('pErr');
+
+emailIn.addEventListener('blur',  () => { if (emailIn.value && !validEmail(emailIn.value)) setErr(emailIn,eErr,'Please enter a valid email'); else clrErr(emailIn,eErr); });
+emailIn.addEventListener('input', () => { if (emailIn.classList.contains('err') && validEmail(emailIn.value)) clrErr(emailIn,eErr); });
+passIn.addEventListener('blur',   () => { if (passIn.value && passIn.value.length<8) setErr(passIn,pErr,'Password must be at least 8 characters'); else clrErr(passIn,pErr); });
+passIn.addEventListener('input',  () => { if (passIn.classList.contains('err') && passIn.value.length>=8) clrErr(passIn,pErr); });
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  let hasErr = false;
+  if (!emailIn.value.trim())          { setErr(emailIn,eErr,'Email is required'); hasErr=true; }
+  else if (!validEmail(emailIn.value)){ setErr(emailIn,eErr,'Enter a valid email'); hasErr=true; }
+  else clrErr(emailIn,eErr);
+  if (!passIn.value)             { setErr(passIn,pErr,'Password is required'); hasErr=true; }
+  else if (passIn.value.length<8){ setErr(passIn,pErr,'At least 8 characters'); hasErr=true; }
+  else clrErr(passIn,pErr);
+  if (hasErr) { (emailIn.classList.contains('err')?emailIn:passIn).focus(); return; }
+  const btn = document.getElementById('submitBtn');
+  btn.classList.add('loading'); btn.disabled=true;
+  await new Promise(r=>setTimeout(r,1800));
+  showView('success');
+});
+
+document.getElementById('forgotLink').addEventListener('click', e => {
+  e.preventDefault();
+  emailIn.focus();
+  emailIn.style.borderColor='var(--primary-mid)';
+  emailIn.style.boxShadow='0 0 0 3px var(--primary-alpha)';
+  setTimeout(()=>{ emailIn.style.borderColor=''; emailIn.style.boxShadow=''; },2000);
+});
+
+// ── REGISTER ──────────────────────────────────────────────────
+eyeToggle('rPass','rEyeO','rEyeC','rEyeBtn');
+eyeToggle('rConfirm','rCEyeO','rCEyeC','rCEyeBtn');
+pwStrengthMeter('rPass','rPwStrength','rPwLabel',['rb1','rb2','rb3','rb4']);
+addRipple('registerBtn');
+
+const rFirst   = document.getElementById('rFirst');
+const rLast    = document.getElementById('rLast');
+const rCompany = document.getElementById('rCompany');
+const rEmail   = document.getElementById('rEmail');
+const rPass    = document.getElementById('rPass');
+const rConfirm = document.getElementById('rConfirm');
+
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  let hasErr = false;
+  const checks = [
+    [rFirst,   document.getElementById('rFirstErr'),   v => v.trim().length>0,              'First name is required'],
+    [rLast,    document.getElementById('rLastErr'),    v => v.trim().length>0,              'Last name is required'],
+    [rCompany, document.getElementById('rCompanyErr'), v => v.trim().length>0,              'Company name is required'],
+    [rEmail,   document.getElementById('rEmailErr'),   v => validEmail(v),                  'Enter a valid email'],
+    [rPass,    document.getElementById('rPassErr'),    v => v.length>=8,                    'At least 8 characters'],
+    [rConfirm, document.getElementById('rConfirmErr'), v => v===rPass.value && v.length>0,  'Passwords do not match'],
+  ];
+  checks.forEach(([input, errEl, isValid, msg]) => {
+    if (!isValid(input.value)) { setErr(input,errEl,msg); if(!hasErr){ input.focus(); } hasErr=true; }
+    else clrErr(input,errEl);
+  });
+  if (hasErr) return;
+  const btn = document.getElementById('registerBtn');
+  btn.classList.add('loading'); btn.disabled=true;
+  await new Promise(r=>setTimeout(r,1800));
+  showView('success');
+});
+
+// ── COUNT-UP STATS ────────────────────────────────────────────
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (!entry.isIntersecting) return;
+    entry.target.querySelectorAll('[data-target]').forEach(el => {
+      const target = parseFloat(el.dataset.target);
+      const suffix = el.dataset.suffix || '';
+      const isInt  = Number.isInteger(target);
+      let start = 0;
+      const step = ts => {
+        if (!start) start = ts;
+        const p = Math.min((ts-start)/1400,1);
+        const ease = 1-Math.pow(1-p,3);
+        el.textContent = (isInt?Math.round(target*ease):( target*ease).toFixed(1))+suffix;
+        if (p<1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    });
+    observer.unobserve(entry.target);
+  });
+},{ threshold:0.3 });
+const statsEl = document.querySelector('.stats-row');
+if (statsEl) observer.observe(statsEl);
+</script>
+</body>
+</html>
