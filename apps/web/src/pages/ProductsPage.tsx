@@ -87,21 +87,107 @@ function generateCombinations(axes: VariantAxis[]): VariantCombination[] {
 interface AiSuggestion {
 	productId: string
 	productName: string
+	originalPrice: number
+	suggestedPrice: number
 	confidence: number
 	approved: boolean | null
 }
 
 function mockAiSuggestions(allProducts: Product[], currentId: string): AiSuggestion[] {
+	const discounts = [0.88, 0.95, 1.0, 0.92]
 	return allProducts
 		.filter((p) => p.id !== currentId)
-		.slice(0, 5)
+		.slice(0, 4)
 		.map((p, i) => ({
 			productId: p.id,
 			productName: p.name,
-			confidence: Math.round(90 - i * 12),
+			originalPrice: p.price,
+			suggestedPrice: Math.round(p.price * discounts[i % discounts.length]),
+			confidence: Math.round(90 - i * 9),
 			approved: null,
 		}))
 }
+
+function confidenceColor(pct: number) {
+	if (pct >= 80) return 'bg-success/15 text-success'
+	if (pct >= 60) return 'bg-warning/15 text-warning'
+	return 'bg-error/15 text-error'
+}
+
+// ─── SVG placeholder image ─────────────────────────────────────────────────────
+
+function svgPlaceholder(letter: string, bg: string) {
+	const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="${bg}" rx="8"/><text x="50" y="62" font-family="system-ui" font-size="38" fill="rgba(255,255,255,0.85)" text-anchor="middle">${letter}</text></svg>`
+	return `data:image/svg+xml,${encodeURIComponent(svg)}`
+}
+
+// ─── Mock products (shown when API is unavailable) ────────────────────────────
+
+const MOCK_PRODUCTS: Product[] = [
+	{
+		id: 'mock-1', name: 'ครีมบำรุงผิวหน้า SPF50', category: 'Beauty', price: 890,
+		stock: 45, effectiveStock: 45, status: 'Active', allowPreOrder: false,
+		description: 'ครีมกันแดด SPF50 PA+++ สูตรบำรุงผิวหน้า เหมาะสำหรับผิวทุกประเภท',
+		imageUrl: svgPlaceholder('C', '#0d9488'), images: [],
+		variants: [
+			{ id: 'v1', type: 'ขนาด', value: '30ml', stock: 20, priceAdjustment: 0 },
+			{ id: 'v2', type: 'ขนาด', value: '50ml', stock: 25, priceAdjustment: 200 },
+		],
+		upsells: [{ productId: 'mock-2', productName: 'เซรั่มวิตามินซี', customPrice: null, sortOrder: 0 }],
+		crossSells: [{ productId: 'mock-3', productName: 'มาส์กหน้าลดสิว', customPrice: null, sortOrder: 0 }],
+		upsellMaxPrice: 2000, isSample: false, createdTimestamp: Date.now() - 86400000 * 30, updatedTimestamp: null,
+	},
+	{
+		id: 'mock-2', name: 'เซรั่มวิตามินซี', category: 'Beauty', price: 1290,
+		stock: 28, effectiveStock: 28, status: 'Active', allowPreOrder: false,
+		description: 'เซรั่มวิตามินซี 20% ช่วยให้ผิวกระจ่างใสภายใน 4 สัปดาห์',
+		imageUrl: svgPlaceholder('S', '#7c3aed'), images: [],
+		variants: [],
+		upsells: [{ productId: 'mock-4', productName: 'ครีมบำรุงผิวกาย Luxe', customPrice: 1490, sortOrder: 0 }],
+		crossSells: [
+			{ productId: 'mock-1', productName: 'ครีมบำรุงผิวหน้า SPF50', customPrice: null, sortOrder: 0 },
+			{ productId: 'mock-3', productName: 'มาส์กหน้าลดสิว', customPrice: 320, sortOrder: 1 },
+		],
+		upsellMaxPrice: 2500, isSample: false, createdTimestamp: Date.now() - 86400000 * 25, updatedTimestamp: null,
+	},
+	{
+		id: 'mock-3', name: 'มาส์กหน้าลดสิว', category: 'Beauty', price: 390,
+		stock: 0, effectiveStock: 0, status: 'Active', allowPreOrder: false,
+		description: 'มาส์กหน้าสูตรควบคุมความมัน ลดสิวอุดตัน',
+		imageUrl: svgPlaceholder('M', '#dc2626'), images: [],
+		variants: [
+			{ id: 'v3', type: 'สูตร', value: 'ลดสิว', stock: 0, priceAdjustment: 0 },
+			{ id: 'v4', type: 'สูตร', value: 'เติมความชุ่มชื้น', stock: 0, priceAdjustment: 50 },
+		],
+		upsells: [], crossSells: [],
+		upsellMaxPrice: null, isSample: false, createdTimestamp: Date.now() - 86400000 * 20, updatedTimestamp: null,
+	},
+	{
+		id: 'mock-4', name: 'ครีมบำรุงผิวกาย Luxe', category: 'Beauty', price: 1890,
+		stock: 12, effectiveStock: 12, status: 'Active', allowPreOrder: false,
+		description: 'ครีมบำรุงผิวกายสูตร Luxe ผสมน้ำมันอาร์กาน',
+		imageUrl: svgPlaceholder('L', '#d97706'), images: [],
+		variants: [],
+		upsells: [], crossSells: [{ productId: 'mock-1', productName: 'ครีมบำรุงผิวหน้า SPF50', customPrice: null, sortOrder: 0 }],
+		upsellMaxPrice: 3500, isSample: false, createdTimestamp: Date.now() - 86400000 * 15, updatedTimestamp: null,
+	},
+	{
+		id: 'mock-5', name: 'โลชั่นกันแดด Body SPF30', category: 'Beauty', price: 590,
+		stock: null, effectiveStock: null, status: 'Active', allowPreOrder: false,
+		description: 'โลชั่นกันแดดสำหรับผิวกาย กันน้ำ 80 นาที',
+		imageUrl: svgPlaceholder('B', '#2563eb'), images: [],
+		variants: [], upsells: [], crossSells: [],
+		upsellMaxPrice: null, isSample: false, createdTimestamp: Date.now() - 86400000 * 10, updatedTimestamp: null,
+	},
+	{
+		id: 'mock-6', name: 'คลีนซิ่งโฟม Gentle', category: 'Skincare', price: 320,
+		stock: 5, effectiveStock: 5, status: 'Inactive', allowPreOrder: false,
+		description: 'โฟมล้างหน้าสูตรอ่อนโยน ไม่แห้งตึง',
+		imageUrl: null, images: [],
+		variants: [], upsells: [], crossSells: [],
+		upsellMaxPrice: null, isSample: false, createdTimestamp: Date.now() - 86400000 * 5, updatedTimestamp: null,
+	},
+]
 
 // ─── Product Detail Panel ──────────────────────────────────────────────────────
 
@@ -243,18 +329,46 @@ function ProductDetailPanel({
 			)}
 
 			{/* Header */}
-			<div className="flex items-start justify-between border-b border-border px-5 py-4">
-				<div className="min-w-0 flex-1">
-					<div className="flex items-center gap-2">
-						<Package className="h-4 w-4 flex-shrink-0 text-t3" />
-						<h2 className="truncate text-base font-semibold text-t1">{product.name}</h2>
-					</div>
-					<p className="mt-0.5 text-xs text-t3">{product.category} · ฿{product.price.toLocaleString()}</p>
+			<div className="flex items-start gap-3 border-b border-border px-4 py-3.5">
+				{/* Product thumbnail */}
+				<div className="relative shrink-0">
+					{product.imageUrl ? (
+						<img src={product.imageUrl} alt={product.name} className="h-14 w-14 rounded-xl object-cover border border-border" />
+					) : (
+						<div className="flex h-14 w-14 items-center justify-center rounded-xl bg-bg-input border border-dashed border-warning/50">
+							<Package className="h-6 w-6 text-t3" />
+						</div>
+					)}
+					{!product.imageUrl && (
+						<span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-warning text-[9px] font-bold text-white">!</span>
+					)}
 				</div>
-				<button onClick={onClose} className="ml-3 flex-shrink-0 rounded-lg p-1.5 text-t3 hover:bg-bg-hover hover:text-t1">
+				{/* Name + meta */}
+				<div className="min-w-0 flex-1">
+					<h2 className="truncate text-sm font-semibold text-t1">{product.name}</h2>
+					<p className="mt-0.5 text-xs text-t3">{product.category}</p>
+					<div className="mt-1 flex items-center gap-2">
+						<span className="text-sm font-bold text-primary">฿{product.price.toLocaleString()}</span>
+						{product.effectiveStock === null ? (
+							<span className="text-[10px] text-t3">Unlimited stock</span>
+						) : product.effectiveStock <= 0 ? (
+							<span className="text-[10px] font-medium text-error">Out of stock</span>
+						) : (
+							<span className="text-[10px] text-t3">{product.effectiveStock} in stock</span>
+						)}
+					</div>
+				</div>
+				<button onClick={onClose} className="shrink-0 rounded-lg p-1.5 text-t3 hover:bg-bg-hover hover:text-t1">
 					<X className="h-4 w-4" />
 				</button>
 			</div>
+			{/* Missing image warning */}
+			{!product.imageUrl && (
+				<div className="flex items-center gap-2 bg-warning/8 px-4 py-2 text-xs text-warning">
+					<span>⚠️</span>
+					<span>สินค้านี้ไม่มีรูปภาพ — AI จะแนะนำสินค้าที่มีรูปได้ดีกว่า</span>
+				</div>
+			)}
 
 			{/* Tabs */}
 			<div className="flex border-b border-border">
@@ -407,6 +521,23 @@ function ProductDetailPanel({
 				{/* ── Upsell / Cross-sell tab ──────────────────────────────────────── */}
 				{activeTab === 'upsell' && (
 					<div className="space-y-5">
+						{/* Upsell max price cap */}
+						<div className="rounded-lg border border-border bg-bg-input px-3 py-2.5 flex items-center gap-3">
+							<div className="flex-1">
+								<p className="text-xs font-medium text-t2">ราคาสูงสุดที่ AI จะแนะนำ Upsell</p>
+								<p className="text-[10px] text-t3 mt-0.5">AI จะไม่แนะนำสินค้า upsell ที่ราคาเกินกว่านี้</p>
+							</div>
+							<div className="flex items-center gap-1 shrink-0">
+								<span className="text-xs text-t3">฿</span>
+								<input
+									type="number"
+									defaultValue={product.upsellMaxPrice ?? ''}
+									placeholder="ไม่จำกัด"
+									className="w-24 rounded border border-border-input bg-bg-card px-2 py-1 text-right text-xs text-t1 focus:outline-none focus:border-primary"
+								/>
+							</div>
+						</div>
+
 						{/* Upsell section */}
 						<div>
 							<div className="mb-2 flex items-center justify-between">
@@ -424,37 +555,52 @@ function ProductDetailPanel({
 
 							{/* Upsell AI suggestions */}
 							{upsellAiSuggestions && (
-								<div className="mb-3 rounded-lg border border-primary/30 bg-bg-input p-3 space-y-1.5">
-									<p className="text-xs font-medium text-t2 mb-2">AI Suggestions</p>
+								<div className="mb-3 rounded-xl border border-primary/30 bg-bg-input p-3 space-y-2">
+									<p className="text-xs font-semibold text-t2 mb-1">🤖 AI แนะนำ Upsell</p>
 									{upsellAiSuggestions.map((s) => (
-										<div key={s.productId} className="flex items-center justify-between text-xs">
-											<span className="text-t1 truncate mr-2">{s.productName}</span>
-											<div className="flex items-center gap-1.5 flex-shrink-0">
-												<Badge variant="secondary" className="text-[10px] px-1.5 py-0">{s.confidence}%</Badge>
-												{s.approved === null ? (
-													<>
-														<button
-															onClick={() => {
-																const p = allProducts.find((x) => x.id === s.productId)
-																if (p) addToList(upsells, setUpsells, p, 3)
-																setUpsellAiSuggestions((prev) => prev?.map((x) => x.productId === s.productId ? { ...x, approved: true } : x) ?? null)
-															}}
-															className="rounded bg-success-bg px-1.5 py-0.5 text-success hover:opacity-80"
-														>Approve</button>
-														<button
-															onClick={() => setUpsellAiSuggestions((prev) => prev?.map((x) => x.productId === s.productId ? { ...x, approved: false } : x) ?? null)}
-															className="rounded bg-error-bg px-1.5 py-0.5 text-error hover:opacity-80"
-														>Reject</button>
-													</>
-												) : s.approved ? (
-													<span className="text-success flex items-center gap-0.5"><Check className="h-3 w-3" /> Added</span>
-												) : (
-													<span className="text-t3">Rejected</span>
-												)}
+										<div key={s.productId} className="rounded-lg border border-border bg-bg-card p-2.5">
+											<div className="flex items-start justify-between gap-2">
+												<div className="min-w-0">
+													<p className="truncate text-xs font-medium text-t1">{s.productName}</p>
+													<div className="mt-0.5 flex items-center gap-1.5 text-[10px]">
+														{s.suggestedPrice < s.originalPrice ? (
+															<>
+																<span className="line-through text-t3">฿{s.originalPrice.toLocaleString()}</span>
+																<span className="font-bold text-success">฿{s.suggestedPrice.toLocaleString()}</span>
+																<span className="text-t3">AI แนะนำลด {Math.round((1 - s.suggestedPrice / s.originalPrice) * 100)}%</span>
+															</>
+														) : (
+															<span className="text-t2">฿{s.originalPrice.toLocaleString()}</span>
+														)}
+													</div>
+												</div>
+												<span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold', confidenceColor(s.confidence))}>
+													{s.confidence}%
+												</span>
 											</div>
+											{s.approved === null ? (
+												<div className="mt-2 flex gap-1.5">
+													<button
+														onClick={() => {
+															const p = allProducts.find((x) => x.id === s.productId)
+															if (p) addToList(upsells, setUpsells, p, 3)
+															setUpsellAiSuggestions((prev) => prev?.map((x) => x.productId === s.productId ? { ...x, approved: true } : x) ?? null)
+														}}
+														className="flex-1 rounded-lg bg-primary/15 py-1 text-[11px] font-medium text-primary hover:bg-primary/25"
+													>✓ Approve</button>
+													<button
+														onClick={() => setUpsellAiSuggestions((prev) => prev?.map((x) => x.productId === s.productId ? { ...x, approved: false } : x) ?? null)}
+														className="flex-1 rounded-lg bg-bg-hover py-1 text-[11px] font-medium text-t3 hover:text-t1"
+													>✕ Reject</button>
+												</div>
+											) : s.approved ? (
+												<p className="mt-1 text-[10px] text-success">✓ เพิ่มแล้ว</p>
+											) : (
+												<p className="mt-1 text-[10px] text-t3">ปฏิเสธแล้ว</p>
+											)}
 										</div>
 									))}
-									<button onClick={() => setUpsellAiSuggestions(null)} className="mt-2 text-xs text-t3 hover:text-t1">Close</button>
+									<button onClick={() => setUpsellAiSuggestions(null)} className="text-[10px] text-t3 hover:text-t1">ปิด</button>
 								</div>
 							)}
 
@@ -519,7 +665,7 @@ function ProductDetailPanel({
 							<div className="mb-2 flex items-center justify-between">
 								<div>
 									<h3 className="text-sm font-medium text-t1">Cross-sell</h3>
-									<p className="text-xs text-t3">สินค้าที่มักซื้อพร้อมกัน (สูงสุด 3)</p>
+									<p className="text-xs text-t3">สินค้าที่มักซื้อพร้อมกัน (สูงสุด 3) — ลิงก์สองทาง ↔</p>
 								</div>
 								<button
 									onClick={() => setCrossSellAiSuggestions(mockAiSuggestions(allProducts, product.id))}
@@ -528,37 +674,56 @@ function ProductDetailPanel({
 									<Sparkles className="h-3.5 w-3.5" /> AI แนะนำ
 								</button>
 							</div>
+							{/* Bidirectional note */}
+							<div className="mb-2 flex items-center gap-1.5 rounded-lg bg-primary/8 px-2.5 py-1.5 text-[10px] text-primary">
+								<span>↔</span>
+								<span>เมื่อเพิ่ม cross-sell A → B ระบบจะเพิ่ม B → A อัตโนมัติ (bidirectional)</span>
+							</div>
 
 							{/* Cross-sell AI suggestions */}
 							{crossSellAiSuggestions && (
-								<div className="mb-3 rounded-lg border border-primary/30 bg-bg-input p-3 space-y-1.5">
-									<p className="text-xs font-medium text-t2 mb-2">AI Suggestions</p>
+								<div className="mb-3 rounded-xl border border-primary/30 bg-bg-input p-3 space-y-2">
+									<p className="text-xs font-semibold text-t2 mb-1">🤖 AI แนะนำ Cross-sell</p>
 									{crossSellAiSuggestions.map((s) => (
-										<div key={s.productId} className="flex items-center justify-between text-xs">
-											<span className="text-t1 truncate mr-2">{s.productName}</span>
-											<div className="flex items-center gap-1.5 flex-shrink-0">
-												<Badge variant="secondary" className="text-[10px] px-1.5 py-0">{s.confidence}%</Badge>
-												{s.approved === null ? (
-													<>
-														<button
-															onClick={() => {
-																const p = allProducts.find((x) => x.id === s.productId)
-																if (p) addToList(crossSells, setCrossSells, p, 3)
-																setCrossSellAiSuggestions((prev) => prev?.map((x) => x.productId === s.productId ? { ...x, approved: true } : x) ?? null)
-															}}
-															className="rounded bg-success-bg px-1.5 py-0.5 text-success hover:opacity-80"
-														>Approve</button>
-														<button
-															onClick={() => setCrossSellAiSuggestions((prev) => prev?.map((x) => x.productId === s.productId ? { ...x, approved: false } : x) ?? null)}
-															className="rounded bg-error-bg px-1.5 py-0.5 text-error hover:opacity-80"
-														>Reject</button>
-													</>
-												) : s.approved ? (
-													<span className="text-success flex items-center gap-0.5"><Check className="h-3 w-3" /> Added</span>
-												) : (
-													<span className="text-t3">Rejected</span>
-												)}
+										<div key={s.productId} className="rounded-lg border border-border bg-bg-card p-2.5">
+											<div className="flex items-start justify-between gap-2">
+												<div className="min-w-0">
+													<p className="truncate text-xs font-medium text-t1">{s.productName}</p>
+													<div className="mt-0.5 flex items-center gap-1.5 text-[10px]">
+														{s.suggestedPrice < s.originalPrice ? (
+															<>
+																<span className="line-through text-t3">฿{s.originalPrice.toLocaleString()}</span>
+																<span className="font-bold text-success">฿{s.suggestedPrice.toLocaleString()}</span>
+															</>
+														) : (
+															<span className="text-t2">฿{s.originalPrice.toLocaleString()}</span>
+														)}
+													</div>
+												</div>
+												<span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold', confidenceColor(s.confidence))}>
+													{s.confidence}%
+												</span>
 											</div>
+											{s.approved === null ? (
+												<div className="mt-2 flex gap-1.5">
+													<button
+														onClick={() => {
+															const p = allProducts.find((x) => x.id === s.productId)
+															if (p) addToList(crossSells, setCrossSells, p, 3)
+															setCrossSellAiSuggestions((prev) => prev?.map((x) => x.productId === s.productId ? { ...x, approved: true } : x) ?? null)
+														}}
+														className="flex-1 rounded-lg bg-primary/15 py-1 text-[11px] font-medium text-primary hover:bg-primary/25"
+													>✓ Approve</button>
+													<button
+														onClick={() => setCrossSellAiSuggestions((prev) => prev?.map((x) => x.productId === s.productId ? { ...x, approved: false } : x) ?? null)}
+														className="flex-1 rounded-lg bg-bg-hover py-1 text-[11px] font-medium text-t3 hover:text-t1"
+													>✕ Reject</button>
+												</div>
+											) : s.approved ? (
+												<p className="mt-1 text-[10px] text-success">✓ เพิ่มแล้ว (ลิงก์สองทาง)</p>
+											) : (
+												<p className="mt-1 text-[10px] text-t3">ปฏิเสธแล้ว</p>
+											)}
 										</div>
 									))}
 									<button onClick={() => setCrossSellAiSuggestions(null)} className="mt-2 text-xs text-t3 hover:text-t1">Close</button>
@@ -752,12 +917,26 @@ function ProductFormModal({
 					</div>
 					<div>
 						<label className="mb-1 block text-sm font-medium text-t2">Image URL</label>
-						<input
-							value={imageUrl}
-							onChange={(e) => setImageUrl(e.target.value)}
-							className="w-full rounded-lg border border-border-input bg-bg-input px-3 py-2 text-sm text-t1 placeholder:text-t3 focus:border-primary focus:outline-none"
-							placeholder="https://..."
-						/>
+						<div className="flex gap-3">
+							<div className="shrink-0">
+								{imageUrl ? (
+									<img src={imageUrl} alt="preview" className="h-16 w-16 rounded-lg object-cover border border-border" onError={(e) => { (e.target as HTMLImageElement).src = svgPlaceholder('?', '#374151') }} />
+								) : (
+									<div className="flex h-16 w-16 items-center justify-center rounded-lg border border-dashed border-border bg-bg-input">
+										<Package className="h-6 w-6 text-t3" />
+									</div>
+								)}
+							</div>
+							<div className="flex-1">
+								<input
+									value={imageUrl}
+									onChange={(e) => setImageUrl(e.target.value)}
+									className="w-full rounded-lg border border-border-input bg-bg-input px-3 py-2 text-sm text-t1 placeholder:text-t3 focus:border-primary focus:outline-none"
+									placeholder="https://..."
+								/>
+								<p className="mt-1 text-xs text-t3">ใส่ URL รูปภาพสินค้า — สินค้าที่มีรูปจะได้รับการแนะนำจาก AI ดีกว่า</p>
+							</div>
+						</div>
 					</div>
 					<label className="flex items-center gap-2 text-sm text-t2">
 						<input type="checkbox" checked={allowPreOrder} onChange={(e) => setAllowPreOrder(e.target.checked)} className="rounded" />
@@ -882,14 +1061,23 @@ export function ProductsPage() {
 		return p
 	}, [search, categoryFilter, statusFilter])
 
-	const { data, isLoading } = useProducts(params)
+	const [sortOutOfStockFirst, setSortOutOfStockFirst] = useState(false)
+	const { data, isLoading, isError } = useProducts(params)
 	const { data: categories } = useProductCategories()
 	const createProduct = useCreateProduct()
 	const updateProduct = useUpdateProduct()
 	const deleteProduct = useDeleteProduct()
 	const importProducts = useImportProducts()
 
-	const products = data?.data ?? []
+	const rawProducts = (isError || (!isLoading && !data)) ? MOCK_PRODUCTS : (data?.data ?? [])
+	const products = useMemo(() => {
+		if (!sortOutOfStockFirst) return rawProducts
+		return [...rawProducts].sort((a, b) => {
+			const aOut = (a.effectiveStock ?? 1) <= 0 ? 0 : 1
+			const bOut = (b.effectiveStock ?? 1) <= 0 ? 0 : 1
+			return aOut - bOut
+		})
+	}, [rawProducts, sortOutOfStockFirst])
 
 	function handleSave(formData: CreateProductBody & { status?: string }) {
 		if (editProduct) {
@@ -962,6 +1150,18 @@ export function ProductsPage() {
 					<option value="Active">Active</option>
 					<option value="Inactive">Inactive</option>
 				</select>
+				<button
+					onClick={() => setSortOutOfStockFirst((v) => !v)}
+					className={cn(
+						'flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm transition-colors',
+						sortOutOfStockFirst
+							? 'border-error/40 bg-error/10 text-error'
+							: 'border-border-input bg-bg-input text-t3 hover:text-t1',
+					)}
+				>
+					<span className="text-xs">🔴</span>
+					<span className="text-xs">Out of stock ก่อน</span>
+				</button>
 			</div>
 
 			{/* Product Table */}
