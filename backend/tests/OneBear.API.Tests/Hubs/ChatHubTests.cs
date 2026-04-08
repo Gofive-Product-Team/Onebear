@@ -102,7 +102,8 @@ public class ChatHubTests
             _mockRoomAuth.Object,
             _mockAttendance.Object,
             _mockTypingTracker.Object,
-            _orchestrator)
+            _orchestrator,
+            Mock.Of<OneBear.Domain.Interfaces.Repositories.IChatRoomRepository>())
         {
             Groups = _mockGroups.Object,
             Clients = _mockClients.Object,
