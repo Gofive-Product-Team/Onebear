@@ -184,15 +184,13 @@ export function Sidebar() {
       <nav className="flex flex-col gap-0.5 w-full px-[11px]">
         <SidebarNavItem to="/chat" label="Chat" icon={<ChatIcon />} hasNotification unreadCount={unreadCount} />
         <SidebarNavItem to="/customer" label="Customer" icon={<CustomerIcon />} />
-        <SidebarNavItem to="/dashboard" label="Dashboard" icon={<DashboardIcon />} />
         <SidebarNavItem to="/products" label="Products" icon={<ProductsIcon />} />
         <SidebarNavItem to="/orders" label="Orders" icon={<OrdersIcon />} />
         <SidebarNavItem to="/bookings" label="Bookings" icon={<BookingsIcon />} />
         <SidebarNavItem to="/followup" label="Follow-up" icon={<FollowUpIcon />} />
         <SidebarNavItem to="/slips" label="Slips" icon={<SlipIcon />} />
         <SidebarNavItem to="/calendar" label="Calendar" icon={<CalendarKpiIcon />} />
-        <SidebarNavItem to="/insights" label="Insights" icon={<InsightsIcon />} />
-        <SidebarNavItem to="/ai-agent" label="AI Agent" icon={<AiAgentIcon />} />
+        <SidebarNavItem to="/dashboard" label="Analytics" icon={<InsightsIcon />} />
         <SidebarNavItem to="/settings" label="Settings" icon={<SettingsIcon />} />
         <SidebarNavItem to="/payment" label="Payment" icon={<PaymentIcon />} />
         <SidebarNavItem to="/satisfaction" label="Satisfaction" icon={<SatisfactionIcon />} />

@@ -80,13 +80,7 @@ const rootRoute = createRootRoute({
 const indexRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/',
-	component: () => (
-		<div className="max-w-2xl mx-auto mt-12 text-center">
-			<h1 className="text-4xl font-bold text-t1 mb-4">One Bear Platform</h1>
-			<p className="text-lg text-t2 mb-2">Multi-platform social messaging SaaS</p>
-			<p className="text-sm text-t3">Scaffold v1.0.0</p>
-		</div>
-	),
+	component: CalendarKpiPage,
 })
 
 const registerRoute = createRoute({

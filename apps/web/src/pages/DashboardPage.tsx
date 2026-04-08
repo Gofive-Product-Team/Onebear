@@ -16,6 +16,7 @@ import { MessageVolumeChart } from '@/components/dashboard/MessageVolumeChart'
 import { ResponseTimeChart } from '@/components/dashboard/ResponseTimeChart'
 import { AgentPerformanceTable } from '@/components/dashboard/AgentPerformanceTable'
 import { DateRangeFilter } from '@/components/dashboard/DateRangeFilter'
+import { InsightsPage } from './InsightsPage'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -65,12 +66,13 @@ function SkeletonChart() {
 
 // ─── Tab types ────────────────────────────────────────────────────────────────
 
-type Tab = 'chat' | 'revenue' | 'ai'
+type Tab = 'chat' | 'revenue' | 'ai' | 'insights'
 
 const TABS: { id: Tab; label: string }[] = [
 	{ id: 'chat', label: 'Chat' },
 	{ id: 'revenue', label: 'Revenue' },
 	{ id: 'ai', label: 'AI Agent' },
+	{ id: 'insights', label: 'AI Analyst' },
 ]
 
 // ─── Top Products stub data ───────────────────────────────────────────────────
@@ -137,8 +139,8 @@ export function DashboardPage() {
 			{/* Header row: title + tabs + date filter */}
 			<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 				<div>
-					<h1 className="text-2xl font-bold text-t1">Dashboard</h1>
-					<p className="mt-1 text-sm text-t2">Overview of your messaging performance</p>
+					<h1 className="text-2xl font-bold text-t1">Analytics</h1>
+					<p className="mt-1 text-sm text-t2">Messaging, revenue, AI performance &amp; insights</p>
 				</div>
 
 				{/* Right side: tabs + date filter */}
@@ -363,6 +365,9 @@ export function DashboardPage() {
 					</div>
 				</div>
 			)}
+
+			{/* ── AI Analyst tab ─────────────────────────────────────────────── */}
+			{activeTab === 'insights' && <InsightsPage />}
 
 			{/* ── AI Agent tab ───────────────────────────────────────────────── */}
 			{activeTab === 'ai' && (
