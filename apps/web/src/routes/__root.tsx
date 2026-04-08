@@ -18,6 +18,8 @@ import { SettingsPage } from '../pages/SettingsPage'
 import { PaymentPage } from '../pages/PaymentPage'
 import { SatisfactionPage } from '../pages/SatisfactionPage'
 import { OAuthCallbackPage } from '../pages/OAuthCallbackPage'
+import { ProductsPage } from '../pages/ProductsPage'
+import { OrdersPage } from '../pages/OrdersPage'
 
 // SignalR context — connection lives at root level, survives route changes
 interface SignalRContextValue {
@@ -186,6 +188,18 @@ const satisfactionRoute = createRoute({
 	component: SatisfactionPage,
 })
 
+const productsRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: '/products',
+	component: ProductsPage,
+})
+
+const ordersRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: '/orders',
+	component: OrdersPage,
+})
+
 const oauthCallbackRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/oauth/callback/$platform',
@@ -211,5 +225,7 @@ export const routeTree = rootRoute.addChildren([
 	settingsChatbotRoute,
 	paymentRoute,
 	satisfactionRoute,
+	productsRoute,
+	ordersRoute,
 	oauthCallbackRoute,
 ])

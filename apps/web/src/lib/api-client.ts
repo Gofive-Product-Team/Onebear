@@ -315,4 +315,32 @@ export const api = {
 		whatsappToken: (companyId: string, body: object) =>
 			fetchApi(`/companies/${companyId}/oauth/whatsapp/token`, { method: 'POST', body: JSON.stringify(body) }),
 	},
+	orders: {
+		list: (companyId: string, params?: Record<string, string>) =>
+			fetchApi(`/companies/${companyId}/orders${params ? '?' + new URLSearchParams(params) : ''}`),
+		get: (companyId: string, orderId: string) =>
+			fetchApi(`/companies/${companyId}/orders/${orderId}`),
+		summary: (companyId: string) =>
+			fetchApi(`/companies/${companyId}/orders/summary`),
+		create: (companyId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/orders`, { method: 'POST', body: JSON.stringify(body) }),
+		updateStatus: (companyId: string, orderId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/orders/${orderId}/status`, { method: 'PUT', body: JSON.stringify(body) }),
+	},
+	products: {
+		list: (companyId: string, params?: Record<string, string>) =>
+			fetchApi(`/companies/${companyId}/products${params ? '?' + new URLSearchParams(params) : ''}`),
+		get: (companyId: string, productId: string) =>
+			fetchApi(`/companies/${companyId}/products/${productId}`),
+		create: (companyId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/products`, { method: 'POST', body: JSON.stringify(body) }),
+		update: (companyId: string, productId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/products/${productId}`, { method: 'PUT', body: JSON.stringify(body) }),
+		delete: (companyId: string, productId: string) =>
+			fetchApi(`/companies/${companyId}/products/${productId}`, { method: 'DELETE' }),
+		categories: (companyId: string) =>
+			fetchApi<string[]>(`/companies/${companyId}/products/categories`),
+		importCsv: (companyId: string, body: object) =>
+			fetchApi(`/companies/${companyId}/products/import`, { method: 'POST', body: JSON.stringify(body) }),
+	},
 }

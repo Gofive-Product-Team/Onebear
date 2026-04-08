@@ -43,11 +43,31 @@ function SettingsIcon() {
   )
 }
 
+function OrdersIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
+      <circle cx="9" cy="21" r="1" />
+      <circle cx="20" cy="21" r="1" />
+      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+    </svg>
+  )
+}
+
 function PaymentIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
       <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
       <line x1="1" y1="10" x2="23" y2="10" />
+    </svg>
+  )
+}
+
+function ProductsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
+      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+      <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+      <line x1="12" y1="22.08" x2="12" y2="12" />
     </svg>
   )
 }
@@ -94,6 +114,8 @@ export function Sidebar() {
         <SidebarNavItem to="/chat" label="Chat" icon={<ChatIcon />} hasNotification unreadCount={unreadCount} />
         <SidebarNavItem to="/customer" label="Customer" icon={<CustomerIcon />} />
         <SidebarNavItem to="/dashboard" label="Dashboard" icon={<DashboardIcon />} />
+        <SidebarNavItem to="/products" label="Products" icon={<ProductsIcon />} />
+        <SidebarNavItem to="/orders" label="Orders" icon={<OrdersIcon />} />
         <SidebarNavItem to="/settings" label="Settings" icon={<SettingsIcon />} />
         <SidebarNavItem to="/payment" label="Payment" icon={<PaymentIcon />} />
         <SidebarNavItem to="/satisfaction" label="Satisfaction" icon={<SatisfactionIcon />} />

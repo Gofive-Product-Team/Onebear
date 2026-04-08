@@ -13,6 +13,8 @@ using OneBear.Application.Notifications.Services;
 using OneBear.Application.Customers.Services;
 using OneBear.Application.Dashboard;
 using OneBear.Application.Auth.Services;
+using OneBear.Application.Products.Services;
+using OneBear.Application.Orders.Services;
 using OneBear.Domain.Interfaces;
 
 public static class DependencyInjection
@@ -50,11 +52,17 @@ public static class DependencyInjection
         services.AddScoped<ICreditService, MongoCreditService>();
         services.AddScoped<NotificationService>();
 
-        // Phase 3: Order flow stubs (to be replaced with real implementations)
-        services.AddScoped<IOrderService, StubOrderService>();
+        // Orders
+        services.AddScoped<OrderManagementService>();
+        services.AddScoped<IOrderService>(sp => sp.GetRequiredService<OrderManagementService>());
+
+        // Stubs for services not yet fully implemented
         services.AddScoped<IPaymentLinkService, StubPaymentLinkService>();
         services.AddScoped<ISlipVerificationService, StubSlipVerificationService>();
         services.AddScoped<IProductCatalogService, StubProductCatalogService>();
+
+        // Products
+        services.AddScoped<ProductService>();
 
         // Dashboard
         services.AddScoped<DashboardService>();

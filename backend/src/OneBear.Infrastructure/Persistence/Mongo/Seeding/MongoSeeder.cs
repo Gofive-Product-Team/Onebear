@@ -282,7 +282,47 @@ public class MongoSeeder
                 .Ascending(r => r.CompanyId)
                 .Ascending(r => r.IsSystem), ct);
 
-        _logger.LogInformation("MongoDB indexes created/verified (43 total)");
+        // Products: 3 indexes
+        await CreateIndexAsync(_context.Products, "ix_products_company_status",
+            Builders<Product>.IndexKeys
+                .Ascending(p => p.CompanyId)
+                .Ascending(p => p.Status)
+                .Descending(p => p.CreatedTimestamp), ct);
+
+        await CreateIndexAsync(_context.Products, "ix_products_company_category",
+            Builders<Product>.IndexKeys
+                .Ascending(p => p.CompanyId)
+                .Ascending(p => p.Category), ct);
+
+        await CreateIndexAsync(_context.Products, "ix_products_company_name",
+            Builders<Product>.IndexKeys
+                .Ascending(p => p.CompanyId)
+                .Ascending(p => p.Name), ct);
+
+        // Orders: 4 indexes
+        await CreateIndexAsync(_context.Orders, "ix_orders_company_status_ts",
+            Builders<Order>.IndexKeys
+                .Ascending(o => o.CompanyId)
+                .Ascending(o => o.Status)
+                .Descending(o => o.CreatedTimestamp), ct);
+
+        await CreateIndexAsync(_context.Orders, "ix_orders_company_orderid",
+            Builders<Order>.IndexKeys
+                .Ascending(o => o.CompanyId)
+                .Ascending(o => o.OrderId), ct, unique: true);
+
+        await CreateIndexAsync(_context.Orders, "ix_orders_company_customer",
+            Builders<Order>.IndexKeys
+                .Ascending(o => o.CompanyId)
+                .Ascending(o => o.CustomerId)
+                .Descending(o => o.CreatedTimestamp), ct);
+
+        await CreateIndexAsync(_context.Orders, "ix_orders_softhold_expiry",
+            Builders<Order>.IndexKeys
+                .Ascending(o => o.SoftHoldExpiresAt)
+                .Ascending(o => o.Status), ct);
+
+        _logger.LogInformation("MongoDB indexes created/verified (50 total)");
     }
 
     private async Task CreateIndexAsync<T>(
