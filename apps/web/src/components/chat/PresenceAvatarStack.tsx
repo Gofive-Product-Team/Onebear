@@ -29,9 +29,8 @@ function getColorForId(userId: string): string {
 
 export function PresenceAvatarStack({ userIds, currentUserId, maxShow = 3 }: Props) {
 	const { data: members } = useMembers()
-	const others = userIds.filter((id) => id !== currentUserId)
-
-	if (others.length === 0) return null
+	// Show all users including self
+	if (userIds.length === 0) return null
 
 	// Resolve userId → display name
 	function resolveName(userId: string): string {
@@ -48,12 +47,12 @@ export function PresenceAvatarStack({ userIds, currentUserId, maxShow = 3 }: Pro
 		return name.slice(0, 2).toUpperCase()
 	}
 
-	const visible = others.slice(0, maxShow)
-	const overflow = others.length - maxShow
+	const visible = userIds.slice(0, maxShow)
+	const overflow = userIds.length - maxShow
 
 	const tooltipContent = (
 		<div className="flex flex-col gap-0.5">
-			{others.map((id) => (
+			{userIds.map((id) => (
 				<span key={id}>{resolveName(id)}</span>
 			))}
 		</div>
