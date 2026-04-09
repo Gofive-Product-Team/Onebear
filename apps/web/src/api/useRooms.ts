@@ -10,6 +10,17 @@ export function useSpamRooms(companyId: string) {
 	})
 }
 
+export function useMarkAsSpam(companyId: string) {
+	const queryClient = useQueryClient()
+	return useMutation({
+		mutationFn: (roomId: string) => api.rooms.markAsSpam(companyId, roomId),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ['rooms', companyId] })
+			queryClient.invalidateQueries({ queryKey: ['rooms-spam', companyId] })
+		},
+	})
+}
+
 export function useMarkNotSpam(companyId: string) {
 	const queryClient = useQueryClient()
 
@@ -61,6 +72,20 @@ export function useRooms(companyId: string, filters?: RoomFilters) {
 		queryKey: ['rooms', companyId, filters],
 		queryFn: () => api.rooms.list(companyId, buildParams(filters)) as Promise<PagedResponse<ChatRoom>>,
 		enabled: !!companyId,
+	})
+}
+
+export function useRoomOrder(companyId: string, roomId: string | null) {
+	return useQuery<Record<string, unknown> | null>({
+		queryKey: ['room-order', companyId, roomId],
+		queryFn: async () => {
+			try {
+				return await api.rooms.getOrderByRoom(companyId, roomId!) as Record<string, unknown>
+			} catch {
+				return null
+			}
+		},
+		enabled: !!companyId && !!roomId,
 	})
 }
 

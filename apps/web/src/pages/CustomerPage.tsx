@@ -3,8 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { cn } from '@one-bear/ui'
 import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
-import { useCustomers, useSegmentCounts, useSnoozeCustomer, type SegmentCounts, type CustomerListItem } from '@/api/useCustomers'
-import { CustomerCard } from '@/components/customer/CustomerCard'
+import { useCustomers, useSegmentCounts, type SegmentCounts, type CustomerListItem } from '@/api/useCustomers'
 import { CustomerDetailModal } from '@/components/customer/CustomerDetailModal'
 import { FilterChips } from '@/components/customer/FilterChips'
 import { SortDropdown } from '@/components/customer/SortDropdown'
@@ -12,11 +11,6 @@ import { CustomerSearch } from '@/components/customer/CustomerSearch'
 import { AddCustomerPanel } from '@/components/customer/AddCustomerPanel'
 import { FloatingActionButton } from '@/components/customer/FloatingActionButton'
 import { KpiSnapshotBar } from '@/components/customer/KpiSnapshotBar'
-import { SelectionModeToolbar } from '@/components/customer/SelectionModeToolbar'
-import { BulkFollowupSheet } from '@/components/customer/BulkFollowupSheet'
-import { CustomerContextMenu } from '@/components/customer/CustomerContextMenu'
-import { CustomerLongPressSheet } from '@/components/customer/CustomerLongPressSheet'
-import { SwipeableCard } from '@/components/customer/SwipeableCard'
 import {
 	AdvancedFilterPanel,
 	ActiveFilterChips,
@@ -45,12 +39,12 @@ interface LeadItem {
 	createdTimestamp: number
 }
 
-const LEAD_STATUS_CONFIG: Record<string, { label: string; color: string; dot: string }> = {
-	'New':            { label: 'New',           color: 'bg-yellow-100 text-yellow-700', dot: 'bg-yellow-400' },
-	'Contacted':      { label: 'Contacted',     color: 'bg-blue-100 text-blue-700',    dot: 'bg-blue-500'   },
-	'Interested':     { label: 'Interested',    color: 'bg-green-100 text-green-700',  dot: 'bg-green-500'  },
-	'Followed-up':    { label: 'Followed-up',   color: 'bg-teal-100 text-teal-700',    dot: 'bg-teal-500'   },
-	'Not Interested': { label: 'Not Interested',color: 'bg-gray-100 text-gray-500',    dot: 'bg-gray-400'   },
+const LEAD_STATUS_CONFIG: Record<string, { label: string; bar: string; dot: string }> = {
+	'New':            { label: 'New',           bar: 'bg-yellow-400', dot: 'bg-yellow-400' },
+	'Contacted':      { label: 'Contacted',     bar: 'bg-blue-500',   dot: 'bg-blue-500'   },
+	'Interested':     { label: 'Interested',    bar: 'bg-green-500',  dot: 'bg-green-500'  },
+	'Followed-up':    { label: 'ติดตามแล้ว',   bar: 'bg-teal-500',   dot: 'bg-teal-500'   },
+	'Not Interested': { label: 'ไม่สนใจ',      bar: 'bg-gray-400',   dot: 'bg-gray-400'   },
 }
 
 const LEAD_STATUSES = ['All', 'New', 'Contacted', 'Interested', 'Followed-up', 'Not Interested']
@@ -102,11 +96,59 @@ function leadToCustomerDetail(lead: LeadItem): import('@/api/useCustomers').Cust
 	}
 }
 
+// ─── Lead KPI bar ─────────────────────────────────────────────────────────────
+
+function LeadKpiBar({ leads }: { leads: LeadItem[] }) {
+	const total = leads.length
+	const newCount = leads.filter(l => l.status === 'New').length
+	const interestedCount = leads.filter(l => l.status === 'Interested').length
+	const followedUpCount = leads.filter(l => l.status === 'Followed-up').length
+	const notInterestedCount = leads.filter(l => l.status === 'Not Interested').length
+
+	const stats = [
+		{ label: 'ทั้งหมด',    value: total,              accent: 'default' as const },
+		{ label: 'ใหม่',        value: newCount,           accent: 'blue'    as const },
+		{ label: 'สนใจ',        value: interestedCount,    accent: 'green'   as const },
+		{ label: 'ติดตามแล้ว', value: followedUpCount,    accent: 'default' as const },
+		{ label: 'ไม่สนใจ',    value: notInterestedCount, accent: 'red'     as const },
+	]
+
+	return (
+		<div className="flex gap-3 overflow-x-auto pb-1 md:overflow-x-visible">
+			{stats.map(s => (
+				<div
+					key={s.label}
+					className={cn(
+						'flex min-w-[110px] shrink-0 flex-col items-center justify-center rounded-lg border px-4 py-2.5',
+						s.accent === 'red'     && 'border-red-200 bg-red-50',
+						s.accent === 'green'   && 'border-green-200 bg-green-50',
+						s.accent === 'blue'    && 'border-blue-200 bg-blue-50',
+						s.accent === 'default' && 'border-border bg-bg-card',
+					)}
+				>
+					<p className={cn(
+						'text-base font-bold',
+						s.accent === 'red'     && 'text-red-700',
+						s.accent === 'green'   && 'text-green-700',
+						s.accent === 'blue'    && 'text-blue-700',
+						s.accent === 'default' && 'text-t1',
+					)}>
+						{s.value}
+					</p>
+					<p className="mt-0.5 text-[11px] text-t3">{s.label}</p>
+				</div>
+			))}
+		</div>
+	)
+}
+
 // ─── Lead List View ───────────────────────────────────────────────────────────
 
 function LeadListView({ onAddLead }: { onAddLead: () => void }) {
 	const [statusFilter, setStatusFilter] = useState('All')
 	const [search, setSearch] = useState('')
+	const [sort, setSort] = useState('recent')
+	const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>(EMPTY_FILTERS)
 	const [selectedLead, setSelectedLead] = useState<LeadItem | null>(null)
 	const [leads, setLeads] = useState<LeadItem[]>(MOCK_LEADS)
 
@@ -116,11 +158,26 @@ function LeadListView({ onAddLead }: { onAddLead: () => void }) {
 		return acc
 	}, {} as Record<string, number>)
 
-	const filtered = leads.filter(p => {
-		const matchStatus = statusFilter === 'All' || p.status === statusFilter
-		const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.phone?.includes(search)
-		return matchStatus && matchSearch
-	})
+	const filtered = leads
+		.filter(p => {
+			const matchStatus = statusFilter === 'All' || p.status === statusFilter
+			const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.phone?.includes(search)
+			const matchChannel = advancedFilters.channels.length === 0 ||
+				p.channels.some(c => advancedFilters.channels.includes(c.platform))
+			const matchTag = !advancedFilters.tagSearch ||
+				p.tags.some(t => t.name.toLowerCase().includes(advancedFilters.tagSearch.toLowerCase()))
+			const matchDate = !advancedFilters.dateRange || (() => {
+				const days = advancedFilters.dateRange === '7d' ? 7 : advancedFilters.dateRange === '30d' ? 30 : 90
+				return p.lastActivityTimestamp !== null && p.lastActivityTimestamp >= Date.now() - days * 86400000
+			})()
+			return matchStatus && matchSearch && matchChannel && matchTag && matchDate
+		})
+		.sort((a, b) => {
+			if (sort === 'name') return a.name.localeCompare(b.name, 'th')
+			if (sort === 'newest') return b.createdTimestamp - a.createdTimestamp
+			// 'recent' (default)
+			return (b.lastActivityTimestamp ?? 0) - (a.lastActivityTimestamp ?? 0)
+		})
 
 	function handleConvert(id: string) {
 		setLeads(prev => prev.filter(p => p.id !== id))
@@ -137,44 +194,35 @@ function LeadListView({ onAddLead }: { onAddLead: () => void }) {
 	return (
 		<>
 			<div className="space-y-4">
-				{/* Header */}
-				<div className="flex items-center justify-between">
-					<div>
-						<h1 className="text-2xl font-bold text-t1">ผู้สนใจ</h1>
-						<p className="text-sm text-t2">ผู้ที่สนใจสินค้าแต่ยังไม่เคยสั่งซื้อ</p>
-					</div>
-					<button
-						type="button"
-						onClick={onAddLead}
-						className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:opacity-90"
-					>
-						<svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-							<path d="M12 5v14" /><path d="M5 12h14" />
-						</svg>
-						เพิ่มผู้สนใจ
-					</button>
-				</div>
+				{/* KPI bar — matches Customer tab's KpiSnapshotBar */}
+				<LeadKpiBar leads={leads} />
 
-				{/* Status filter tabs */}
-				<div className="flex gap-1 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+				{/* Status filter chips */}
+				<div className="flex gap-1.5 overflow-x-auto pb-2" role="tablist" style={{ scrollbarWidth: 'none' }}>
 					{LEAD_STATUSES.map(s => {
 						const cfg = s === 'All' ? null : LEAD_STATUS_CONFIG[s]
 						const isActive = statusFilter === s
+						const label = s === 'All' ? 'ทั้งหมด' : (cfg?.label ?? s)
 						return (
 							<button
 								key={s}
 								type="button"
+								role="tab"
+								aria-selected={isActive}
 								onClick={() => setStatusFilter(s)}
 								className={cn(
-									'flex shrink-0 items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors',
-									isActive ? 'bg-bg-card text-t1 shadow-sm' : 'text-t3 hover:text-t2 hover:bg-bg-hover',
+									'flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors',
+									'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+									isActive
+										? 'border-primary bg-primary text-white shadow-sm'
+										: 'border-border bg-bg-card text-t2 hover:border-primary/50 hover:text-t1',
 								)}
 							>
-								{cfg && <span className={cn('h-2 w-2 rounded-full', cfg.dot)} />}
-								{s === 'All' ? 'ทั้งหมด' : s}
+								{cfg && <span className={cn('h-2 w-2 shrink-0 rounded-full', isActive ? 'bg-white/70' : cfg.dot)} />}
+								{label}
 								<span className={cn(
-									'rounded-full px-1.5 py-0.5 text-[11px] font-semibold',
-									isActive ? 'bg-primary/10 text-primary' : 'bg-bg-input text-t3',
+									'rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums',
+									isActive ? 'bg-white/20 text-white' : 'bg-bg-input text-t3',
 								)}>
 									{counts[s] ?? 0}
 								</span>
@@ -183,19 +231,57 @@ function LeadListView({ onAddLead }: { onAddLead: () => void }) {
 					})}
 				</div>
 
-				{/* Search */}
-				<div className="relative">
-					<svg xmlns="http://www.w3.org/2000/svg" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-t3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-						<circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-					</svg>
-					<input
-						type="text"
-						value={search}
-						onChange={e => setSearch(e.target.value)}
-						placeholder="ค้นหาชื่อหรือเบอร์โทร..."
-						className="w-full rounded-xl border border-border bg-bg-input py-2.5 pl-9 pr-4 text-sm text-t1 placeholder:text-t3 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+				{/* Search + Sort + Filter */}
+				<div className="flex gap-3">
+					<div className="relative flex-1">
+						<svg xmlns="http://www.w3.org/2000/svg" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-t3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+							<circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+						</svg>
+						<input
+							type="text"
+							value={search}
+							onChange={e => setSearch(e.target.value)}
+							placeholder="ค้นหาชื่อหรือเบอร์โทร..."
+							className="h-9 w-full rounded-md border border-border-input bg-bg-input py-2 pl-9 pr-8 text-sm text-t1 shadow-sm placeholder:text-t3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+						/>
+						{search && (
+							<button
+								type="button"
+								onClick={() => setSearch('')}
+								className="absolute right-3 top-1/2 -translate-y-1/2 text-t3 hover:text-t1"
+							>
+								<svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+									<path d="M18 6 6 18" /><path d="m6 6 12 12" />
+								</svg>
+							</button>
+						)}
+					</div>
+					<SortDropdown value={sort} onChange={setSort} variant="lead" />
+					<AdvancedFilterPanel
+						filters={advancedFilters}
+						onApply={setAdvancedFilters}
+						onClear={() => setAdvancedFilters(EMPTY_FILTERS)}
+						variant="lead"
 					/>
 				</div>
+
+				{/* Active filter chips */}
+				<ActiveFilterChips
+					filters={advancedFilters}
+					onRemove={(key, value) => {
+						setAdvancedFilters((prev) => {
+							const next = { ...prev }
+							if (key === 'channel' && value) {
+								next.channels = next.channels.filter((c) => c !== value)
+							} else if (key === 'dateRange') {
+								next.dateRange = null
+							} else if (key === 'tagSearch') {
+								next.tagSearch = ''
+							}
+							return next
+						})
+					}}
+				/>
 
 				{/* Table */}
 				<div className="overflow-x-auto rounded-xl border border-border bg-bg-card shadow-sm">
@@ -213,8 +299,12 @@ function LeadListView({ onAddLead }: { onAddLead: () => void }) {
 						<tbody className="divide-y divide-border">
 							{filtered.length === 0 ? (
 								<tr>
-									<td colSpan={6} className="px-4 py-12 text-center text-sm text-t3">
-										ไม่พบผู้สนใจในสถานะนี้
+									<td colSpan={6} className="px-4 py-16 text-center">
+										<div className="flex flex-col items-center gap-2">
+											<div className="flex h-12 w-12 items-center justify-center rounded-full bg-bg-input text-2xl">🎯</div>
+											<p className="text-sm font-medium text-t2">ไม่พบผู้สนใจในสถานะนี้</p>
+											<p className="text-xs text-t3">ลองเปลี่ยน filter หรือคำค้นหา</p>
+										</div>
 									</td>
 								</tr>
 							) : filtered.map(p => {
@@ -242,7 +332,7 @@ function LeadListView({ onAddLead }: { onAddLead: () => void }) {
 											{channel ? <PlatformBadge platform={channel.platform} /> : <span className="text-t3">—</span>}
 										</td>
 										<td className="px-4 py-3">
-											<span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium', cfg.color)}>
+											<span className={cn('inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium', cfg.color)}>
 												<span className={cn('h-1.5 w-1.5 rounded-full', cfg.dot)} />
 												{cfg.label}
 											</span>
@@ -274,19 +364,6 @@ function LeadListView({ onAddLead }: { onAddLead: () => void }) {
 	)
 }
 
-// ─── View toggle persistence ──────────────────────────────────────────────────
-
-const VIEW_PREF_KEY = 'ob-customer-view'
-
-function getSavedView(): 'table' | 'card' {
-	try {
-		const v = localStorage.getItem(VIEW_PREF_KEY)
-		if (v === 'card' || v === 'table') return v
-	} catch {
-		// ignore
-	}
-	return 'table'
-}
 
 // ─── Platform badge ───────────────────────────────────────────────────────────
 
@@ -494,57 +571,7 @@ function CustomerTableView({
 	)
 }
 
-// ─── View toggle icons ────────────────────────────────────────────────────────
 
-function GridIcon({ className }: { className?: string }) {
-	return (
-		<svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-			<rect x="3" y="3" width="7" height="7" />
-			<rect x="14" y="3" width="7" height="7" />
-			<rect x="3" y="14" width="7" height="7" />
-			<rect x="14" y="14" width="7" height="7" />
-		</svg>
-	)
-}
-
-function ListIcon({ className }: { className?: string }) {
-	return (
-		<svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-			<line x1="8" y1="6" x2="21" y2="6" />
-			<line x1="8" y1="12" x2="21" y2="12" />
-			<line x1="8" y1="18" x2="21" y2="18" />
-			<line x1="3" y1="6" x2="3.01" y2="6" />
-			<line x1="3" y1="12" x2="3.01" y2="12" />
-			<line x1="3" y1="18" x2="3.01" y2="18" />
-		</svg>
-	)
-}
-
-// ─── Skeleton grid ────────────────────────────────────────────────────────────
-
-function SkeletonCard() {
-	return (
-		<div className="flex flex-col gap-3 rounded-xl border border-border bg-bg-card p-4 shadow-sm">
-			<div className="flex items-center gap-3">
-				<Skeleton className="h-10 w-10 rounded-full" />
-				<div className="flex-1 space-y-1.5">
-					<Skeleton className="h-3.5 w-28" />
-					<Skeleton className="h-2.5 w-16" />
-				</div>
-			</div>
-			<div className="flex gap-2">
-				<Skeleton className="h-5 w-14 rounded-full" />
-				<Skeleton className="h-5 w-14 rounded-full" />
-			</div>
-			<Skeleton className="h-12 rounded-lg" />
-			<div className="flex gap-2">
-				<Skeleton className="h-7 flex-1 rounded-md" />
-				<Skeleton className="h-7 flex-1 rounded-md" />
-				<Skeleton className="h-7 flex-1 rounded-md" />
-			</div>
-		</div>
-	)
-}
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
@@ -997,64 +1024,12 @@ export function CustomerPage() {
 	const [showAddPanel, setShowAddPanel] = useState(false)
 	const [addInitialName, setAddInitialName] = useState<string | undefined>(undefined)
 	const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>(EMPTY_FILTERS)
-	const [viewMode, setViewMode] = useState<'table' | 'card'>(getSavedView)
-
 	// Main tab: 'leads' | 'customers'
 	const [activeMainTab, setActiveMainTab] = useState<'leads' | 'customers'>('leads')
 
 	// Merge / dedup state
 	const [showMergeBanner, setShowMergeBanner] = useState(true)
 	const [showMergeModal, setShowMergeModal] = useState(false)
-
-	function switchView(mode: 'table' | 'card') {
-		setViewMode(mode)
-		try { localStorage.setItem(VIEW_PREF_KEY, mode) } catch { /* ignore */ }
-	}
-
-	// Selection mode
-	const [isSelectionMode, setIsSelectionMode] = useState(false)
-	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-	const [showBulkFollowupSheet, setShowBulkFollowupSheet] = useState(false)
-
-	function toggleSelectionMode() {
-		setIsSelectionMode((prev) => {
-			if (prev) setSelectedIds(new Set())
-			return !prev
-		})
-	}
-
-	function toggleSelectCustomer(id: string) {
-		setSelectedIds((prev) => {
-			const next = new Set(prev)
-			if (next.has(id)) {
-				next.delete(id)
-			} else {
-				next.add(id)
-			}
-			return next
-		})
-	}
-
-	function handleBulkFollowupSuccess() {
-		setIsSelectionMode(false)
-		setSelectedIds(new Set())
-	}
-
-	// Snooze
-	const snooze = useSnoozeCustomer()
-	const [snoozeToastVisible, setSnoozeToastVisible] = useState(false)
-
-	function handleSnooze(customerId: string) {
-		snooze.mutate(customerId, {
-			onSuccess: () => {
-				setSnoozeToastVisible(true)
-				setTimeout(() => setSnoozeToastVisible(false), 3000)
-			},
-		})
-	}
-
-	// Follow-up from swipe — opens ChatDraftModal via BulkFollowupSheet with 1 customer
-	const [swipeFollowupCustomerId, setSwipeFollowupCustomerId] = useState<string | null>(null)
 
 	// Infinite query
 	const { data, isLoading, isError, isFetchingNextPage, fetchNextPage, hasNextPage } = useCustomers({
@@ -1128,65 +1103,30 @@ export function CustomerPage() {
 					</button>
 				</div>
 
-				{/* Right-side controls — only shown on customers tab */}
-				{activeMainTab === 'customers' && (
-					<div className="flex items-center gap-2">
-						{/* View toggle buttons */}
-						<div className="flex items-center rounded-lg border border-border bg-bg-input p-0.5">
-							<button
-								type="button"
-								onClick={() => switchView('table')}
-								className={cn(
-									'rounded-md p-1.5 transition-colors',
-									viewMode === 'table'
-										? 'bg-bg-card text-primary shadow-sm'
-										: 'text-t3 hover:text-t1',
-								)}
-								title="Table view"
-							>
-								<ListIcon className="h-4 w-4" />
-							</button>
-							<button
-								type="button"
-								onClick={() => switchView('card')}
-								className={cn(
-									'rounded-md p-1.5 transition-colors',
-									viewMode === 'card'
-										? 'bg-bg-card text-primary shadow-sm'
-										: 'text-t3 hover:text-t1',
-								)}
-								title="Card view"
-							>
-								<GridIcon className="h-4 w-4" />
-							</button>
-						</div>
-						{/* Selection mode toolbar — shows "Select" toggle or active selection controls */}
-						<SelectionModeToolbar
-							isSelectionMode={isSelectionMode}
-							selectedCount={selectedIds.size}
-							onToggleSelectionMode={toggleSelectionMode}
-							onFollowup={() => setShowBulkFollowupSheet(true)}
-						/>
-						{/* "+ Add Customer" button — desktop only, hidden in selection mode */}
-						{!isSelectionMode && (
-							<Button
-								onClick={() => openAddPanel()}
-								className="hidden md:inline-flex"
-							>
-								<svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-									<path d="M12 5v14" />
-									<path d="M5 12h14" />
-								</svg>
-								Add Customer
-							</Button>
-						)}
-					</div>
-				)}
+				{/* Right-side controls */}
+				<div className="flex items-center gap-2">
+					{activeMainTab === 'leads' && (
+						<Button onClick={() => setShowAddPanel(true)}>
+							<svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+								<path d="M12 5v14" /><path d="M5 12h14" />
+							</svg>
+							เพิ่มผู้สนใจ
+						</Button>
+					)}
+					{activeMainTab === 'customers' && (
+						<Button onClick={() => openAddPanel()}>
+							<svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+								<path d="M12 5v14" /><path d="M5 12h14" />
+							</svg>
+							เพิ่มลูกค้า
+						</Button>
+					)}
+				</div>
 			</div>
 
 			{/* ── Leads tab content ── */}
 			{activeMainTab === 'leads' && (
-				<LeadListView onAddLead={() => { setShowAddPanel(true); }} />
+				<LeadListView onAddLead={() => setShowAddPanel(true)} />
 			)}
 
 			{/* ── Customers tab content ── */}
@@ -1194,6 +1134,57 @@ export function CustomerPage() {
 				<>
 					{/* KPI Snapshot bar */}
 					<KpiSnapshotBar />
+
+					{/* Filter chips */}
+					<FilterChips
+						counts={counts ?? EMPTY_COUNTS}
+						selected={segment}
+						onSelect={(s) => {
+							setSegment(s)
+							setSelectedCustomerId(null)
+						}}
+					/>
+
+					{/* Search + Sort + Advanced Filters row */}
+					<div className="flex gap-3">
+						<div className="flex-1">
+							<CustomerSearch
+								value={search}
+								onChange={setSearch}
+								showAddNew={isEmpty && !!search}
+								onAddNew={(name) => openAddPanel(name)}
+							/>
+						</div>
+						<SortDropdown value={sort} onChange={setSort} variant="customer" />
+						<AdvancedFilterPanel
+							variant="customer"
+							filters={advancedFilters}
+							onApply={setAdvancedFilters}
+							onClear={() => setAdvancedFilters(EMPTY_FILTERS)}
+						/>
+					</div>
+
+					{/* Active advanced filter chips */}
+					<ActiveFilterChips
+						filters={advancedFilters}
+						onRemove={(key, value) => {
+							setAdvancedFilters((prev) => {
+								const next = { ...prev }
+								if (key === 'channel' && value) {
+									next.channels = next.channels.filter((c) => c !== value)
+								} else if (key === 'dateRange') {
+									next.dateRange = null
+								} else if (key === 'ltvMin') {
+									next.ltvMin = null
+								} else if (key === 'ltvMax') {
+									next.ltvMax = null
+								} else if (key === 'tagSearch') {
+									next.tagSearch = ''
+								}
+								return next
+							})
+						}}
+					/>
 
 					{/* Merge contacts banner */}
 					{showMergeBanner && (
@@ -1223,58 +1214,6 @@ export function CustomerPage() {
 						</div>
 					)}
 
-					{/* Filter chips */}
-					<FilterChips
-						counts={counts ?? EMPTY_COUNTS}
-						selected={segment}
-						onSelect={(s) => {
-							setSegment(s)
-							setSelectedCustomerId(null)
-						}}
-					/>
-
-					{/* Search + Sort + Advanced Filters row */}
-					<div className="flex gap-3">
-						<div className="flex-1">
-							<CustomerSearch
-								value={search}
-								onChange={setSearch}
-								showAddNew={isEmpty && !!search}
-								onAddNew={(name) => openAddPanel(name)}
-							/>
-						</div>
-						<SortDropdown value={sort} onChange={setSort} />
-						<AdvancedFilterPanel
-							filters={advancedFilters}
-							onApply={setAdvancedFilters}
-							onClear={() => setAdvancedFilters(EMPTY_FILTERS)}
-						/>
-					</div>
-
-					{/* Active advanced filter chips */}
-					<ActiveFilterChips
-						filters={advancedFilters}
-						onRemove={(key, value) => {
-							setAdvancedFilters((prev) => {
-								const next = { ...prev }
-								if (key === 'segment' && value) {
-									next.segments = next.segments.filter((s) => s !== value)
-								} else if (key === 'channel' && value) {
-									next.channels = next.channels.filter((c) => c !== value)
-								} else if (key === 'dateRange') {
-									next.dateRange = null
-								} else if (key === 'ltvMin') {
-									next.ltvMin = null
-								} else if (key === 'ltvMax') {
-									next.ltvMax = null
-								} else if (key === 'tagSearch') {
-									next.tagSearch = ''
-								}
-								return next
-							})
-						}}
-					/>
-
 					{/* Error state */}
 					{isError && (
 						<div className="rounded-md border border-error bg-error-bg p-4 text-sm text-error">
@@ -1290,7 +1229,7 @@ export function CustomerPage() {
 					)}
 
 					{/* Table view */}
-					{viewMode === 'table' && !isLoading && !isEmpty && (
+					{!isLoading && !isEmpty && (
 						<CustomerTableView
 							customers={customers}
 							onClickCustomer={handleCardClick}
@@ -1301,7 +1240,7 @@ export function CustomerPage() {
 					)}
 
 					{/* Table loading skeleton */}
-					{viewMode === 'table' && isLoading && (
+					{isLoading && (
 						<div className="overflow-x-auto rounded-xl border border-border bg-bg-card shadow-sm">
 							<div className="divide-y divide-border">
 								{Array.from({ length: 6 }).map((_, i) => (
@@ -1315,70 +1254,8 @@ export function CustomerPage() {
 						</div>
 					)}
 
-					{/* Card grid */}
-					{viewMode === 'card' && (
-						<div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-							{/* Loading skeletons */}
-							{isLoading &&
-								Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
-
-							{/* Cards */}
-							{!isLoading &&
-								customers.map((customer) => {
-									const card = (
-										<CustomerCard
-											key={customer.id}
-											customer={customer}
-											onClick={() => handleCardClick(customer.id)}
-											onNavigateToProfile={(id) =>
-												navigate({ to: '/customer/$customerId', params: { customerId: id } })
-											}
-											isSelectionMode={isSelectionMode}
-											isSelected={selectedIds.has(customer.id)}
-											onToggleSelect={toggleSelectCustomer}
-										/>
-									)
-
-									if (isSelectionMode) {
-										// No context menu / long-press in selection mode
-										return card
-									}
-
-									const wrappedCard = (
-										<SwipeableCard
-											key={`swipe-${customer.id}`}
-											customerId={customer.id}
-											onFollowup={() => setSwipeFollowupCustomerId(customer.id)}
-											onChat={() =>
-												navigate({ to: '/customer/$customerId', params: { customerId: customer.id } })
-											}
-											onSnooze={() => handleSnooze(customer.id)}
-										>
-											{card}
-										</SwipeableCard>
-									)
-
-									return (
-										// Desktop: right-click context menu
-										// Mobile: long-press bottom sheet (intercepts click capture to suppress after long-press)
-										//         + swipe actions
-										<CustomerContextMenu key={customer.id} customer={customer}>
-											<CustomerLongPressSheet customer={customer}>
-												{wrappedCard}
-											</CustomerLongPressSheet>
-										</CustomerContextMenu>
-									)
-								})}
-
-							{/* Empty state (spans all cols) */}
-							{isEmpty && (
-								<EmptyState search={search} onAdd={() => openAddPanel()} />
-							)}
-						</div>
-					)}
-
-					{/* Empty state for table view */}
-					{viewMode === 'table' && isEmpty && (
+					{/* Empty state */}
+					{isEmpty && (
 						<div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
 							<EmptyState search={search} onAdd={() => openAddPanel()} />
 						</div>
@@ -1410,38 +1287,9 @@ export function CustomerPage() {
 				isLead={activeMainTab === 'leads'}
 			/>
 
-			{/* Mobile FAB — hidden in selection mode, only on customers tab */}
-			{!isSelectionMode && activeMainTab === 'customers' && (
+			{/* Mobile FAB — only on customers tab */}
+			{activeMainTab === 'customers' && (
 				<FloatingActionButton onClick={() => openAddPanel()} />
-			)}
-
-			{/* Bulk follow-up sheet (from selection mode) */}
-			<BulkFollowupSheet
-				open={showBulkFollowupSheet}
-				onOpenChange={setShowBulkFollowupSheet}
-				customerIds={Array.from(selectedIds)}
-				onSuccess={handleBulkFollowupSuccess}
-			/>
-
-			{/* Follow-up sheet triggered by swipe action (single customer) */}
-			<BulkFollowupSheet
-				open={swipeFollowupCustomerId !== null}
-				onOpenChange={(open) => { if (!open) setSwipeFollowupCustomerId(null) }}
-				customerIds={swipeFollowupCustomerId ? [swipeFollowupCustomerId] : []}
-				onSuccess={() => setSwipeFollowupCustomerId(null)}
-			/>
-
-			{/* Snooze toast */}
-			{snoozeToastVisible && (
-				<div
-					className={cn(
-						'fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-full bg-gray-800 px-4 py-2 text-sm text-white shadow-lg',
-						'animate-in fade-in-0 slide-in-from-bottom-2',
-					)}
-					role="status"
-				>
-					Snoozed for 24 hours
-				</div>
 			)}
 
 			{/* Merge Modal */}

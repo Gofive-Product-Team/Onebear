@@ -17,12 +17,12 @@ interface Props {
 	onClick: () => void
 }
 
-const stateConfig: Record<string, { color: string; label: string }> = {
-	New: { color: 'bg-yellow-400', label: 'New' },
-	InProgress: { color: 'bg-green-500', label: '' },
-	Closed: { color: 'bg-gray-400', label: 'Closed' },
-	Resolved: { color: 'bg-gray-400', label: 'Resolved' },
-	Spam: { color: 'bg-red-400', label: 'Spam' },
+const stateConfig: Record<string, { dot: string; lineColor: string; label: string }> = {
+	New:        { dot: '',              lineColor: 'bg-yellow-400', label: 'ใหม่'        },
+	InProgress: { dot: 'bg-green-500', lineColor: '',              label: 'กำลังดูแล'  },
+	Closed:     { dot: '',              lineColor: 'bg-gray-400',  label: 'ปิดแล้ว'    },
+	Resolved:   { dot: '',              lineColor: 'bg-gray-400',  label: 'เสร็จสิ้น'  },
+	Spam:       { dot: '',              lineColor: 'bg-red-400',   label: 'สแปม'       },
 }
 
 export function RoomCard({ room, isActive, onClick }: Props) {
@@ -36,6 +36,8 @@ export function RoomCard({ room, isActive, onClick }: Props) {
 	const customerName = room.customerName ?? 'Unknown'
 	const fallbackInitial = customerName.charAt(0).toUpperCase()
 	const state = stateConfig[room.state] ?? stateConfig.New
+	// Prototype: treat rooms where AI is handling (no human has taken over yet)
+	const isAiHandling = (room as Record<string, unknown>).isAiHandling === true
 
 	const unread = room.unreadCount ?? 0
 
@@ -86,28 +88,44 @@ export function RoomCard({ room, isActive, onClick }: Props) {
 					{/* Row 1: name + state + timestamp */}
 					<div className="flex items-center justify-between gap-1">
 						<div className="flex items-center gap-1.5 min-w-0">
-							<span className={cn(
-								'truncate text-[13px]',
-								unread > 0 ? 'font-bold text-t1' : 'font-medium text-t1',
-							)}>
-								{customerName}
-							</span>
+							{/* Name with small colored line above — hover to see state label */}
+							<Tooltip content={state.label} side="top">
+								<span className="flex min-w-0 shrink flex-col gap-[3px]">
+									{state.lineColor && (
+										<span className={cn('h-[2px] w-5 rounded-full shrink-0', state.lineColor)} />
+									)}
+									<span className="flex items-center gap-1 min-w-0">
+										<span className={cn(
+											'truncate text-[13px]',
+											unread > 0 ? 'font-bold text-t1' : 'font-medium text-t1',
+										)}>
+											{customerName}
+										</span>
+										{/* AI icon — inline right after name */}
+										{isAiHandling && (
+											<span className="shrink-0 inline-flex items-center gap-0.5 rounded-full bg-indigo-100 px-1 py-px text-[9px] font-semibold text-indigo-600">
+												<svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+													<rect x="3" y="11" width="18" height="10" rx="2" />
+													<circle cx="12" cy="5" r="2" />
+													<path d="M12 7v4" />
+													<line x1="8" y1="16" x2="8" y2="16" />
+													<line x1="16" y1="16" x2="16" y2="16" />
+												</svg>
+												AI
+											</span>
+										)}
+									</span>
+								</span>
+							</Tooltip>
+							{/* InProgress dot */}
+							{state.dot && (
+								<span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', state.dot)} />
+							)}
 							{/* Contact type badge */}
 							{room.contactType === 'Lead' && (
 								<span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-px text-[9px] font-semibold text-amber-700">
 									ผู้สนใจ
 								</span>
-							)}
-							{state.label && (
-								<span className={cn(
-									'shrink-0 rounded-full px-1.5 py-px text-[9px] font-semibold text-white',
-									state.color,
-								)}>
-									{state.label}
-								</span>
-							)}
-							{!state.label && (
-								<span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', state.color)} />
 							)}
 							{room.isPinned && <Pin className="h-3 w-3 shrink-0 text-amber-400" />}
 						</div>

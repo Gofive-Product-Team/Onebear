@@ -35,6 +35,8 @@ function SectionHeader({ label, icon }: { label: string; icon?: React.ReactNode 
 	)
 }
 
+const DONE_STATES = new Set(['Closed', 'Resolved'])
+
 function groupRooms(rooms: ChatRoom[], currentUserId: string | undefined) {
 	const pinnedRooms = rooms
 		.filter((r) => r.isPinned)
@@ -44,11 +46,21 @@ function groupRooms(rooms: ChatRoom[], currentUserId: string | undefined) {
 		.filter((r) => !r.isPinned && r.assignToUserId === currentUserId && !!r.handoffSource)
 		.sort((a, b) => (b.handoffTimestamp ?? 0) - (a.handoffTimestamp ?? 0))
 
-	const allChats = rooms
-		.filter((r) => !r.isPinned && !(r.assignToUserId === currentUserId && r.handoffSource))
+	const rest = rooms.filter(
+		(r) => !r.isPinned && !(r.assignToUserId === currentUserId && r.handoffSource),
+	)
+
+	// Active (not done) — sorted by latest message first
+	const activeChats = rest
+		.filter((r) => !DONE_STATES.has(r.state))
 		.sort((a, b) => (b.lastMessageTimestamp ?? 0) - (a.lastMessageTimestamp ?? 0))
 
-	return { pinnedRooms, assignedToMe, allChats }
+	// Done (Closed / Resolved) — sorted by latest message first
+	const doneChats = rest
+		.filter((r) => DONE_STATES.has(r.state))
+		.sort((a, b) => (b.lastMessageTimestamp ?? 0) - (a.lastMessageTimestamp ?? 0))
+
+	return { pinnedRooms, assignedToMe, activeChats, doneChats }
 }
 
 const DEFAULT_FILTERS: RoomFilterState = {
@@ -84,7 +96,7 @@ export function RoomList({ activeRoomId }: Props) {
 		return data.data
 	}, [data])
 
-	const { pinnedRooms, assignedToMe, allChats } = useMemo(
+	const { pinnedRooms, assignedToMe, activeChats, doneChats } = useMemo(
 		() => groupRooms(rooms, user?.userId),
 		[rooms, user?.userId],
 	)
@@ -195,13 +207,35 @@ export function RoomList({ activeRoomId }: Props) {
 							</div>
 						)}
 
-						{/* All Chats section */}
+						{/* All Chats section — active first, then done */}
 						<div className={cn((pinnedRooms.length > 0 || assignedToMe.length > 0) && 'mt-1')}>
 							<SectionHeader label="All Chats" icon={<MessageCircle className="h-3.5 w-3.5" />} />
-							{allChats.length === 0 && (
+
+							{activeChats.length === 0 && doneChats.length === 0 && (
 								<p className="px-3 py-2 text-xs text-t3">No conversations.</p>
 							)}
-							{allChats.map((room) => (
+
+							{/* Active (New / InProgress) */}
+							{activeChats.map((room) => (
+								<RoomCard
+									key={room.id}
+									room={room}
+									isActive={room.id === activeRoomId}
+									onClick={() => handleRoomClick(room.id)}
+								/>
+							))}
+
+							{/* Divider between active and done */}
+							{activeChats.length > 0 && doneChats.length > 0 && (
+								<div className="mx-3 my-1.5 flex items-center gap-2">
+									<div className="h-px flex-1 bg-border" />
+									<span className="text-[10px] font-medium text-t3 uppercase tracking-wide">เสร็จแล้ว</span>
+									<div className="h-px flex-1 bg-border" />
+								</div>
+							)}
+
+							{/* Done (Closed / Resolved) */}
+							{doneChats.map((room) => (
 								<RoomCard
 									key={room.id}
 									room={room}

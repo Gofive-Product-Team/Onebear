@@ -81,6 +81,8 @@ export const api = {
 		list: (companyId: string, params?: Record<string, string>) =>
 			fetchApi(`/companies/${companyId}/rooms${params ? '?' + new URLSearchParams(params) : ''}`),
 		get: (companyId: string, roomId: string) => fetchApi(`/companies/${companyId}/rooms/${roomId}`),
+		getOrderByRoom: (companyId: string, roomId: string) =>
+			fetchApi(`/companies/${companyId}/rooms/${roomId}/order`),
 		getBadgeCount: (companyId: string) => fetchApi(`/companies/${companyId}/rooms/badge-count`),
 		search: (companyId: string, body: object) =>
 			fetchApi(`/companies/${companyId}/rooms/search`, { method: 'POST', body: JSON.stringify(body) }),
@@ -99,6 +101,8 @@ export const api = {
 		returnToAi: (companyId: string, roomId: string) =>
 			fetchApi(`/companies/${companyId}/rooms/${roomId}/return-to-ai`, { method: 'POST' }),
 		spam: (companyId: string) => fetchApi(`/companies/${companyId}/rooms/spam`),
+		markAsSpam: (companyId: string, roomId: string) =>
+			fetchApi(`/companies/${companyId}/rooms/${roomId}/spam`, { method: 'POST' }),
 		notSpam: (companyId: string, roomId: string) =>
 			fetchApi(`/companies/${companyId}/rooms/${roomId}/not-spam`, { method: 'POST' }),
 		updateFollowUp: (companyId: string, roomId: string, body: object) =>

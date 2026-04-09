@@ -2,15 +2,14 @@ import { useState } from 'react'
 import { cn } from '@one-bear/ui'
 
 const CHANNEL_OPTIONS = ['LINE', 'Facebook', 'Instagram', 'WhatsApp', 'Email', 'TikTok', 'Lazada', 'Shopee']
-const SEGMENT_OPTIONS = ['Hot', 'At-risk', 'New', 'VIP', 'Loyal', 'Cold', 'Organization']
+
 const DATE_PRESETS = [
-	{ label: 'Last 7 days', value: '7d' },
-	{ label: 'Last 30 days', value: '30d' },
-	{ label: 'Last 90 days', value: '90d' },
+	{ label: '7 วันล่าสุด', value: '7d' },
+	{ label: '30 วันล่าสุด', value: '30d' },
+	{ label: '90 วันล่าสุด', value: '90d' },
 ]
 
 export interface AdvancedFilters {
-	segments: string[]
 	channels: string[]
 	dateRange: string | null
 	ltvMin: number | null
@@ -19,7 +18,6 @@ export interface AdvancedFilters {
 }
 
 export const EMPTY_FILTERS: AdvancedFilters = {
-	segments: [],
 	channels: [],
 	dateRange: null,
 	ltvMin: null,
@@ -31,14 +29,15 @@ interface Props {
 	filters: AdvancedFilters
 	onApply: (filters: AdvancedFilters) => void
 	onClear: () => void
+	/** 'customer' shows LTV range; 'lead' hides it. Default: 'customer' */
+	variant?: 'customer' | 'lead'
 }
 
-export function AdvancedFilterPanel({ filters, onApply, onClear }: Props) {
+export function AdvancedFilterPanel({ filters, onApply, onClear, variant = 'customer' }: Props) {
 	const [isOpen, setIsOpen] = useState(false)
 	const [draft, setDraft] = useState<AdvancedFilters>(filters)
 
 	const activeCount =
-		draft.segments.length +
 		draft.channels.length +
 		(draft.dateRange ? 1 : 0) +
 		(draft.ltvMin !== null ? 1 : 0) +
@@ -54,13 +53,6 @@ export function AdvancedFilterPanel({ filters, onApply, onClear }: Props) {
 		setDraft(EMPTY_FILTERS)
 		onClear()
 		setIsOpen(false)
-	}
-
-	function toggleSegment(seg: string) {
-		setDraft((d) => ({
-			...d,
-			segments: d.segments.includes(seg) ? d.segments.filter((s) => s !== seg) : [...d.segments, seg],
-		}))
 	}
 
 	function toggleChannel(ch: string) {
@@ -80,24 +72,16 @@ export function AdvancedFilterPanel({ filters, onApply, onClear }: Props) {
 					setIsOpen(!isOpen)
 				}}
 				className={cn(
-					'flex h-9 items-center gap-1.5 rounded-lg border px-3 text-sm transition-colors',
+					'flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm font-medium shadow-sm transition-colors',
 					activeCount > 0
 						? 'border-primary bg-primary/5 text-primary'
-						: 'border-border text-t2 hover:bg-bg-hover',
+						: 'border-border-input bg-bg-input text-t2 hover:bg-bg-hover',
 				)}
 			>
-				<svg
-					className="h-4 w-4"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					strokeWidth="2"
-					strokeLinecap="round"
-					strokeLinejoin="round"
-				>
-					<path d="M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7m0-18H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7m0-18v18" />
+				<svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+					<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
 				</svg>
-				Filters
+				ตัวกรอง
 				{activeCount > 0 && (
 					<span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
 						{activeCount}
@@ -110,45 +94,47 @@ export function AdvancedFilterPanel({ filters, onApply, onClear }: Props) {
 				<>
 					<div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
 					<div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-xl border border-border bg-bg-card p-4 shadow-xl max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:w-full max-md:rounded-b-none max-md:rounded-t-2xl max-md:max-h-[85vh] max-md:overflow-y-auto">
-						<h3 className="mb-3 text-sm font-semibold text-t1">Advanced Filters</h3>
+						<h3 className="mb-4 text-sm font-semibold text-t1">ตัวกรอง</h3>
 
-						{/* Segments (multi-select) */}
+						{/* Tag search */}
 						<div className="mb-4">
-							<p className="mb-1.5 text-xs font-medium text-t2">Segments</p>
+							<p className="mb-1.5 text-xs font-medium text-t2">แท็ก</p>
+							<input
+								type="text"
+								value={draft.tagSearch}
+								onChange={(e) => setDraft((d) => ({ ...d, tagSearch: e.target.value }))}
+								placeholder="ค้นหาแท็ก..."
+								className="h-9 w-full rounded-md border border-border-input bg-bg-input px-3 text-sm text-t1 placeholder:text-t3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+							/>
+						</div>
+
+						{/* Channels */}
+						<div className="mb-4">
+							<p className="mb-1.5 text-xs font-medium text-t2">ช่องทาง</p>
 							<div className="flex flex-wrap gap-1.5">
-								{SEGMENT_OPTIONS.map((seg) => (
+								{CHANNEL_OPTIONS.map((ch) => (
 									<button
-										key={seg}
+										key={ch}
 										type="button"
-										onClick={() => toggleSegment(seg)}
+										onClick={() => toggleChannel(ch)}
 										className={cn(
 											'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
-											draft.segments.includes(seg)
+											draft.channels.includes(ch)
 												? 'border-primary bg-primary/10 text-primary'
-												: 'border-border text-t3 hover:bg-bg-hover',
+												: 'border-border text-t3 hover:bg-bg-hover hover:text-t2',
 										)}
 									>
-										{seg}
+										{ch}
 									</button>
 								))}
 							</div>
 						</div>
 
-						{/* Tag search */}
+						{/* Date range — "กิจกรรมล่าสุด" for leads, "ซื้อล่าสุด" for customers */}
 						<div className="mb-4">
-							<p className="mb-1.5 text-xs font-medium text-t2">Tag Search</p>
-							<input
-								type="text"
-								value={draft.tagSearch}
-								onChange={(e) => setDraft((d) => ({ ...d, tagSearch: e.target.value }))}
-								placeholder="Search tags..."
-								className="w-full rounded-lg border border-border bg-bg-input px-3 py-1.5 text-sm"
-							/>
-						</div>
-
-						{/* Date range */}
-						<div className="mb-4">
-							<p className="mb-1.5 text-xs font-medium text-t2">Last Purchase</p>
+							<p className="mb-1.5 text-xs font-medium text-t2">
+								{variant === 'lead' ? 'กิจกรรมล่าสุด' : 'ซื้อล่าสุด'}
+							</p>
 							<div className="flex gap-1.5">
 								{DATE_PRESETS.map((preset) => (
 									<button
@@ -173,69 +159,49 @@ export function AdvancedFilterPanel({ filters, onApply, onClear }: Props) {
 							</div>
 						</div>
 
-						{/* LTV range */}
-						<div className="mb-4">
-							<p className="mb-1.5 text-xs font-medium text-t2">LTV Range (฿)</p>
-							<div className="flex items-center gap-2">
-								<input
-									type="number"
-									value={draft.ltvMin ?? ''}
-									onChange={(e) =>
-										setDraft((d) => ({ ...d, ltvMin: e.target.value ? Number(e.target.value) : null }))
-									}
-									placeholder="Min"
-									className="w-full rounded-lg border border-border bg-bg-input px-3 py-1.5 text-sm"
-								/>
-								<span className="text-t3">&mdash;</span>
-								<input
-									type="number"
-									value={draft.ltvMax ?? ''}
-									onChange={(e) =>
-										setDraft((d) => ({ ...d, ltvMax: e.target.value ? Number(e.target.value) : null }))
-									}
-									placeholder="Max"
-									className="w-full rounded-lg border border-border bg-bg-input px-3 py-1.5 text-sm"
-								/>
+						{/* LTV range — customers only */}
+						{variant === 'customer' && (
+							<div className="mb-4">
+								<p className="mb-1.5 text-xs font-medium text-t2">ยอดซื้อสะสม (฿)</p>
+								<div className="flex items-center gap-2">
+									<input
+										type="number"
+										value={draft.ltvMin ?? ''}
+										onChange={(e) =>
+											setDraft((d) => ({ ...d, ltvMin: e.target.value ? Number(e.target.value) : null }))
+										}
+										placeholder="ต่ำสุด"
+										className="h-9 w-full rounded-md border border-border-input bg-bg-input px-3 text-sm placeholder:text-t3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+									/>
+									<span className="shrink-0 text-t3">—</span>
+									<input
+										type="number"
+										value={draft.ltvMax ?? ''}
+										onChange={(e) =>
+											setDraft((d) => ({ ...d, ltvMax: e.target.value ? Number(e.target.value) : null }))
+										}
+										placeholder="สูงสุด"
+										className="h-9 w-full rounded-md border border-border-input bg-bg-input px-3 text-sm placeholder:text-t3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+									/>
+								</div>
 							</div>
-						</div>
-
-						{/* Channels */}
-						<div className="mb-4">
-							<p className="mb-1.5 text-xs font-medium text-t2">Channels</p>
-							<div className="flex flex-wrap gap-1.5">
-								{CHANNEL_OPTIONS.map((ch) => (
-									<button
-										key={ch}
-										type="button"
-										onClick={() => toggleChannel(ch)}
-										className={cn(
-											'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
-											draft.channels.includes(ch)
-												? 'border-primary bg-primary/10 text-primary'
-												: 'border-border text-t3 hover:bg-bg-hover',
-										)}
-									>
-										{ch}
-									</button>
-								))}
-							</div>
-						</div>
+						)}
 
 						{/* Actions */}
-						<div className="flex gap-2 border-t border-border pt-2">
+						<div className="flex gap-2 border-t border-border pt-3">
 							<button
 								type="button"
 								onClick={handleClear}
 								className="flex-1 rounded-lg border border-border px-3 py-2 text-sm font-medium text-t2 hover:bg-bg-hover"
 							>
-								Clear all
+								ล้างทั้งหมด
 							</button>
 							<button
 								type="button"
 								onClick={handleApply}
 								className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white hover:bg-primary/90"
 							>
-								Apply
+								ใช้ตัวกรอง
 							</button>
 						</div>
 					</div>
@@ -254,12 +220,11 @@ export function ActiveFilterChips({
 	onRemove: (key: string, value?: string) => void
 }) {
 	const chips: { key: string; label: string; value?: string }[] = []
-	for (const seg of filters.segments) chips.push({ key: 'segment', label: seg, value: seg })
 	for (const ch of filters.channels) chips.push({ key: 'channel', label: ch, value: ch })
-	if (filters.dateRange) chips.push({ key: 'dateRange', label: `Last purchase: ${filters.dateRange}` })
-	if (filters.ltvMin !== null) chips.push({ key: 'ltvMin', label: `LTV >= ${filters.ltvMin}` })
-	if (filters.ltvMax !== null) chips.push({ key: 'ltvMax', label: `LTV <= ${filters.ltvMax}` })
-	if (filters.tagSearch) chips.push({ key: 'tagSearch', label: `Tag: ${filters.tagSearch}` })
+	if (filters.dateRange) chips.push({ key: 'dateRange', label: `กิจกรรม: ${filters.dateRange}` })
+	if (filters.ltvMin !== null) chips.push({ key: 'ltvMin', label: `LTV ≥ ฿${filters.ltvMin.toLocaleString()}` })
+	if (filters.ltvMax !== null) chips.push({ key: 'ltvMax', label: `LTV ≤ ฿${filters.ltvMax.toLocaleString()}` })
+	if (filters.tagSearch) chips.push({ key: 'tagSearch', label: `แท็ก: ${filters.tagSearch}` })
 
 	if (chips.length === 0) return null
 
@@ -274,9 +239,12 @@ export function ActiveFilterChips({
 					<button
 						type="button"
 						onClick={() => onRemove(chip.key, chip.value)}
-						className="ml-0.5 hover:text-primary/70"
+						className="ml-0.5 opacity-70 hover:opacity-100"
+						aria-label="ลบตัวกรอง"
 					>
-						x
+						<svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+							<path d="M18 6 6 18M6 6l12 12" />
+						</svg>
 					</button>
 				</span>
 			))}
