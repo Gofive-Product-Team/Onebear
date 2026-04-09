@@ -95,6 +95,15 @@ The **Order Management** system tracks customer purchases from initial order cre
     COMPLETED                            CANCELLED
     (Fully verified                       (Rejected slip,
      & ready to ship)                      refund issued)
+         ↓
+    ┌─────────────────────────────────────────────────────────────────┐
+    │ AUTO-CLOSE CHATROOM                                             │
+    │   - System sends success message to customer via chat:          │
+    │     "✅ คำสั่งซื้อ [ORD-ID] สำเร็จแล้ว! ขอบคุณที่ใช้บริการ 🎉" │
+    │   - Chatroom status → Done (isResolved = true)                  │
+    │   - No manual action needed by agent                            │
+    │   - In deposit mode: fires only after ALL installments complete  │
+    └─────────────────────────────────────────────────────────────────┘
 
 PAYMENT_EXPIRED (Payment Link Expired — GAP 9 Locked)
   - Triggered when payment link passes its 24-hour expiry
@@ -127,6 +136,10 @@ Status: PENDING_VERIFY (awaiting payment confirmation)
 Payment confirmed by gateway
 ↓
 Status: COMPLETED ✅ (ready to ship)
+↓
+System sends: "✅ คำสั่งซื้อ [ORD-ID] สำเร็จแล้ว! ขอบคุณที่ใช้บริการ 🎉"
+↓
+Chatroom status → Done (auto-closed)
 ```
 
 ### Mode 2: Deposit + Installments
@@ -159,6 +172,10 @@ Day 14: Auto-reminder for Installment 2 (฿2000)
 Customer pays Installment 2
 ↓
 Status: PENDING_VERIFY → Status: COMPLETED (all received)
+↓
+System sends: "✅ คำสั่งซื้อ [ORD-ID] ชำระครบแล้ว! ขอบคุณที่ใช้บริการ 🎉"
+↓
+Chatroom status → Done (auto-closed — fires only after all installments complete)
 ```
 
 ### Mode 3: Payment by Slip (Bank Transfer)
@@ -180,6 +197,8 @@ AI verifies slip:
 ↓
 Admin reviews slip:
   - Approve: Status: COMPLETED ✅
+    → System sends: "✅ คำสั่งซื้อ [ORD-ID] สำเร็จแล้ว! ขอบคุณที่ใช้บริการ 🎉"
+    → Chatroom status → Done (auto-closed)
   - Reject: Back to PENDING_PAYMENT (try another method)
 ```
 
@@ -311,10 +330,13 @@ Day 28: Escalate to manager if still not paid (overdue)
    → Chat: "ได้รับเงินแล้ว ⏳ กำลังตรวจสอบ..."
    → Status: PENDING_VERIFY
 
-5️⃣ Payment Verified ✅
-   → Chat: "✅ ยืนยันชำระเงินสำเร็จแล้ว! (ORD-2026-001)"
-   → Status: COMPLETED
-   → Order ready to ship
+5️⃣ Payment Verified ✅ → Order COMPLETED → Chatroom Closed
+   → Order status: COMPLETED
+   → System auto-sends message to customer (via original channel):
+       "✅ คำสั่งซื้อ ORD-2026-001 สำเร็จแล้ว! ขอบคุณที่ใช้บริการนะคะ 🎉"
+   → Chatroom status auto-transitions to **Done** (isFrtStopped = true, isResolved = true)
+   → Agent sees chatroom marked as "Done" in inbox — no manual action needed
+   → If All Installments Completed (deposit mode): same auto-close logic fires after final installment
 
 6️⃣ Deposit Received
    → Chat: "✅ ได้รับมัดจำแล้ว ฿1500 (ORD-2026-001)"
@@ -416,12 +438,17 @@ REFUND POLICY:
 - [ ] New link can be generated even if previous still active
 - [ ] Link status tracked: ACTIVE, EXPIRED, COMPLETED, FAILED
 
-### Payment Success
+### Payment Success & Order Completion
 - [ ] Payment webhook from Payso received and processed < 5 sec (see: https://api-docs.payso.co/docs/api/overviews)
 - [ ] Order status updated: PENDING_PAYMENT → PENDING_VERIFY
 - [ ] Payment confirmation verified (amount matches, timestamp valid, Payso idempotency key honored)
 - [ ] Order status updated: PENDING_VERIFY → COMPLETED
-- [ ] Customer notified in chat: "✅ Payment verified & order confirmed"
+- [ ] System auto-sends completion message to customer via original chat channel:
+      Thai: "✅ คำสั่งซื้อ [ORD-ID] สำเร็จแล้ว! ขอบคุณที่ใช้บริการนะคะ 🎉"
+- [ ] Chatroom auto-transitions to **Done** immediately after order reaches COMPLETED
+      (sets `isResolved = true`, `isFrtStopped = true` — same effect as agent pressing Done)
+- [ ] Agent sees chatroom marked Done in inbox without manual action
+- [ ] In deposit/installment mode: chatroom auto-closes only when **all installments** are COMPLETED
 - [ ] Agent sees order status update in real-time
 - [ ] Dashboard revenue updated when status = COMPLETED
 - [ ] Idempotency check: Payso payment_id never processed twice (per Payso API spec)
@@ -588,7 +615,7 @@ Solution (GAP 7 Locked — Stock Soft-Hold):
 
 ## Integration Checklist
 
-- [ ] **Inbox Chat**: Order created in chat context, payment link sent via chat
+- [ ] **Inbox Chat**: Order created in chat context, payment link sent via chat; chatroom auto-closes when order reaches COMPLETED
 - [ ] **AI Sales Agent**: AI creates order, generates payment link, sends link automatically
 - [ ] **Product Catalog**: Order captures product prices + stock (stock deducted on paid)
 - [ ] **CRM**: Order linked to customer record (search orders by customer)
