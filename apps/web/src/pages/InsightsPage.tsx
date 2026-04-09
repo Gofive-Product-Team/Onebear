@@ -64,7 +64,7 @@ function InsightCard({ rec }: { rec: ActionRecommendation }) {
           isPositive ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning',
         )}>
           {isPositive
-            ? <><TrendingUp className="h-3 w-3" /><span>+Insight</ span></>
+            ? <><TrendingUp className="h-3 w-3" /><span>+Insight</span></>
             : <><TrendingDown className="h-3 w-3" /><span>Alert</span></>
           }
         </div>
@@ -131,9 +131,9 @@ function WeeklySummary({ data }: { data: ReturnType<typeof useDailyInsights>['da
   )
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ─── Headless content (used when embedded inside another page) ─────────────────
 
-export function InsightsPage() {
+export function InsightsContent() {
   const [dateRange, setDateRange] = useState<DateRange>('today')
   const { data, isLoading } = useDailyInsights()
 
@@ -181,33 +181,27 @@ export function InsightsPage() {
     : []
 
   return (
-    <div className="mx-auto max-w-7xl space-y-5">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-t1">AI Data Analyst</h1>
-          <p className="mt-0.5 text-sm text-t2">Insights อัจฉริยะจากข้อมูลธุรกิจ</p>
+    <div className="space-y-5">
+      {/* Controls row: date toggle + export */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex gap-1 w-fit rounded-xl border border-border bg-bg-card p-1 shadow-sm">
+          {DATE_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setDateRange(tab.key)}
+              className={cn(
+                'rounded-lg px-4 py-1.5 text-sm font-medium transition-all',
+                dateRange === tab.key ? 'bg-primary text-white shadow-sm' : 'text-t2 hover:bg-bg-hover',
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-        <Button variant="outline">
+        <Button variant="outline" size="sm">
           <Download className="mr-1.5 h-4 w-4" />
           Export PDF
         </Button>
-      </div>
-
-      {/* Date range toggle */}
-      <div className="flex gap-1 w-fit rounded-xl border border-border bg-bg-card p-1 shadow-sm">
-        {DATE_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setDateRange(tab.key)}
-            className={cn(
-              'rounded-lg px-4 py-1.5 text-sm font-medium transition-all',
-              dateRange === tab.key ? 'bg-primary text-white shadow-sm' : 'text-t2 hover:bg-bg-hover',
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
       </div>
 
       {/* Insight cards */}
@@ -233,6 +227,20 @@ export function InsightsPage() {
 
       {/* Weekly summary */}
       <WeeklySummary data={data} />
+    </div>
+  )
+}
+
+export function InsightsPage() {
+  return (
+    <div className="mx-auto max-w-7xl space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-t1">AI Data Analyst</h1>
+          <p className="mt-0.5 text-sm text-t2">Insights อัจฉริยะจากข้อมูลธุรกิจ</p>
+        </div>
+      </div>
+      <InsightsContent />
     </div>
   )
 }
