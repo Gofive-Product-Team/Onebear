@@ -42,6 +42,8 @@ export interface ChatRoom {
 	// Spam fields
 	isSpam?: boolean
 	spamScore?: number | null
+	// CRM mapping: whether this contact is a Lead or existing Customer
+	contactType?: 'Lead' | 'Customer' | null
 }
 
 export type MessageType =

@@ -1,10 +1,37 @@
-# 9. Calendar & KPI — User Story
+# 9. Calendar & KPI (หน้าหลัก) — User Story
 
-**Status**: Ready for feedback
+**Status**: Updated — Promoted to Home Page (v2)
 **Priority**: 🟡 High (Business intelligence + performance tracking)
 **Target Users**: Agents (personal KPIs), Managers (team KPIs), Admin (full visibility)
 **Primary Device**: Desktop (main), Mobile (quick check)
 **Time Target**: KPI refresh every 5 minutes, <1 sec page load
+
+---
+
+## 📋 Prototype Updates (v2)
+
+### Promoted to Home Page
+- Route: `/` (index route — first page after login)
+- Page title: **หน้าหลัก** (was "Calendar & KPI")
+- Sidebar: Home icon 🏠, placed **first** in navigation menu (above Chat)
+- Tooltip: "หน้าหลัก"
+
+### Role-Based Content
+| Role | Subtitle | KPI Tiles | Agent Table |
+|------|----------|-----------|-------------|
+| Admin / Manager | 📊 ภาพรวมทั้งร้าน — ยอดขาย · ทีม · AI | Shop-wide metrics (ยอดรวมทีม, ออเดอร์ทั้งหมด, อัตราตอบ, รายรับเดือนนี้, SLA Breach, AI Adoption) | ✅ Shown |
+| Agent / Staff | 👤 ผลงานของคุณวันนี้ | Personal only (ยอดขายของฉัน, ออเดอร์ใหม่, แชทไม่ตอบ, AI ปิดได้, Follow-up คงค้าง, รอชำระ) | ❌ Hidden |
+
+### Role Badge
+- Admin/Manager: `border-primary/30 bg-primary/5` — shows `🏢 Admin View` / `👥 Manager View`
+- Agent: `border-border bg-bg-card` — shows `👤 Agent View`
+
+### Calendar
+- Revenue heat-map remains for all roles
+- Click day → popover with ยอดขาย, ออเดอร์, สินค้าขายดี
+- Admin sees shop-wide revenue; Agent sees calendar (no revenue detail restriction defined yet)
+
+---
 
 ---
 

@@ -1,10 +1,39 @@
 # 12. Settings & Permissions — User Story
 
-**Status**: Ready for feedback
+**Status**: Updated — Booking config added (v2)
 **Priority**: 🔴 Critical (Security + compliance)
 **Target Users**: Super Admin, Managers, Admins
 **Primary Device**: Desktop
 **Time Target**: Permission checks < 100ms, audit log query < 2 sec
+
+---
+
+## 📋 Prototype Updates (v2)
+
+### New Settings Section: Booking (under Messaging group)
+- **Location**: Settings sidebar → Messaging → Booking
+- **Icon**: Calendar icon
+- **Contains**: BookingSettings component with two sub-tabs:
+  - **บริการ** — manage bookable services (name, duration, price, per-agent assignment, active toggle)
+  - **ตารางงาน** — working hours, buffer between appointments, blocked dates/holidays
+- **Rationale**: Booking configuration is admin-level setup, not operational — moved from Bookings page
+
+### Updated Settings Sidebar Order (Messaging group)
+1. Integrations
+2. Greeting Messages
+3. Auto Reply
+4. Auto Assignment
+5. Shortcuts
+6. AI Chatbot
+7. AI Sales Agent
+8. Follow-up
+9. **Booking** ← new
+
+### Custom Fields (CRM group)
+- Custom Fields settings section confirmed in Settings (CRM group)
+- Removed from Customer/CRM page — single source of truth in Settings
+
+---
 
 ---
 
@@ -881,3 +910,25 @@ PaymentConfigSettings now includes a bank account section (shown BEFORE any Pays
 
 **Note:** Bank account is the primary payment collection method for Phase 1. Payso API integration is planned for Phase 2 and currently shown as "เร็วๆ นี้" (coming soon).
 
+
+---
+
+## Prototype Update (April 2026)
+
+### Follow-up Settings Added to Messaging Group
+
+**Change**: A new "Follow-up" section has been added under the **Messaging** group in Settings sidebar.
+
+**Access**: Admin only (label note: "Admin เท่านั้นที่แก้ไขได้")
+
+**`FollowUpSettings` Component** (`apps/web/src/components/settings/FollowUpSettings.tsx`):
+- **Global Send Window**: Time range inputs (default 09:00–21:00) with out-of-window behavior options: ส่งตอน 09:00 วันถัดไป / รอจนกว่าจะถึงเวลา / ยกเลิก Follow-up
+- **Per-Channel Config**: Separate cards for LINE, Facebook, Instagram, WhatsApp — each with:
+  - Enable/disable toggle
+  - Trigger delay: 30m, 1h, 3h, 6h, 12h, 24h dropdown
+  - Max attempts: 1–5 number input
+  - Message template textarea with {{customer_name}}, {{product_name}}, {{product_price}}, {{product_stock}} variable chips
+  - Preview toggle to see rendered message
+  - Per-channel Save button with flash confirmation
+
+**Settings Sidebar**: Follow-up appears at position after "AI Sales Agent" in the Messaging group.

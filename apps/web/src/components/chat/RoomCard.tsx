@@ -92,6 +92,12 @@ export function RoomCard({ room, isActive, onClick }: Props) {
 							)}>
 								{customerName}
 							</span>
+							{/* Contact type badge */}
+							{room.contactType === 'Lead' && (
+								<span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-px text-[9px] font-semibold text-amber-700">
+									ผู้สนใจ
+								</span>
+							)}
 							{state.label && (
 								<span className={cn(
 									'shrink-0 rounded-full px-1.5 py-px text-[9px] font-semibold text-white',

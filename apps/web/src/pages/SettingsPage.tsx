@@ -14,6 +14,8 @@ import { AuditLogSettings } from '@/components/settings/AuditLogSettings'
 import { PaymentConfigSettings } from '@/components/settings/PaymentConfigSettings'
 import { AiSalesAgentSettings } from '@/components/settings/AiSalesAgentSettings'
 import { CustomFieldsSettings } from '@/components/settings/CustomFieldsSettings'
+import { FollowUpSettings } from '@/components/settings/FollowUpSettings'
+import { BookingSettings } from '@/components/settings/BookingSettings'
 
 type SettingsSection =
 	| 'workspace'
@@ -24,6 +26,8 @@ type SettingsSection =
 	| 'shortcuts'
 	| 'chatbot'
 	| 'ai-sales-agent'
+	| 'follow-up'
+	| 'booking'
 	| 'notifications'
 	| 'team'
 	| 'custom-fields'
@@ -51,6 +55,8 @@ const sections: SectionDef[] = [
 	{ id: 'shortcuts',       label: 'Shortcuts',          group: 'messaging',  icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
 	{ id: 'chatbot',         label: 'AI Chatbot',         group: 'messaging',  icon: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
 	{ id: 'ai-sales-agent',  label: 'AI Sales Agent',     group: 'messaging',  icon: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
+	{ id: 'follow-up',       label: 'Follow-up',          group: 'messaging',  icon: 'M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 01-4 4H3' },
+	{ id: 'booking',         label: 'Booking',            group: 'messaging',  icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
 	// CRM group
 	{ id: 'custom-fields',   label: 'Custom Fields',      group: 'crm',        icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
 	// Payments group
@@ -86,6 +92,10 @@ function SectionContent({ section }: { section: SettingsSection }) {
 			return <ChatbotConfig />
 		case 'ai-sales-agent':
 			return <AiSalesAgentSettings />
+		case 'follow-up':
+			return <FollowUpSettings />
+		case 'booking':
+			return <BookingSettings />
 		case 'team':
 			return <TeamTab />
 		case 'notifications':

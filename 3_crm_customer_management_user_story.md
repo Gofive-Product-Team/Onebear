@@ -1,10 +1,46 @@
 # 3. CRM (Customer Management) — User Story
 
-**Status**: Ready for Review
+**Status**: Updated — Prototype v2 implemented
 **Priority**: 🔴 Critical (Core customer database)
 **Target Users**: Shop admins, managers, sales staff
 **Primary Device**: Desktop (70%), Mobile (30%)
 **Goal**: Unified customer view with segment prioritization, segment-first navigation, table/card switching
+
+---
+
+## 📋 Prototype Updates (v2)
+
+### Terminology
+- "Prospect" renamed → **"ผู้สนใจ"** throughout all UI labels, buttons, badges, and empty states
+- Lead type badge in customer modal: `🎯 ผู้สนใจ`
+- Convert button: "Convert เป็นลูกค้า"
+- Status section label: "สถานะผู้สนใจ"
+
+### Add Customer / Add ผู้สนใจ Form
+Both Individual and Business types now include:
+- **Phone** field
+- **Email** field
+- **Address** fields: ที่อยู่, ตำบล, อำเภอ, จังหวัด, รหัสไปรษณีย์
+- **Owner** field (select agent to own this contact) — placed as **last field**
+- Form title switches: "เพิ่มลูกค้า" / "เพิ่มผู้สนใจ" based on active tab
+
+### Customer Detail Modal — Header Stats
+Replaced 3-tile quick stats (LTV, Orders, AOV) with **6-tile CRM Stats grid** in the modal header:
+- LTV · AOV · คำสั่งซื้อ · ซื้อครั้งแรก · ซื้อล่าสุด · สมัครเมื่อ
+- `grid-cols-3` on mobile, `grid-cols-6` on desktop
+- **Customer Tier removed** from stats (managed via Tags instead)
+- CRM Stats section removed from General Info tab (no duplication)
+
+### CRM × Chat Room Mapping
+- `contactType: 'Lead' | 'Customer' | null` added to `ChatRoom` type
+- RoomCard shows **"ผู้สนใจ"** amber badge when `contactType === 'Lead'`
+- Rule: If customer sends message to Resolved/Closed room → room reverts to **InProgress** automatically
+
+### Navigation
+- Main tabs: 🎯 ผู้สนใจ | ลูกค้า (Custom Fields tab removed — moved to Settings)
+- "Add Lead" button → "เพิ่มผู้สนใจ"
+
+---
 
 ---
 

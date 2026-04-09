@@ -303,16 +303,22 @@ export function CalendarKpiPage() {
 
   const tiles = role === 'Agent' ? agentTiles : role === 'Manager' ? managerTiles : adminTiles
 
+  const isAdmin = role === 'Admin' || role === 'Manager'
+
   return (
     <div className="mx-auto max-w-7xl space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-t1">Calendar & KPI</h1>
-          <p className="mt-0.5 text-sm text-t2">ติดตามรายได้และเป้าหมายรายวัน</p>
+          <h1 className="text-2xl font-bold text-t1">หน้าหลัก</h1>
+          <p className="mt-0.5 text-sm text-t2">
+            {isAdmin
+              ? '📊 ภาพรวมทั้งร้าน — ยอดขาย · ทีม · AI'
+              : '👤 ผลงานของคุณวันนี้'}
+          </p>
         </div>
-        {/* Role label chip (non-clickable, derived from auth) */}
-        <div className="rounded-xl border border-border bg-bg-card px-3 py-2 shadow-sm">
+        {/* Role badge */}
+        <div className={`rounded-xl border px-3 py-1.5 shadow-sm ${isAdmin ? 'border-primary/30 bg-primary/5' : 'border-border bg-bg-card'}`}>
           <span className="text-sm font-medium text-t2">{ROLE_LABEL[role]}</span>
         </div>
       </div>
@@ -368,8 +374,8 @@ export function CalendarKpiPage() {
         </div>
       </div>
 
-      {/* Manager/Admin per-agent table */}
-      {(role === 'Manager' || role === 'Admin') && <AgentTable />}
+      {/* Manager/Admin per-agent table — only for Admin/Manager, not Staff */}
+      {isAdmin && <AgentTable />}
 
       {/* Day detail popover */}
       {selectedDay && (

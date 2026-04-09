@@ -394,42 +394,6 @@ export function GeneralInfoTab({ customer }: Props) {
 				}}
 			/>
 
-			{/* Profile header */}
-			<div className="flex items-center gap-4">
-				<div
-					className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-lg font-bold text-white"
-					style={{
-						backgroundColor: customer.avatar
-							? undefined
-							: `hsl(${Math.abs(customer.name.charCodeAt(0) * 137) % 360}, 55%, 45%)`,
-					}}
-				>
-					{customer.avatar ? (
-						<img src={customer.avatar} alt={customer.name} className="h-16 w-16 rounded-full object-cover" />
-					) : (
-						customer.name.slice(0, 2).toUpperCase()
-					)}
-				</div>
-				<div className="min-w-0">
-					<h2 className="text-xl font-bold text-t1">{customer.name}</h2>
-					<span
-						className={cn(
-							'mt-1 inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium',
-							customer.customerType === 'Organization'
-								? 'bg-purple-100 text-purple-700'
-								: 'bg-bg-input text-t3',
-						)}
-					>
-						{customer.customerType}
-					</span>
-					{customer.isAtRisk && (
-						<span className="ml-2 inline-flex rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-700">
-							At-risk
-						</span>
-					)}
-				</div>
-			</div>
-
 			{/* Pinned note — prominent */}
 			<div>
 				<SectionLabel>Pinned Note</SectionLabel>
@@ -796,18 +760,6 @@ export function GeneralInfoTab({ customer }: Props) {
 				)}
 			</div>
 
-			{/* CRM Stats */}
-			<div>
-				<SectionLabel>CRM Stats</SectionLabel>
-				<div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-					<StatTile label="Lifetime Value" value={formatCurrency(customer.ltv)} />
-					<StatTile label="Avg Order Value" value={formatCurrency(customer.aov)} />
-					<StatTile label="Orders" value={customer.orderCount} />
-					<StatTile label="First Order" value={formatTimestamp(null)} />
-					<StatTile label="Last Order" value={formatTimestamp(customer.lastOrderTimestamp)} />
-					<StatTile label="Created" value={formatTimestamp(customer.createdTimestamp)} />
-				</div>
-			</div>
 		</div>
 	)
 }

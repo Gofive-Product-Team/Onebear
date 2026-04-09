@@ -11,6 +11,19 @@ import { OrderHistoryTab } from './profile/OrderHistoryTab'
 import { ConversationHistoryTab } from './profile/ConversationHistoryTab'
 import { ActivityLogTab } from './profile/ActivityLogTab'
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function fmtCurrency(value: number): string {
+	if (value >= 1_000_000) return `฿${(value / 1_000_000).toFixed(1)}M`
+	if (value >= 1_000) return `฿${(value / 1_000).toFixed(1)}K`
+	return `฿${value.toFixed(0)}`
+}
+
+function fmtDate(ts: number | null | undefined): string {
+	if (!ts) return '—'
+	return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
 
 function ModalSkeleton() {
@@ -42,19 +55,38 @@ function ModalSkeleton() {
 	)
 }
 
+// ─── Lead status config (mirrored from CustomerPage) ─────────────────────────
+
+const LEAD_STATUS_CONFIG: Record<string, { label: string; color: string; dot: string }> = {
+	'New':            { label: 'New',           color: 'bg-yellow-100 text-yellow-700', dot: 'bg-yellow-400' },
+	'Contacted':      { label: 'Contacted',     color: 'bg-blue-100 text-blue-700',    dot: 'bg-blue-500'   },
+	'Interested':     { label: 'Interested',    color: 'bg-green-100 text-green-700',  dot: 'bg-green-500'  },
+	'Followed-up':    { label: 'Followed-up',   color: 'bg-teal-100 text-teal-700',    dot: 'bg-teal-500'   },
+	'Not Interested': { label: 'Not Interested',color: 'bg-gray-100 text-gray-500',    dot: 'bg-gray-400'   },
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props {
 	customerId: string | null // null = closed
 	onClose: () => void
+	/** When provided, skip the API fetch and use this data directly (e.g. for Leads) */
+	initialData?: import('@/api/useCustomers').CustomerDetail
+	/** If this is a lead, pass the current status to show the Lead banner */
+	leadStatus?: string
+	/** Called when admin converts lead → customer */
+	onConvertLead?: (id: string) => void
 }
 
-export function CustomerDetailModal({ customerId, onClose }: Props) {
-	// Fetch customer data when modal is open
-	const { data: customer, isLoading, isError } = useCustomer(customerId ?? '')
+export function CustomerDetailModal({ customerId, onClose, initialData, leadStatus, onConvertLead }: Props) {
+	// If initialData is provided (e.g. for Leads), skip the API fetch
+	const { data: fetched, isLoading, isError } = useCustomer((!initialData && customerId) ? customerId : '')
+	const customer = initialData ?? fetched
 	const updateCustomer = useUpdateCustomer()
 	const [isEditing, setIsEditing] = useState(false)
 	const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', customerType: '' })
+	const [localLeadStatus, setLocalLeadStatus] = useState(leadStatus ?? '')
+	const [converting, setConverting] = useState(false)
 
 	useEffect(() => {
 		if (customer && isEditing) {
@@ -95,7 +127,7 @@ export function CustomerDetailModal({ customerId, onClose }: Props) {
 	}, [customerId, handleKeyDown])
 
 	// Don't render anything when closed
-	if (!customerId) return null
+	if (!customerId && !initialData) return null
 
 	const initials = customer?.name?.slice(0, 2).toUpperCase() ?? ''
 	const avatarBg = customer ? generateAvatarColor(customer.name) : undefined
@@ -141,15 +173,15 @@ export function CustomerDetailModal({ customerId, onClose }: Props) {
 					</svg>
 				</button>
 
-				{/* Loading state */}
-				{isLoading && (
+				{/* Loading state — only shown when fetching from API (not when initialData supplied) */}
+				{!initialData && isLoading && (
 					<div className="overflow-y-auto flex-1">
 						<ModalSkeleton />
 					</div>
 				)}
 
 				{/* Error state */}
-				{isError && (
+				{!initialData && isError && (
 					<div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
 						<p className="text-sm text-t2">Could not load customer profile.</p>
 						<button
@@ -205,11 +237,23 @@ export function CustomerDetailModal({ customerId, onClose }: Props) {
 												'inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium',
 												customer.customerType === 'Organization'
 													? 'bg-purple-100 text-purple-700'
+													: customer.customerType === 'Lead'
+													? 'bg-amber-100 text-amber-700'
 													: 'bg-bg-input text-t3',
 											)}
 										>
-											{customer.customerType}
+											{customer.customerType === 'Lead' ? '🎯 ผู้สนใจ' : customer.customerType}
 										</span>
+										{/* Lead status badge */}
+										{customer.customerType === 'Lead' && localLeadStatus && (() => {
+											const cfg = LEAD_STATUS_CONFIG[localLeadStatus] ?? LEAD_STATUS_CONFIG['New']
+											return (
+												<span className={cn('inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium', cfg.color)}>
+													<span className={cn('h-1.5 w-1.5 rounded-full', cfg.dot)} />
+													{cfg.label}
+												</span>
+											)
+										})()}
 										{topTag && <SegmentTag tag={topTag} />}
 										{customer.isAtRisk && (
 											<span className="inline-flex rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-700">
@@ -284,31 +328,66 @@ export function CustomerDetailModal({ customerId, onClose }: Props) {
 								</div>
 							)}
 
-							{/* Quick Stats bar */}
-							<div className="mt-4 flex gap-3 overflow-x-auto">
+							{/* Lead actions — only shown for Lead type */}
+							{customer.customerType === 'Lead' && (
+								<div className="mt-4 space-y-3">
+									{/* Status chips */}
+									<div>
+										<div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-t3">สถานะผู้สนใจ</div>
+										<div className="flex flex-wrap gap-1.5">
+											{Object.keys(LEAD_STATUS_CONFIG).map((s) => (
+												<button
+													key={s}
+													type="button"
+													onClick={() => setLocalLeadStatus(s)}
+													className={cn(
+														'rounded-full px-2.5 py-1 text-xs font-medium border transition-colors',
+														localLeadStatus === s
+															? 'bg-primary text-white border-primary'
+															: 'border-border text-t2 hover:border-primary hover:text-primary bg-bg-input',
+													)}
+												>
+													{s}
+												</button>
+											))}
+										</div>
+									</div>
+									{/* Convert button */}
+									<button
+										type="button"
+										disabled={converting}
+										onClick={() => {
+											if (!confirm(`ย้าย "${customer.name}" เป็นลูกค้า (Convert)?`)) return
+											setConverting(true)
+											setTimeout(() => {
+												setConverting(false)
+												onConvertLead?.(customer.id)
+												onClose()
+											}, 800)
+										}}
+										className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary bg-primary/5 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
+									>
+										{converting ? '⏳ กำลังย้าย...' : '✅ Convert เป็นลูกค้า'}
+									</button>
+								</div>
+							)}
+
+							{/* CRM Stats */}
+							<div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-6">
 								{[
-									{
-										label: 'LTV',
-										value: `฿${customer.ltv >= 1000 ? (customer.ltv / 1000).toFixed(1) + 'K' : customer.ltv}`,
-									},
-									{ label: 'Orders', value: String(customer.orderCount) },
-									{
-										label: 'AOV',
-										value: `฿${customer.aov >= 1000 ? (customer.aov / 1000).toFixed(1) + 'K' : customer.aov}`,
-									},
-									{
-										label: 'Tier',
-										value: topTag?.name ?? '\u2014',
-									},
+									{ label: 'LTV', value: fmtCurrency(customer.ltv) },
+									{ label: 'AOV', value: fmtCurrency(customer.aov) },
+									{ label: 'คำสั่งซื้อ', value: String(customer.orderCount) },
+									{ label: 'ซื้อครั้งแรก', value: fmtDate(null) },
+									{ label: 'ซื้อล่าสุด', value: fmtDate(customer.lastOrderTimestamp) },
+									{ label: 'สมัครเมื่อ', value: fmtDate(customer.createdTimestamp) },
 								].map((stat) => (
 									<div
 										key={stat.label}
-										className="min-w-[80px] shrink-0 rounded-lg border border-border bg-bg-page px-4 py-2.5 text-center"
+										className="rounded-lg border border-border bg-bg-page px-2 py-2.5 text-center"
 									>
-										<p className="text-[10px] font-medium uppercase tracking-wide text-t3">
-											{stat.label}
-										</p>
-										<p className="text-sm font-bold text-t1">{stat.value}</p>
+										<p className="text-[10px] font-medium text-t3 truncate">{stat.label}</p>
+										<p className="mt-0.5 text-sm font-bold text-t1 truncate">{stat.value}</p>
 									</div>
 								))}
 							</div>

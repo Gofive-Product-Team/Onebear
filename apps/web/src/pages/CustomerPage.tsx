@@ -26,7 +26,253 @@ import {
 
 // ─── Empty segment counts fallback ────────────────────────────────────────────
 
-const EMPTY_COUNTS: SegmentCounts = { all: 0, hot: 0, vip: 0, atRisk: 0, new: 0, cold: 0, organization: 0 }
+const EMPTY_COUNTS: SegmentCounts = { all: 0, hot: 0, vip: 0, atRisk: 0, new: 0, cold: 0, organization: 0, repeat: 0, churned: 0 }
+
+// ─── Lead types ───────────────────────────────────────────────────────────────
+
+interface LeadItem {
+	id: string
+	name: string
+	phone: string | null
+	email: string | null
+	channels: { platform: string; displayName: string }[]
+	status: string
+	lastMessagePreview: string | null
+	lastActivityTimestamp: number | null
+	assignedAgentId: string | null
+	assignedAgentName: string | null
+	tags: { name: string; isAiAssigned: boolean }[]
+	createdTimestamp: number
+}
+
+const LEAD_STATUS_CONFIG: Record<string, { label: string; color: string; dot: string }> = {
+	'New':            { label: 'New',           color: 'bg-yellow-100 text-yellow-700', dot: 'bg-yellow-400' },
+	'Contacted':      { label: 'Contacted',     color: 'bg-blue-100 text-blue-700',    dot: 'bg-blue-500'   },
+	'Interested':     { label: 'Interested',    color: 'bg-green-100 text-green-700',  dot: 'bg-green-500'  },
+	'Followed-up':    { label: 'Followed-up',   color: 'bg-teal-100 text-teal-700',    dot: 'bg-teal-500'   },
+	'Not Interested': { label: 'Not Interested',color: 'bg-gray-100 text-gray-500',    dot: 'bg-gray-400'   },
+}
+
+const LEAD_STATUSES = ['All', 'New', 'Contacted', 'Interested', 'Followed-up', 'Not Interested']
+
+// Mock lead data (self-contained — backend integration in next sprint)
+const MOCK_LEADS: LeadItem[] = [
+	{ id: 'pr1', name: 'อารีย์ สุขใจ', phone: '086-111-2233', email: null, channels: [{ platform: 'LINE', displayName: 'ary_sukjai' }], status: 'New', lastMessagePreview: 'สวัสดีค่ะ สนใจสินค้า', lastActivityTimestamp: Date.now() - 300000, assignedAgentId: null, assignedAgentName: null, tags: [], createdTimestamp: Date.now() - 3600000 },
+	{ id: 'pr2', name: 'Tanawat K.', phone: null, email: 'tanawat@email.com', channels: [{ platform: 'Facebook', displayName: 'Tanawat K.' }], status: 'Contacted', lastMessagePreview: 'ราคาเท่าไรครับ?', lastActivityTimestamp: Date.now() - 1800000, assignedAgentId: 'u1', assignedAgentName: 'สมชาย ใจดี', tags: [], createdTimestamp: Date.now() - 7200000 },
+	{ id: 'pr3', name: 'ปิยะ วงศ์ดี', phone: '089-333-4455', email: null, channels: [{ platform: 'Instagram', displayName: 'piyawong_d' }], status: 'Interested', lastMessagePreview: 'อยากสั่งซื้อค่ะ มีส่วนลดไหม', lastActivityTimestamp: Date.now() - 3600000, assignedAgentId: 'u1', assignedAgentName: 'สมชาย ใจดี', tags: [{ name: 'สนใจ', isAiAssigned: true }], createdTimestamp: Date.now() - 86400000 },
+	{ id: 'pr4', name: 'Somsri T.', phone: '081-555-6677', email: null, channels: [{ platform: 'LINE', displayName: 'somsri_t' }], status: 'Followed-up', lastMessagePreview: 'ติดต่อกลับหน่อยนะคะ', lastActivityTimestamp: Date.now() - 86400000, assignedAgentId: 'u2', assignedAgentName: 'วิไล รักษา', tags: [], createdTimestamp: Date.now() - 86400000 * 2 },
+	{ id: 'pr5', name: 'นคร เพชรดี', phone: null, email: 'nakorn@email.com', channels: [{ platform: 'WhatsApp', displayName: 'Nakorn' }], status: 'Not Interested', lastMessagePreview: 'ขอบคุณครับ ไม่สนใจแล้ว', lastActivityTimestamp: Date.now() - 86400000 * 3, assignedAgentId: null, assignedAgentName: null, tags: [], createdTimestamp: Date.now() - 86400000 * 5 },
+	{ id: 'pr6', name: 'มาลี ดอกไม้', phone: '083-777-8899', email: null, channels: [{ platform: 'LINE', displayName: 'mali_flower' }], status: 'New', lastMessagePreview: 'สินค้ามีสีอะไรบ้างคะ?', lastActivityTimestamp: Date.now() - 600000, assignedAgentId: null, assignedAgentName: null, tags: [], createdTimestamp: Date.now() - 1800000 },
+	{ id: 'pr7', name: 'Krit N.', phone: '087-000-1234', email: null, channels: [{ platform: 'Facebook', displayName: 'Krit N.' }], status: 'Contacted', lastMessagePreview: 'ขอบคุณสำหรับข้อมูลครับ', lastActivityTimestamp: Date.now() - 10800000, assignedAgentId: 'u2', assignedAgentName: 'วิไล รักษา', tags: [], createdTimestamp: Date.now() - 86400000 },
+]
+
+// Convert LeadItem to CustomerDetail shape for CustomerDetailModal
+function leadToCustomerDetail(lead: LeadItem): import('@/api/useCustomers').CustomerDetail {
+	return {
+		id: lead.id,
+		customerType: 'Lead',
+		name: lead.name,
+		email: lead.email,
+		phone: lead.phone,
+		avatar: null,
+		addresses: [],
+		channels: lead.channels,
+		tags: lead.tags,
+		ltv: 0,
+		orderCount: 0,
+		aov: 0,
+		lastOrderTimestamp: null,
+		lastActivityTimestamp: lead.lastActivityTimestamp,
+		lastMessagePreview: lead.lastMessagePreview,
+		pinnedNote: null,
+		isAtRisk: false,
+		daysSinceLastPurchase: null,
+		suggestedAction: null,
+		suggestedActionType: null,
+		nationalId: null,
+		taxId: null,
+		pinnedNoteBy: null,
+		pinnedNoteTimestamp: null,
+		organizationId: null,
+		contactIds: [],
+		isPromoted: false,
+		promotedTimestamp: null,
+		createdTimestamp: lead.createdTimestamp,
+		updatedTimestamp: null,
+	}
+}
+
+// ─── Lead List View ───────────────────────────────────────────────────────────
+
+function LeadListView({ onAddLead }: { onAddLead: () => void }) {
+	const [statusFilter, setStatusFilter] = useState('All')
+	const [search, setSearch] = useState('')
+	const [selectedLead, setSelectedLead] = useState<LeadItem | null>(null)
+	const [leads, setLeads] = useState<LeadItem[]>(MOCK_LEADS)
+
+	// Status counts
+	const counts = LEAD_STATUSES.reduce((acc, s) => {
+		acc[s] = s === 'All' ? leads.length : leads.filter(p => p.status === s).length
+		return acc
+	}, {} as Record<string, number>)
+
+	const filtered = leads.filter(p => {
+		const matchStatus = statusFilter === 'All' || p.status === statusFilter
+		const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.phone?.includes(search)
+		return matchStatus && matchSearch
+	})
+
+	function handleConvert(id: string) {
+		setLeads(prev => prev.filter(p => p.id !== id))
+		setSelectedLead(null)
+	}
+
+	const leadInitials = (name: string) => name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+	const avatarBg = (id: string) => {
+		const colors = ['bg-violet-500', 'bg-indigo-500', 'bg-blue-500', 'bg-teal-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500']
+		let h = 0; for (const c of id) h = (h * 31 + c.charCodeAt(0)) | 0
+		return colors[Math.abs(h) % colors.length]
+	}
+
+	return (
+		<>
+			<div className="space-y-4">
+				{/* Header */}
+				<div className="flex items-center justify-between">
+					<div>
+						<h1 className="text-2xl font-bold text-t1">ผู้สนใจ</h1>
+						<p className="text-sm text-t2">ผู้ที่สนใจสินค้าแต่ยังไม่เคยสั่งซื้อ</p>
+					</div>
+					<button
+						type="button"
+						onClick={onAddLead}
+						className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:opacity-90"
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+							<path d="M12 5v14" /><path d="M5 12h14" />
+						</svg>
+						เพิ่มผู้สนใจ
+					</button>
+				</div>
+
+				{/* Status filter tabs */}
+				<div className="flex gap-1 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+					{LEAD_STATUSES.map(s => {
+						const cfg = s === 'All' ? null : LEAD_STATUS_CONFIG[s]
+						const isActive = statusFilter === s
+						return (
+							<button
+								key={s}
+								type="button"
+								onClick={() => setStatusFilter(s)}
+								className={cn(
+									'flex shrink-0 items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors',
+									isActive ? 'bg-bg-card text-t1 shadow-sm' : 'text-t3 hover:text-t2 hover:bg-bg-hover',
+								)}
+							>
+								{cfg && <span className={cn('h-2 w-2 rounded-full', cfg.dot)} />}
+								{s === 'All' ? 'ทั้งหมด' : s}
+								<span className={cn(
+									'rounded-full px-1.5 py-0.5 text-[11px] font-semibold',
+									isActive ? 'bg-primary/10 text-primary' : 'bg-bg-input text-t3',
+								)}>
+									{counts[s] ?? 0}
+								</span>
+							</button>
+						)
+					})}
+				</div>
+
+				{/* Search */}
+				<div className="relative">
+					<svg xmlns="http://www.w3.org/2000/svg" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-t3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+						<circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+					</svg>
+					<input
+						type="text"
+						value={search}
+						onChange={e => setSearch(e.target.value)}
+						placeholder="ค้นหาชื่อหรือเบอร์โทร..."
+						className="w-full rounded-xl border border-border bg-bg-input py-2.5 pl-9 pr-4 text-sm text-t1 placeholder:text-t3 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+					/>
+				</div>
+
+				{/* Table */}
+				<div className="overflow-x-auto rounded-xl border border-border bg-bg-card shadow-sm">
+					<table className="w-full text-left text-sm">
+						<thead className="sticky top-0 z-10 border-b border-border bg-bg-input text-xs font-medium uppercase text-t3">
+							<tr>
+								<th className="px-4 py-3">ชื่อ</th>
+								<th className="px-4 py-3">เบอร์โทร</th>
+								<th className="px-4 py-3">ช่องทาง</th>
+								<th className="px-4 py-3">สถานะ</th>
+								<th className="px-4 py-3">ข้อความล่าสุด</th>
+								<th className="px-4 py-3">ผู้ดูแล</th>
+							</tr>
+						</thead>
+						<tbody className="divide-y divide-border">
+							{filtered.length === 0 ? (
+								<tr>
+									<td colSpan={6} className="px-4 py-12 text-center text-sm text-t3">
+										ไม่พบผู้สนใจในสถานะนี้
+									</td>
+								</tr>
+							) : filtered.map(p => {
+								const cfg = LEAD_STATUS_CONFIG[p.status] ?? LEAD_STATUS_CONFIG['New']
+								const channel = p.channels[0]
+								return (
+									<tr
+										key={p.id}
+										className={cn(
+											'cursor-pointer transition-colors hover:bg-bg-hover',
+											selectedLead?.id === p.id && 'bg-primary/5',
+										)}
+										onClick={() => setSelectedLead(prev => prev?.id === p.id ? null : p)}
+									>
+										<td className="px-4 py-3">
+											<div className="flex items-center gap-3">
+												<div className={cn('flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white', avatarBg(p.id))}>
+													{leadInitials(p.name)}
+												</div>
+												<span className="font-medium text-t1">{p.name}</span>
+											</div>
+										</td>
+										<td className="px-4 py-3 text-t2">{p.phone ?? <span className="text-t3">—</span>}</td>
+										<td className="px-4 py-3">
+											{channel ? <PlatformBadge platform={channel.platform} /> : <span className="text-t3">—</span>}
+										</td>
+										<td className="px-4 py-3">
+											<span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium', cfg.color)}>
+												<span className={cn('h-1.5 w-1.5 rounded-full', cfg.dot)} />
+												{cfg.label}
+											</span>
+										</td>
+										<td className="max-w-[200px] px-4 py-3">
+											<div className="truncate text-t2 text-xs">{p.lastMessagePreview ?? '—'}</div>
+											<div className="text-[11px] text-t3">{relTime(p.lastActivityTimestamp)}</div>
+										</td>
+										<td className="px-4 py-3 text-xs text-t2">{p.assignedAgentName ?? <span className="text-t3">—</span>}</td>
+									</tr>
+								)
+							})}
+						</tbody>
+					</table>
+				</div>
+			</div>
+
+			{/* Lead detail — reuses CustomerDetailModal with lead data */}
+			{selectedLead && (
+				<CustomerDetailModal
+					customerId={null}
+					initialData={leadToCustomerDetail(selectedLead)}
+					leadStatus={selectedLead.status}
+					onConvertLead={handleConvert}
+					onClose={() => setSelectedLead(null)}
+				/>
+			)}
+		</>
+	)
+}
 
 // ─── View toggle persistence ──────────────────────────────────────────────────
 
@@ -740,200 +986,6 @@ function MergeModal({ onClose }: { onClose: () => void }) {
 	)
 }
 
-// ─── Custom Fields Tab ────────────────────────────────────────────────────────
-
-interface CustomField {
-	id: string
-	name: string
-	type: 'Text' | 'Number' | 'Date' | 'Dropdown' | 'Checkbox' | 'Textarea'
-	required: boolean
-}
-
-const INITIAL_CUSTOM_FIELDS: CustomField[] = [
-	{ id: 'cf-1', name: 'วันเกิด', type: 'Date', required: false },
-	{ id: 'cf-2', name: 'ที่มาลูกค้า', type: 'Dropdown', required: false },
-	{ id: 'cf-3', name: 'รหัสสมาชิก', type: 'Text', required: true },
-	{ id: 'cf-4', name: 'หมายเหตุ', type: 'Textarea', required: false },
-]
-
-const FIELD_TYPES: CustomField['type'][] = ['Text', 'Number', 'Date', 'Dropdown', 'Checkbox', 'Textarea']
-
-function AddFieldModal({ onClose, onSave }: { onClose: () => void; onSave: (field: Omit<CustomField, 'id'>) => void }) {
-	const [name, setName] = useState('')
-	const [type, setType] = useState<CustomField['type']>('Text')
-	const [required, setRequired] = useState(false)
-
-	function handleSubmit(e: React.FormEvent) {
-		e.preventDefault()
-		if (!name.trim()) return
-		onSave({ name: name.trim(), type, required })
-		onClose()
-	}
-
-	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-			<div className="w-full max-w-sm rounded-2xl border border-border bg-bg-card shadow-2xl">
-				<div className="flex items-center justify-between border-b border-border px-5 py-4">
-					<h3 className="font-semibold text-t1">เพิ่ม Field ใหม่</h3>
-					<button
-						type="button"
-						onClick={onClose}
-						className="rounded-lg p-1 text-t3 transition-colors hover:bg-bg-hover hover:text-t1"
-					>
-						<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-							<path d="M18 6 6 18" />
-							<path d="m6 6 12 12" />
-						</svg>
-					</button>
-				</div>
-				<form onSubmit={handleSubmit} className="space-y-4 p-5">
-					<div className="space-y-1.5">
-						<label className="text-xs font-medium text-t2">ชื่อ Field</label>
-						<input
-							type="text"
-							value={name}
-							onChange={(e) => setName(e.target.value)}
-							placeholder="เช่น วันเกิด, รหัสสมาชิก..."
-							className="w-full rounded-lg border border-border bg-bg-input px-3 py-2 text-sm text-t1 placeholder:text-t3 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-							required
-						/>
-					</div>
-					<div className="space-y-1.5">
-						<label className="text-xs font-medium text-t2">ประเภท</label>
-						<select
-							value={type}
-							onChange={(e) => setType(e.target.value as CustomField['type'])}
-							className="w-full rounded-lg border border-border bg-bg-input px-3 py-2 text-sm text-t1 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-						>
-							{FIELD_TYPES.map((t) => (
-								<option key={t} value={t}>{t}</option>
-							))}
-						</select>
-					</div>
-					<div className="flex items-center justify-between rounded-lg border border-border bg-bg-input px-3 py-2.5">
-						<span className="text-sm text-t1">Required</span>
-						<button
-							type="button"
-							role="switch"
-							aria-checked={required}
-							onClick={() => setRequired((r) => !r)}
-							className={cn(
-								'relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none',
-								required ? 'bg-primary' : 'bg-bg-hover',
-							)}
-						>
-							<span
-								className={cn(
-									'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition-transform',
-									required ? 'translate-x-4' : 'translate-x-0',
-								)}
-							/>
-						</button>
-					</div>
-					<Button type="submit" className="w-full bg-primary text-white hover:opacity-90">
-						บันทึก
-					</Button>
-				</form>
-			</div>
-		</div>
-	)
-}
-
-function CustomFieldsTab() {
-	const [fields, setFields] = useState<CustomField[]>(INITIAL_CUSTOM_FIELDS)
-	const [showAddModal, setShowAddModal] = useState(false)
-
-	function handleSave(field: Omit<CustomField, 'id'>) {
-		const id = `cf-${Date.now()}`
-		setFields((prev) => [...prev, { id, ...field }])
-	}
-
-	function handleDelete(id: string) {
-		setFields((prev) => prev.filter((f) => f.id !== id))
-	}
-
-	return (
-		<div className="space-y-5">
-			{/* Header */}
-			<div className="flex items-center justify-between">
-				<div>
-					<h2 className="text-lg font-semibold text-t1">Custom Fields</h2>
-					<p className="mt-0.5 text-sm text-t2">กำหนด field เพิ่มเติมสำหรับข้อมูลลูกค้า</p>
-				</div>
-				<Button
-					onClick={() => setShowAddModal(true)}
-					className="bg-primary text-white hover:opacity-90"
-				>
-					<svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-						<path d="M12 5v14" />
-						<path d="M5 12h14" />
-					</svg>
-					เพิ่ม Field ใหม่
-				</Button>
-			</div>
-
-			{/* Table */}
-			<div className="overflow-x-auto rounded-xl border border-border bg-bg-card shadow-sm">
-				<table className="w-full text-left text-sm">
-					<thead className="border-b border-border bg-bg-input text-xs font-medium uppercase text-t3">
-						<tr>
-							<th className="px-4 py-3">ชื่อ Field</th>
-							<th className="px-4 py-3">ประเภท</th>
-							<th className="px-4 py-3">Required</th>
-							<th className="px-4 py-3 text-right">Actions</th>
-						</tr>
-					</thead>
-					<tbody className="divide-y divide-border">
-						{fields.map((field) => (
-							<tr key={field.id} className="transition-colors hover:bg-bg-hover">
-								<td className="px-4 py-3 font-medium text-t1">{field.name}</td>
-								<td className="px-4 py-3">
-									<span className="rounded-md bg-bg-input px-2 py-0.5 text-xs font-medium text-t2">
-										{field.type}
-									</span>
-								</td>
-								<td className="px-4 py-3">
-									{field.required ? (
-										<span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
-											<span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-											Yes
-										</span>
-									) : (
-										<span className="text-xs text-t3">No</span>
-									)}
-								</td>
-								<td className="px-4 py-3 text-right">
-									<button
-										type="button"
-										onClick={() => handleDelete(field.id)}
-										className="rounded-md px-2 py-1 text-xs text-t3 transition-colors hover:bg-red-50 hover:text-red-600"
-									>
-										ลบ
-									</button>
-								</td>
-							</tr>
-						))}
-						{fields.length === 0 && (
-							<tr>
-								<td colSpan={4} className="px-4 py-10 text-center text-sm text-t3">
-									ยังไม่มี Custom Fields — กด &quot;เพิ่ม Field ใหม่&quot; เพื่อเริ่มต้น
-								</td>
-							</tr>
-						)}
-					</tbody>
-				</table>
-			</div>
-
-			{showAddModal && (
-				<AddFieldModal
-					onClose={() => setShowAddModal(false)}
-					onSave={handleSave}
-				/>
-			)}
-		</div>
-	)
-}
-
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export function CustomerPage() {
@@ -947,8 +999,8 @@ export function CustomerPage() {
 	const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>(EMPTY_FILTERS)
 	const [viewMode, setViewMode] = useState<'table' | 'card'>(getSavedView)
 
-	// Main tab: 'customers' | 'custom-fields'
-	const [activeMainTab, setActiveMainTab] = useState<'customers' | 'custom-fields'>('customers')
+	// Main tab: 'leads' | 'customers'
+	const [activeMainTab, setActiveMainTab] = useState<'leads' | 'customers'>('leads')
 
 	// Merge / dedup state
 	const [showMergeBanner, setShowMergeBanner] = useState(true)
@@ -1052,6 +1104,18 @@ export function CustomerPage() {
 				<div className="flex items-center gap-1 rounded-xl border border-border bg-bg-input p-1">
 					<button
 						type="button"
+						onClick={() => setActiveMainTab('leads')}
+						className={cn(
+							'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
+							activeMainTab === 'leads'
+								? 'bg-bg-card text-primary shadow-sm'
+								: 'text-t2 hover:text-t1',
+						)}
+					>
+						🎯 ผู้สนใจ
+					</button>
+					<button
+						type="button"
 						onClick={() => setActiveMainTab('customers')}
 						className={cn(
 							'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
@@ -1061,18 +1125,6 @@ export function CustomerPage() {
 						)}
 					>
 						ลูกค้า
-					</button>
-					<button
-						type="button"
-						onClick={() => setActiveMainTab('custom-fields')}
-						className={cn(
-							'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
-							activeMainTab === 'custom-fields'
-								? 'bg-bg-card text-primary shadow-sm'
-								: 'text-t2 hover:text-t1',
-						)}
-					>
-						Custom Fields
 					</button>
 				</div>
 
@@ -1132,8 +1184,10 @@ export function CustomerPage() {
 				)}
 			</div>
 
-			{/* ── Custom Fields tab content ── */}
-			{activeMainTab === 'custom-fields' && <CustomFieldsTab />}
+			{/* ── Leads tab content ── */}
+			{activeMainTab === 'leads' && (
+				<LeadListView onAddLead={() => { setShowAddPanel(true); }} />
+			)}
 
 			{/* ── Customers tab content ── */}
 			{activeMainTab === 'customers' && (
@@ -1348,11 +1402,12 @@ export function CustomerPage() {
 				onClose={() => setSelectedCustomerId(null)}
 			/>
 
-			{/* Add customer panel */}
+			{/* Add customer / lead panel */}
 			<AddCustomerPanel
 				open={showAddPanel}
 				onOpenChange={setShowAddPanel}
 				initialName={addInitialName}
+				isLead={activeMainTab === 'leads'}
 			/>
 
 			{/* Mobile FAB — hidden in selection mode, only on customers tab */}

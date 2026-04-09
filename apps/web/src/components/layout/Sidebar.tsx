@@ -112,14 +112,11 @@ function SlipIcon() {
   )
 }
 
-function CalendarKpiIcon() {
+function HomeIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
-      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-      <line x1="16" y1="2" x2="16" y2="6" />
-      <line x1="8" y1="2" x2="8" y2="6" />
-      <line x1="3" y1="10" x2="21" y2="10" />
-      <polyline points="8 14 10 16 14 12" />
+      <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z" />
+      <polyline points="9 21 9 12 15 12 15 21" />
     </svg>
   )
 }
@@ -182,6 +179,7 @@ export function Sidebar() {
 
       {/* Nav items */}
       <nav className="flex flex-col gap-0.5 w-full px-[11px]">
+        <SidebarNavItem to="/" label="หน้าหลัก" icon={<HomeIcon />} />
         <SidebarNavItem to="/chat" label="Chat" icon={<ChatIcon />} hasNotification unreadCount={unreadCount} />
         <SidebarNavItem to="/customer" label="Customer" icon={<CustomerIcon />} />
         <SidebarNavItem to="/products" label="Products" icon={<ProductsIcon />} />
@@ -189,10 +187,8 @@ export function Sidebar() {
         <SidebarNavItem to="/bookings" label="Bookings" icon={<BookingsIcon />} />
         <SidebarNavItem to="/followup" label="Follow-up" icon={<FollowUpIcon />} />
         <SidebarNavItem to="/slips" label="Slips" icon={<SlipIcon />} />
-        <SidebarNavItem to="/calendar" label="Calendar" icon={<CalendarKpiIcon />} />
         <SidebarNavItem to="/dashboard" label="Analytics" icon={<InsightsIcon />} />
         <SidebarNavItem to="/settings" label="Settings" icon={<SettingsIcon />} />
-        <SidebarNavItem to="/payment" label="Payment" icon={<PaymentIcon />} />
         <SidebarNavItem to="/satisfaction" label="Satisfaction" icon={<SatisfactionIcon />} />
       </nav>
 
