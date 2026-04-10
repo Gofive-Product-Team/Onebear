@@ -609,51 +609,191 @@ Example:
 
 #### 6. AI Sales Agent Performance
 
+All AI performance metrics are computed from the `ai_conversation_events` collection.
+Snapshot computed at 00:01 each day for the previous day's data (midnight + 1 minute Bangkok ICT).
+Snapshot computation timeout: 120 seconds maximum. If exceeded: use previous day's snapshot and flag as "stale."
+Data surfaced in AI performance dashboard by 08:00 AM Bangkok ICT.
+
 ```
 FORMULA 6.1: AI Closure Rate
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-AI Closure % = (Orders Closed by AI / Total Orders AI Handled) × 100
+Definition:
+  ai_closed_orders = COUNT(orders WHERE source = 'ai' AND status = 'COMPLETED')
+  total_orders     = COUNT(orders WHERE status = 'COMPLETED')
+
+Formula:
+  AI Closure % = (ai_closed_orders / total_orders) × 100
 
 Example (yesterday):
-  Orders AI handled: 23
-  Orders AI closed (no handoff): 8
+  ai_closed_orders = 7
+  total_orders = 20
 
-  Rate = (8 / 23) × 100 = 34.8% ≈ 35%
+  Rate = (7 / 20) × 100 = 35%
+  Target: >20%
+  Display: "35% (7 of 20 orders)"
+  Status: ✅ Exceeding target
 
-  Target: 30%
-  Status: ✅ Exceeding target by 5%
 
-
-FORMULA 6.2: AI Average Order Value (AOV)
+FORMULA 6.2: AI Response Time (p95)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-AI AOV = Total Revenue from AI / Orders Closed by AI
+Definition:
+  For every AI-generated message: response_latency = response_sent_at - message_received_at
+  p95 = 95th percentile of response_latency values for the day
+
+Formula:
+  Sort all AI response latencies ascending; take value at position ceil(N × 0.95)
+  Average = sum(response_latencies) / N
+
+Example (150 AI messages, latencies 0.5s to 1.9s):
+  Average: 1.2 seconds
+  p95: 1.8 seconds
+  Target: p95 < 2000ms (2 seconds)
+  Display: "1.2s avg / 1.8s p95"
+  Status: ✅ Within target
+
+
+FORMULA 6.3: Handoff Rate
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Definition:
+  ai_engaged_rooms = COUNT(rooms WHERE AI sent ≥ 1 message today)
+  ai_handoff_count = COUNT(ai_conversation_events WHERE event_type = 'handoff' AND date = today)
+
+Formula:
+  Handoff % = (ai_handoff_count / ai_engaged_rooms) × 100
 
 Example:
-  Total revenue (AI-closed): ฿33,600
-  Orders closed: 8
+  ai_engaged_rooms = 47
+  ai_handoff_count = 5
 
-  AI AOV = 33,600 / 8 = ฿4,200
+  Rate = (5 / 47) × 100 = 10.6% ≈ 11%
+  Target: < 15%
+  Display: "11% (5 of 47 rooms handed off)"
+  Status: ✅ Within target
 
-  Manual AOV: ฿3,800
-  Status: ✅ AI AOV ฿400 higher (+10.5%)
 
-
-FORMULA 6.3: Handoff Rate Analysis
+FORMULA 6.4: Handoff Reason Breakdown
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Handoff % = (AI Handoffs / AI Total Interactions) × 100
+Source: ai_conversation_events WHERE event_type = 'handoff' AND date = today
+Group by: handoff_reason field (enum values from handoff context payload)
 
-Example (daily):
-  AI interactions: 23
-  AI handoffs: 8 (4 customer request, 3 low confidence, 1 payment issue)
+Reason codes displayed:
+  low_confidence       → "ความมั่นใจต่ำ"
+  customer_requested   → "ลูกค้าขอคุยกับคน"
+  clarification_failed → "ถามซ้ำ 2 รอบแล้วไม่เข้าใจ"
+  custom_order         → "สินค้า Custom"
+  order_edit_exceeded  → "แก้ไขออเดอร์เกิน 3 ครั้ง"
+  ai_timeout           → "AI timeout"
+  payment_link_expired → "ลิงก์ชำระเงินหมดอายุ"
 
-  Rate = (8 / 23) × 100 = 34.8%
+Display: Horizontal bar chart, each bar shows count + percentage
+Example:
+  ├── ความมั่นใจต่ำ      ██████████░░░░  3 (60%)
+  ├── ลูกค้าขอคุยกับคน  ████░░░░░░░░░░  1 (20%)
+  └── ถามซ้ำ 2 รอบ      ████░░░░░░░░░░  1 (20%)
 
-  Analysis by reason:
-  • Customer requested: (4 / 8) × 100 = 50% (acceptable)
-  • Low confidence: (3 / 8) × 100 = 37.5% (improve training)
-  • Payment issue: (1 / 8) × 100 = 12.5% (edge case)
 
-  Action: Train AI on payment scenarios
+FORMULA 6.5: Upsell Adoption Rate
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Definition:
+  orders_with_upsell = COUNT(orders WHERE source = 'ai'
+                         AND EXISTS (SELECT 1 FROM order_line_items
+                                     WHERE order_id = orders.id AND item_source = 'upsell'))
+  ai_closed_orders = COUNT(orders WHERE source = 'ai' AND status = 'COMPLETED')
+
+Formula:
+  Upsell Adoption % = (orders_with_upsell / ai_closed_orders) × 100
+
+Example:
+  orders_with_upsell = 3
+  ai_closed_orders = 7
+
+  Rate = (3 / 7) × 100 = 42.9% ≈ 44%
+  Target: > 30%
+  Display: "44% (3 of 7 AI orders had upsell)"
+  Status: ✅ Exceeding target
+
+
+FORMULA 6.6: Cross-sell Adoption Rate
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Definition:
+  orders_with_crosssell = COUNT(orders WHERE source = 'ai'
+                            AND EXISTS (SELECT 1 FROM order_line_items
+                                        WHERE order_id = orders.id AND item_source = 'crosssell'))
+
+Formula:
+  Cross-sell Adoption % = (orders_with_crosssell / ai_closed_orders) × 100
+
+Target: > 25%
+Display: "37% (X of Y AI orders had cross-sell)"
+
+
+FORMULA 6.7: AI AOV vs Human AOV
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Definition:
+  ai_aov    = SUM(order.total WHERE source = 'ai' AND status = 'COMPLETED')
+              / COUNT(orders WHERE source = 'ai' AND status = 'COMPLETED')
+  human_aov = SUM(order.total WHERE source != 'ai' AND status = 'COMPLETED')
+              / COUNT(orders WHERE source != 'ai' AND status = 'COMPLETED')
+
+Formula:
+  Difference % = ((ai_aov - human_aov) / human_aov) × 100
+
+Example:
+  ai_aov = ฿4,200
+  human_aov = ฿3,800
+  Difference = ((4200 - 3800) / 3800) × 100 = +10.5%
+
+Display: "AI ฿4,200 vs Human ฿3,800 (+10.5%)"
+Status: ✅ AI generating higher-value orders
+
+
+FORMULA 6.8: Confidence Distribution (Histogram)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Source: ai_conversation_events WHERE event_type IN ('response_sent', 'handoff')
+Buckets (4 fixed buckets):
+  0–49%:   very low confidence (AI hands off immediately)
+  50–69%:  low confidence (AI requests clarification, then hands off)
+  70–89%:  medium confidence (AI responds with implicit clarification)
+  90–100%: high confidence (AI responds directly)
+
+Display: 4-bar histogram
+Each bar: count of messages in bucket + percentage of total
+Example:
+  90–100%: ██████████████████░░  110 (73%)
+  70–89%:  ███████░░░░░░░░░░░░░   42 (28%)
+  50–69%:  ██░░░░░░░░░░░░░░░░░░    5 (3%)
+  0–49%:   █░░░░░░░░░░░░░░░░░░░    2 (1%)
+
+
+FORMULA 6.9: Follow-up Conversion Rate (AI-triggered only)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Definition:
+  ai_followup_sent = COUNT(follow_up_events WHERE trigger_source = 'ai' AND status = 'sent')
+  orders_from_ai_followup = COUNT(orders WHERE attribution = 'ai_followup' AND status = 'COMPLETED')
+    attribution = 'ai_followup' when: order created within 4 hours of follow-up click in same room
+
+Formula:
+  Follow-up Conversion % = (orders_from_ai_followup / ai_followup_sent) × 100
+
+Target: > 15%
+Display: "18% (9 of 50 AI follow-ups converted)"
+
+
+FORMULA 6.10: Knowledge Base Coverage
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Definition:
+  total_queries = COUNT(ai_conversation_events WHERE event_type = 'kb_search')
+  successfully_answered = COUNT(ai_conversation_events WHERE event_type = 'kb_search'
+                               AND kb_match_found = true
+                               AND intent_detected != 'OTHER'
+                               AND final_confidence >= 70)
+
+Formula:
+  KB Coverage % = (successfully_answered / total_queries) × 100
+
+Target: > 80%
+Display: "84% (126 of 150 queries answered from KB)"
+Status: ✅ Exceeding target
 ```
 
 #### 7. Team Performance
@@ -783,6 +923,20 @@ Calculation runs:
   • Weekly Sunday 17:30: Prepare Sunday 18:00 weekly report (Mon-Sun)
   • Monthly [last day] 08:30: Prepare [last day] 09:00 monthly report (month 1-end)
 
+Daily snapshot (exact timing):
+  Triggered by: Quartz.NET "DailyInsightSnapshotJob" at 00:05 Bangkok ICT (UTC+7)
+  Input data: all events/orders from previous day (00:00:00 to 23:59:59 Bangkok ICT)
+  Computation timeout: 120 seconds maximum
+    If computation exceeds 120 seconds: abort, use previous day's snapshot
+    Flag: insight_snapshot.is_stale = true (shown in admin dashboard as "data from yesterday")
+  Snapshot stored in: insight_snapshots collection, keyed by workspace_id + date
+  Dashboard read: reads from snapshot (not live DB) to ensure consistent display
+
+Results surfaced in dashboard by 08:00 AM Bangkok ICT:
+  07:30 AM: DailyInsightSnapshotJob has 30 minutes to finish computation
+  07:55 AM: InsightSurfacingJob runs; reads snapshot; selects top 5 insights by priority
+  08:00 AM: Dashboard shows new daily insights; admin notification sent if configured
+
 
 FORMULA 9.2: Data Completeness Check
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -793,6 +947,55 @@ IF Data % Complete < 85%: Skip insight generation
 
 IF Data % Complete ≥ 85%: Generate insights
   Note: Include confidence level in insight
+
+
+FORMULA 9.3: Insight Priority Ranking
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Each candidate insight has a priority_score calculated as:
+  priority_score = (deviation_from_average / std_dev) × weight_factor
+
+Where:
+  deviation_from_average = |metric_value - 7_day_rolling_average|
+  std_dev = standard deviation of same metric over past 30 days
+  weight_factor by category:
+    Revenue metrics:        weight_factor = 1.5
+    AI performance metrics: weight_factor = 1.2
+    Chat/SLA metrics:       weight_factor = 1.0
+    Product metrics:        weight_factor = 0.8
+
+Selection: Top 5 insights by priority_score are surfaced each day
+Minimum deviation to surface: ≥20% from 7-day rolling average
+  (if deviation < 20%: insight not surfaced even if priority_score is positive)
+
+Example:
+  Revenue yesterday ฿15,250 vs 7-day avg ฿12,500:
+    deviation = |15,250 - 12,500| = 2,750
+    deviation % = 2,750 / 12,500 × 100 = 22% (exceeds 20% threshold → surfaced)
+    std_dev of revenue over 30 days = 1,200
+    priority_score = (2,750 / 1,200) × 1.5 = 3.44
+
+  If revenue was ฿12,800 vs avg ฿12,500:
+    deviation % = (12,800 - 12,500) / 12,500 × 100 = 2.4% (< 20% → NOT surfaced)
+
+
+FORMULA 9.4: Action Button Rules
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Every surfaced insight MUST have at least 1 action button.
+Action button URL types:
+  Internal routes:  Start with "/" (e.g., "/products", "/follow-up", "/settings/ai")
+  External URLs:    Full URL (e.g., "https://promotions.example.com")
+  Fallback:         If no specific actionable URL defined → button reads "View Details"
+                    Links to: relevant dashboard section for that insight category:
+                      Revenue insight → /insights/revenue
+                      AI insight → /insights/ai
+                      Chat insight → /inbox
+                      Product insight → /products
+
+Button validation at insight render time:
+  Internal routes: route must exist in app router; if 404 → use fallback
+  External URLs: no validation at render time (may be broken external links — acceptable)
+  Maximum 3 action buttons per insight card
+  Minimum 1 action button per insight card (enforced at snapshot time — drop insight if no valid action)
 ```
 
 
@@ -915,6 +1118,32 @@ NOTIFICATIONS:
 - [ ] Chart/graph visualizations where relevant
 - [ ] Export time < 5 seconds
 - [ ] File size < 5 MB
+
+### AI Performance Dashboard (New)
+- [ ] DailyInsightSnapshotJob runs at 00:05 Bangkok ICT; timeout 120 seconds; falls back to previous day's snapshot on timeout
+- [ ] insight_snapshot.is_stale = true shown in admin dashboard when fallback used
+- [ ] AI Closure Rate formula: ai_closed_orders (source='ai', status='COMPLETED') / total completed orders
+- [ ] AI Response Time p95: 95th percentile of (response_sent_at - message_received_at) for all AI messages that day
+- [ ] Handoff Rate formula: handoff events / rooms where AI sent ≥1 message
+- [ ] Handoff Reason Breakdown: horizontal bar chart grouped by handoff_reason enum, showing count + %
+- [ ] Upsell Adoption Rate: orders with ≥1 line_item where item_source='upsell' / ai_closed_orders
+- [ ] Cross-sell Adoption Rate: orders with ≥1 line_item where item_source='crosssell' / ai_closed_orders
+- [ ] AI AOV vs Human AOV: separate avg order values from source='ai' vs source!='ai', shown with % difference
+- [ ] Confidence Distribution histogram: 4 buckets (0–49, 50–69, 70–89, 90–100), count + % per bucket
+- [ ] Follow-up Conversion Rate (AI-triggered only): orders with attribution='ai_followup' / ai_followup_sent
+- [ ] KB Coverage: successfully_answered (kb_match_found=true, confidence≥70) / total kb_search events
+- [ ] All 10 AI metrics sourced from ai_conversation_events collection (not orders collection directly)
+- [ ] Dashboard reads from snapshot, not live DB (consistent display)
+
+### Insight Prioritization (New)
+- [ ] priority_score formula: (deviation_from_average / std_dev) × weight_factor — see Formula 9.3
+- [ ] Weight factors: Revenue=1.5, AI=1.2, Chat=1.0, Product=0.8
+- [ ] Minimum deviation threshold: ≥20% from 7-day rolling average (insights below this not surfaced)
+- [ ] Top 5 insights by priority_score surfaced each day (not more, not less if ≥5 qualify)
+- [ ] Every surfaced insight has ≥1 action button; insights with no valid action are dropped from surface set
+- [ ] Action button fallback: "View Details" linking to category-specific dashboard section
+- [ ] Maximum 3 action buttons per insight card
+- [ ] Internal route action buttons validated at render time; broken routes fall back to "View Details"
 
 ### Accuracy & Freshness
 - [ ] Insights generated from current data (< 1 hour old)
@@ -1047,3 +1276,46 @@ Solution:
 
 **Should I proceed to Feature #12: Settings & Permissions** (role-based access control, workspace configuration, audit logging)?
 
+
+---
+
+## Prototype Updates (April 2026)
+
+### Analytics Dashboard Renovated (DashboardPage.tsx)
+
+**Change**: The Analytics page (formerly "Dashboard") has been fully renovated with rich Recharts data visualizations mixed with KPI tiles, designed to give shop owners actionable insight at a glance.
+
+**Tab Structure** (4 tabs):
+
+#### Chat Tab
+- 4 KPI cards: Total Rooms, Active Now (กำลังรอ), Resolved Today, Avg Response Time — each with % change indicator
+- Full-width `AreaChart`: Message Volume showing Inbound · Outbound · AI ตอบ as overlapping gradient areas (7-day trend)
+- 2-column: Platform Distribution `PieChart` (donut) + Response Time `LineChart` (minutes per day, lower is better)
+- Agent Performance table: rooms handled, avg response, satisfaction rating, revenue, orders per agent
+
+#### Revenue Tab
+- 4 KPI cards: Today Revenue (highlighted success), Period Revenue, Avg Order Value, Paid Orders / Pending
+- Full-width `AreaChart`: Revenue Trend with dual Y-axis (฿ revenue + order count) as overlapping areas
+- 2-column: Top Products horizontal `BarChart` (top 5, gradient fill) + Revenue Calendar (heatmap bar chart)
+- Detailed Top Products table with progress bars for % of total
+
+#### AI Agent Tab
+- 4 KPI cards: AI Handled %, Total AI Messages, Handoff Queue Count, Time Saved per Day
+- Full-width stacked `AreaChart`: AI ดูแล vs Agent ดูแล (7-day trend)
+- 2-column: AI Efficiency `PieChart` (donut with % labels) + Handoff Queue inline cards with "รับ" button
+
+#### AI Analyst Tab
+- Renders `InsightsContent` (headless, no extra header) — same insight cards + weekly summary as the standalone AI Data Analyst page
+- Date range picker hidden for this tab (insights have their own date toggle)
+
+**Design Tokens**: All chart containers use `bg-bg-card`, `border-border`, `text-t1/t2/t3`. Recharts uses hardcoded hex values aligned with the design system (primary: #6366f1, success: #22c55e, warning: #f59e0b, purple: #a855f7).
+
+**Mock Data Fallback**: All tabs show realistic mock data (Thai product names, Bangkok-timezone timestamps, Thai baht amounts) when API is unavailable.
+
+### Double Header Fixed
+
+The AI Analyst tab previously rendered `<InsightsPage>` (which includes its own `<h1>` header), causing a double header alongside the Analytics page title. Fixed by using `<InsightsContent>` (headless export) instead.
+
+### Payment Nav Removed
+
+The Payment item has been removed from the main sidebar navigation. Payment/billing configuration is available via Settings → Billing (under Admin group).

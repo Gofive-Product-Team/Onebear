@@ -58,6 +58,249 @@
 
 ---
 
+## AI as Full Sales Employee — End-to-End Journey
+
+This section documents the complete customer journey the AI owns from first contact to completed payment. The AI operates as a single employee capable of running the entire sales cycle without human intervention unless a handoff trigger fires.
+
+### Complete Flow: 10-Step Customer Journey
+
+```
+STEP 1: Greeting (T+0ms to T+500ms)
+─────────────────────────────────────────────────────────────────
+Trigger: New room opens (first inbound message detected)
+AI sends greeting within 500ms of room creation.
+
+Thai greeting (Casual tone):
+  "สวัสดีค่ะ! ยินดีต้อนรับสู่ [ShopName] มีอะไรให้ช่วยไหมคะ 😊"
+
+English greeting (when first message is fully English):
+  "Hello! Welcome to [ShopName]. How can I help you today? 😊"
+
+[ShopName] sourced from: workspace_settings.shop_name field
+If shop_name is empty: fallback to "ร้านของเรา" (Thai) / "our store" (English)
+Greeting sent as first AI message; triggers no order flow.
+```
+
+```
+STEP 2: Intent Classification — Product Inquiry (T+0ms to T+2000ms)
+─────────────────────────────────────────────────────────────────
+Customer sends product question. Full pipeline runs (see AI Message Processing Pipeline).
+
+If intent = QUESTION at confidence ≥70%:
+  AI searches knowledge base (see Knowledge Base Lookup)
+  Returns product card with: product name, price, stock, image thumbnail (if available)
+  Maximum 3 products shown if query is ambiguous
+
+Product card format (Casual tone, Thai):
+  "📦 [Product Name]
+   ราคา: ฿[Price]
+   สต็อก: [Stock] ชิ้น
+   [View image] ← if product has image
+   
+   สนใจสั่งไหมคะ? 😊
+   [🛒 สั่งเลย] [❓ ถามเพิ่มเติม] [👀 ดูสินค้าอื่น]"
+
+If 3 products returned (ambiguous query):
+  Show all 3 as a numbered list, each with name + price + stock
+  No product image shown in multi-product list (space constraint)
+```
+
+```
+STEP 3: Order Initiation (buy intent ≥70%)
+─────────────────────────────────────────────────────────────────
+Customer expresses buy intent (explicit "สั่ง", "ซื้อ", "เอา", "buy", or clicks [🛒 สั่งเลย])
+
+Pre-conditions AI checks before entering order flow:
+  Stock check: product.stock > 0 (if 0: AI says "สินค้าหมดชั่วคราว", suggests alternative)
+  Session check: no active order in progress for this room (if in-progress: AI resumes from last stage)
+
+AI enters order flow at Stage 1 (see Order Flow section for full stage detail).
+Order draft created in Redis (not MongoDB — see GAP-AI-02).
+```
+
+```
+STEP 4: Upsell (once per product per session)
+─────────────────────────────────────────────────────────────────
+Fires immediately after Stage 1 product confirmation.
+
+Selection criteria (must ALL pass):
+  1. product.upsell_product_id is set (upsell relationship exists in catalog)
+  2. upsell_product.stock > 0
+  3. upsell_product.price ≤ confirmed_product.unit_price × 1.50
+  4. session.rejected_upsells does NOT contain upsell_product_id
+
+Upsell message format (Casual tone, Thai):
+  "อยากลอง [Upsell Product Name] ดูไหมคะ? 😊
+   คุณภาพดีกว่า เพิ่มแค่ ฿[Price Difference]
+   (ราคา ฿[Upsell Price])
+   [✅ เอาเลย] [❓ ต่างกันยังไง] [❌ ไม่เอา]"
+
+Price difference calculation: upsell_price - confirmed_unit_price (shown as positive number)
+Example: confirmed ฿199, upsell ฿279 → "เพิ่มแค่ ฿80"
+
+If customer clicks [❌ ไม่เอา]:
+  session.rejected_upsells.push(upsell_product_id)
+  Stored in Redis session key "order_session:{room_id}", TTL: 7200 seconds
+  AI advances to Stage 3 silently — does NOT mention upsell again this session
+
+If customer clicks [✅ เอาเลย]:
+  Replace original product with upsell product in order draft
+  Advance to Stage 3 (cross-sell)
+
+If no upsell defined OR price exceeds 150% cap: skip Step 4 silently, go to Step 5.
+```
+
+```
+STEP 5: Cross-sell (max 2 items per session)
+─────────────────────────────────────────────────────────────────
+Fires after upsell is resolved (accepted, declined, or skipped).
+
+Selection priority:
+  Priority 1: Admin-defined cross-sell relationships (product.cross_sell_ids[])
+  Priority 2: Purchase co-occurrence score ≥60% (products bought together by ≥60% of customers
+              who bought the main product — computed in nightly analytics job)
+  Priority 3: Fallback — top-selling product in a different category (by 30-day sales volume)
+              excluding already-confirmed products
+
+Cross-sell cap: maximum 2 products shown per session, even if more qualify
+Cross-sell products must: be in stock (stock > 0), NOT be same as main or upsell product in order
+
+Rejection memory:
+  session.cross_sell_shown = [product_id_1, product_id_2] (list of cross-sell IDs offered)
+  session.cross_sell_declined = true if customer rejected all
+  Once cross_sell_declined = true: do NOT offer cross-sell again this session
+  Stored in Redis session, TTL: 7200 seconds
+
+Discount during cross-sell:
+  AI may apply up to max_auto_discount_pct (default 10%) on cross-sell items only
+  Discount is NOT offered automatically — only if admin configures cross-sell discount
+  (workspace_settings.crosssell_discount_enabled = true, default: false)
+  Upsell items: NO discount can be applied during upsell, only on cross-sell
+
+If 0 cross-sell products available: skip Step 5 silently, go to Step 6.
+```
+
+```
+STEP 6: Order Summary + Confirmation
+─────────────────────────────────────────────────────────────────
+Fires after cross-sell is resolved (items added, declined, or skipped).
+AI generates itemized summary (see Stage 4 in Order Flow section for exact format).
+
+Estimated delivery shown if: workspace_settings.estimated_delivery_days is set
+  Display: "จัดส่งภายใน [N] วันทำการ" where N = estimated_delivery_days
+  If not set: omit delivery line from summary
+
+Customer must explicitly confirm ("✅ ยืนยันสั่งซื้อ") before proceeding.
+No auto-advance — order summary waits up to 60 minutes (Stage 4 timeout).
+```
+
+```
+STEP 7: Order Creation + Payment Link
+─────────────────────────────────────────────────────────────────
+Fires when customer confirms order summary.
+
+T+0ms    Customer clicks [✅ ยืนยันสั่งซื้อ]
+T+100ms  Order record written to MongoDB (source="ai", status="PENDING_PAYMENT")
+T+300ms  Payment link generated via Payso API
+T+500ms  Payment link sent to customer
+
+Order completion message (Casual tone, Thai):
+  "สั่งซื้อเรียบร้อยแล้วนะคะ 🎉
+   ออเดอร์: #[Order ID]
+   รวม: ฿[Grand Total]
+   
+   👇 ชำระเงินได้ที่นี่เลยค่ะ
+   [ชำระเงิน ฿[Grand Total]] ← clickable payment link
+   
+   ลิงก์หมดอายุใน 24 ชั่วโมงนะคะ
+   ขอบคุณที่ใช้บริการค่ะ 💚"
+
+AI begins payment monitoring (see Step 8) immediately after this message.
+```
+
+```
+STEP 8: Payment Monitoring
+─────────────────────────────────────────────────────────────────
+After payment link is sent, AI monitors payment status actively.
+
+Polling method: AI worker queries order.status every 5 minutes via internal API
+  (Webhook from Payso is push-based and takes priority when received;
+   5-minute polling is the fallback check if webhook delivery fails)
+
+Poll interval: 300 seconds (5 minutes)
+Poll duration: up to 24 hours (payment link TTL)
+Poll stop condition: any of these events cancels polling:
+  - order.status changes to PENDING_VERIFY (customer paid via bank transfer)
+  - order.status changes to PAID (gateway payment confirmed)
+  - order.status changes to COMPLETED
+  - order.status changes to CANCELLED
+  - 24 hours elapsed (payment link expired)
+
+If order.status changes to PENDING_VERIFY (customer submitted payment):
+  AI sends acknowledgement: "ได้รับการชำระเงินแล้วนะคะ กำลังตรวจสอบอยู่ค่ะ 🔍"
+  AI does not confirm payment — that requires slip verification (see File 8)
+
+If order.status changes to COMPLETED (payment verified):
+  AI sends completion message (Step 10) and closes room
+
+If 24 hours pass with no payment: triggers payment follow-up (see Step 9)
+```
+
+```
+STEP 9: Payment Follow-up (24h unpaid → single reminder)
+─────────────────────────────────────────────────────────────────
+This is separate from the "abandoned interest" follow-up (different trigger, different counter).
+Trigger: 24 hours after payment link was sent AND order.status is still PENDING_PAYMENT
+
+Payment reminder message (Casual tone, Thai):
+  "ลิงก์ชำระเงินของคุณกำลังจะหมดอายุในอีก [X] ชั่วโมงนะคะ
+   ชำระได้เลยนะคะ 💳
+   [ชำระเงิน ฿[Grand Total]] ← original payment link (same link)
+   
+   หากต้องการความช่วยเหลือ กดนี้เลยนะคะ 😊
+   [👤 คุยกับเจ้าหน้าที่]"
+
+Timing: Sent at exactly T+18h after payment link creation
+  (= 18 hours after payment link sent, which is 6 hours before the 24h expiry)
+  [X] in message = 6 (the remaining hours at send time)
+
+Frequency: Exactly 1 attempt only. Never re-sent.
+Counter: tracked in order record as payment_reminder_sent = true (boolean)
+  Check before sending: if payment_reminder_sent = true → skip (idempotency guard)
+
+If customer pays before T+18h: payment_reminder cancelled (order status already changed)
+If customer pays after T+18h but before T+24h: no action needed (order updates normally)
+If T+24h passes without payment: order.status → PAYMENT_EXPIRED
+  AI sends: "ลิงก์ชำระเงินหมดอายุแล้วค่ะ หากต้องการสั่งซื้อใหม่กรุณาติดต่อเจ้าหน้าที่นะคะ"
+  Handoff triggered (reason: "payment_link_expired")
+
+This payment follow-up does NOT count toward the max_attempts counter in Follow-up Management.
+It is tracked independently on the order record.
+```
+
+```
+STEP 10: Order Complete
+─────────────────────────────────────────────────────────────────
+Trigger: order.status changes to COMPLETED (slip verified + approved, or gateway confirmed)
+
+Completion message (Casual tone, Thai):
+  "✅ คำสั่งซื้อ #[Order ID] สำเร็จแล้วนะคะ!
+   ขอบคุณมากนะคะ 🎉 หวังว่าจะได้ให้บริการอีกนะคะ 💚"
+
+Completion message (Casual tone, English):
+  "✅ Order #[Order ID] is complete!
+   Thank you so much! 🎉 Hope to serve you again soon 💚"
+
+After completion message:
+  Room status → RESOLVED (or COMPLETED per workspace settings)
+  AI stops monitoring this room
+  Session cleared from Redis immediately
+  order_session_end_reason = "completed" written to audit log
+  Follow-up timers (if any still pending) cancelled immediately
+```
+
+---
+
 ## AI Eligibility Checks (Before AI Responds)
 
 Before the AI generates any response, 4 eligibility checks run in sequence. All 4 must pass. Any single failure stops AI engagement for that message.
@@ -604,6 +847,125 @@ Payment link generation timeout:
     Handoff to agent to generate payment link manually
 ```
 
+### Upsell & Cross-sell Detailed Specification
+
+#### Upsell Selection Criteria (Exact Rules)
+
+```
+A product qualifies as an upsell when ALL conditions are true:
+  1. product.upsell_product_id is non-null (relationship explicitly defined by admin in catalog)
+  2. upsell_product.status = ACTIVE
+  3. upsell_product.stock > 0 (at time of Stage 2 trigger — real-time Redis check)
+  4. upsell_product.price ≥ confirmed_product.unit_price × 1.10
+     (minimum 110% of base price — must offer meaningful upgrade, not same price)
+  5. upsell_product.price ≤ confirmed_product.unit_price × 1.50
+     (maximum 150% of base price — default cap, see GAP-AI-03)
+  6. Configurable max: workspace_settings.upsell_max_price_pct (default 150%, configurable 110%–200%)
+     If admin sets to 200%: formula becomes ≤ confirmed_price × 2.00
+
+If upsell_product.price is outside the 110%–[max_pct]% band: skip upsell silently.
+If no upsell_product_id defined: skip upsell silently.
+Both cases: advance to Stage 3 with no message about upsell.
+```
+
+#### Cross-sell Selection Algorithm (Exact Priority)
+
+```
+Cross-sell selection runs at Stage 3 trigger. Priority order:
+
+Priority 1: Admin-defined relationship
+  Source: product.cross_sell_ids[] (array of product_ids set in catalog admin panel)
+  Filter: in-stock (stock > 0), not already in order, not already rejected this session
+  Sort: by admin-defined order (array index), take top 2
+
+Priority 2: Co-occurrence score (if Priority 1 yields fewer than 2 products)
+  Source: product_cooccurrence table, nightly computed batch job
+  Formula: cooccurrence_score = orders_containing_both_products / orders_containing_base_product
+  Threshold: score ≥ 0.60 (i.e., ≥60% of customers who bought main product also bought this)
+  Filter: in-stock, not in order, not in Priority 1 results
+  Sort: score descending, take enough to fill remaining slots (up to 2 total)
+
+Priority 3: Fallback (if Priority 1 + 2 yield fewer than 2 products)
+  Source: product catalog, same workspace
+  Filter: different category from main product, in-stock, not in order
+  Sort: 30-day units_sold descending
+  Take enough to fill remaining slots (up to 2 total)
+
+Final list: at most 2 products total (from Priority 1+2+3 combined)
+If 0 products found after all priorities: skip Stage 3 silently
+```
+
+#### Rejection Memory (Exact Storage)
+
+```
+Upsell rejection stored in Redis session:
+  Key: "order_session:{room_id}"
+  Field: rejected_upsells (JSON array of product_id strings)
+  Example: {"rejected_upsells": ["prod_abc", "prod_xyz"], ...}
+  TTL: 7200 seconds (same as session TTL)
+
+Cross-sell state stored in Redis session:
+  Field: cross_sell_declined (boolean, default false)
+  Field: cross_sell_shown (JSON array of product_id strings shown to customer)
+  Once cross_sell_declined = true: skip Stage 3 entirely on any restart within session
+  Cross_sell_shown prevents re-offering same product if customer asks for "other options"
+
+Session cleared when: order completed, handoff triggered, room closed, or idle 4 hours (see GAP-AI-02)
+After session cleared: rejection memory is gone. New session = fresh slate for all offers.
+```
+
+#### Cross-sell Discount Logic
+
+```
+cross-sell discount is NOT applied by default.
+Only applied when:
+  workspace_settings.crosssell_discount_enabled = true (Admin-configurable, default: false)
+  AND workspace_settings.crosssell_discount_pct > 0 (integer 1–30, default: 0)
+
+When enabled:
+  Discount applied to cross-sell item line price before showing to customer
+  Discounted price shown in cross-sell message: "฿[Original] → ฿[Discounted] (ลด [X]%)"
+  Discount recorded in order.discount_lines[] when customer adds cross-sell item
+  Discount amount: cross_sell_item.price × (crosssell_discount_pct / 100), rounded to ฿1
+
+Upsell items: discount NEVER applied. Upsell price is always at full catalog price.
+```
+
+### Payment Monitoring (After Payment Link Sent)
+
+```
+State machine after Stage 5 (payment link delivered):
+
+order.status transitions AI monitors:
+  PENDING_PAYMENT → PENDING_VERIFY  (customer submitted bank slip)
+  PENDING_PAYMENT → PAID            (gateway payment confirmed via webhook)
+  PENDING_PAYMENT → PAYMENT_EXPIRED (24h elapsed, no payment)
+  PENDING_VERIFY  → COMPLETED       (slip verified and approved)
+  PENDING_VERIFY  → PENDING_PAYMENT (slip rejected — customer must resubmit)
+
+Polling logic:
+  Worker: Quartz.NET job "PaymentMonitorJob" in OneBear.Worker
+  Interval: every 300 seconds (5 minutes)
+  Query: SELECT status FROM orders WHERE id = :order_id
+  Job stops when: status is COMPLETED, CANCELLED, or PAYMENT_EXPIRED
+  Job also stops when: 24h have elapsed from order.created_at (fail-safe)
+
+Webhook priority:
+  Payso sends webhook on payment events → processed immediately (< 5 seconds)
+  Webhook triggers same AI actions as poll detection (faster path — preferred)
+  If webhook received while poll is pending: poll result is ignored (idempotent)
+
+Customer slip detection:
+  When customer sends image/file in chat while order.status = PENDING_PAYMENT:
+    If workspace_settings.auto_submit_slip = true (Admin-configurable, default: false):
+      System auto-submits image to slip verification pipeline
+      AI sends: "ได้รับสลิปแล้วค่ะ กำลังตรวจสอบให้นะคะ 🔍"
+    If auto_submit_slip = false (default):
+      AI sends: "ได้รับรูปภาพแล้วค่ะ เจ้าหน้าที่จะตรวจสอบสลิปให้นะคะ 🙏"
+      Room tagged: "slip_received" for agent to see
+      Agent receives notification (same as manual handoff notification)
+```
+
 ### Order Flow Rollback Rules
 
 ```
@@ -875,11 +1237,24 @@ No Follow-up 3:
 ### Follow-up Message Content
 
 ```
-Follow-up 1 message template (Casual tone, Thai):
+Follow-up 1 message template (Casual tone, Thai) — normal stock:
   "สวัสดีค่ะ [Customer Name if known, else skip] 😊
    ยังสนใจ [Product Name] อยู่ไหมคะ?
    ราคา ฿[Current Price] | มีสต็อก [Stock Count] ชิ้น
    [🛒 สั่งได้เลยค่ะ]"
+
+Follow-up 1 message template (Casual tone, Thai) — low stock (stock ≤ 5 units):
+  "สวัสดีค่ะ [Customer Name if known, else skip] 😊
+   ยังสนใจ [Product Name] อยู่ไหมคะ?
+   ราคา ฿[Current Price] | เหลือน้อยแล้ว! สต็อก [Stock Count] ชิ้น 🔥
+   [🛒 สั่งได้เลยค่ะ]"
+
+Stock urgency rule:
+  If product.stock ≤ 5 at the time of sending follow-up:
+    Add "เหลือน้อยแล้ว!" prefix to stock display
+    Add 🔥 emoji after stock count
+    This applies to both Follow-up 1 and Follow-up 2
+  Stock is checked at send time (real-time Redis read), not at timer creation time
 
 Follow-up 1 message template (Casual tone, English):
   "Hi [Customer Name if known]! 😊

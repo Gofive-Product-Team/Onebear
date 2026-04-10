@@ -55,6 +55,7 @@ The **Follow-up Management** system automatically re-engages customers who showe
 1. **Abandoned Browse** → Customer asked about product, then went silent for admin-configured time (default 2+ hours)
 2. **AI Gave Up** → AI tried 2+ clarifications, customer didn't respond or kept asking price (no purchase intent detected)
 3. **Manual Queue** → Agent clicks [Follow-up] button in chat
+4. **Payment Link Unpaid** → AI sent payment link; customer has not paid for 18 hours (see Payment Follow-up section)
 
 **Configurable by Admin**:
 - **Trigger delay**: How long to wait before first follow-up (default 2h, configurable 1-24h)
@@ -62,9 +63,10 @@ The **Follow-up Management** system automatically re-engages customers who showe
 - **Retry schedule**: Second/third follow-up timing and messages (e.g., +4h delay, different message)
 
 **Do NOT auto-queue if**:
-- ❌ Customer already responded (conversation active)
-- ❌ Order already placed (customer completed intent)
-- ❌ Chat marked as "Do Not Disturb" by admin
+- Customer already responded (conversation active)
+- Order already placed (customer completed intent)
+- Chat marked as "Do Not Disturb" by admin
+- channel.ai_enabled = false (for AI-triggered follow-ups only — human-configured follow-ups still send)
 
 ---
 
@@ -129,6 +131,192 @@ and Free shipping on orders over ฿1000 are ready for you.
 - All 3+ follow-ups merged into 1 message (no truncation — all are included)
 - Always include 1 CTA at bottom: "[Check Now]" or "[Claim Discount]"
 - Merge grouping window: 5 minutes (follow-ups scheduled within 5 minutes of each other are treated as the same batch)
+
+---
+
+## AI-Triggered Follow-up: Exact Criteria
+
+When the AI Sales Agent is the follow-up trigger (not a human agent and not payment-related), these exact conditions must ALL be true before queuing:
+
+```
+CONDITION 1: session_state = "interested"
+  Definition of "interested":
+    At least 1 message in this session had detected intent of BUY or QUESTION
+    at confidence ≥ 50%
+    (Note: threshold is 50% for "interested" classification, not the 70% AI-response threshold)
+    Intent score from ai_conversation_events table for this room_id
+
+CONDITION 2: Customer has gone silent
+  last_customer_message_at < NOW() - 120 minutes (7,200 seconds)
+  Timer starts from the timestamp of the customer's last inbound message
+  Timer is reset on any new customer message (even a single character)
+
+CONDITION 3: Order not in progress or completed
+  order_status NOT IN ('PENDING_PAYMENT', 'PENDING_VERIFY', 'PAID', 'COMPLETED', 'PAYMENT_EXPIRED')
+  Check: MongoDB query on orders collection WHERE room_id = :room_id AND status NOT IN (...)
+  If any active order found: do NOT queue follow-up
+
+CONDITION 4: Channel is AI-enabled
+  channel_settings[channel].ai_enabled = true
+  workspace_settings.ai_sales_agent_enabled = true
+  If either is false: skip AI-triggered follow-up (admin-configured follow-ups still apply)
+
+CONDITION 5: Product was identified in session
+  session.last_identified_product_id is non-null
+  (product was mentioned by customer OR returned by KB search during session)
+  If no product was identified: skip follow-up (no product to reference in message)
+
+FOLLOW-UP MESSAGE CONTENT (AI-triggered, stock urgency rule):
+  Normal stock (product.stock > 5):
+    Thai: "สวัสดีค่ะ [Customer Name] 😊 ยังสนใจ [Product Name] อยู่ไหมคะ?
+           ราคา ฿[Current Price] | มีสต็อก [Stock Count] ชิ้น
+           [🛒 สั่งได้เลยค่ะ]"
+
+  Low stock (product.stock ≤ 5):
+    Thai: "สวัสดีค่ะ [Customer Name] 😊 ยังสนใจ [Product Name] อยู่ไหมคะ?
+           ราคา ฿[Current Price] | เหลือน้อยแล้ว! สต็อก [Stock Count] ชิ้น 🔥
+           [🛒 สั่งได้เลยค่ะ]"
+
+  Stock = 0 at send time: CANCEL follow-up silently (do not send)
+    Log reason: "follow_up_cancelled_stock_zero"
+    Do not reschedule (not a delivery failure — intentional cancel)
+
+  Price and stock fetched in real-time at send time (Redis read, 60-second TTL)
+  Language matches session's established language (Thai or English)
+```
+
+---
+
+## Payment Follow-up (After Payment Link Sent)
+
+This follow-up type is separate from abandoned-interest follow-ups. It has its own counter, trigger, and stop conditions independent from the main follow-up system.
+
+```
+TRIGGER:
+  Condition: order.status = PENDING_PAYMENT AND payment_link_sent_at + 18 hours ≤ NOW()
+  In other words: send exactly 6 hours before the 24-hour payment link expires
+  Single occurrence: send once only (payment_reminder_sent flag prevents re-send)
+
+IMPLEMENTATION:
+  Quartz.NET job "PaymentReminderJob" checks every 5 minutes:
+    SELECT * FROM orders
+    WHERE status = 'PENDING_PAYMENT'
+      AND payment_link_sent_at <= NOW() - INTERVAL '18 hours'
+      AND payment_reminder_sent = false
+  For each matching order: send reminder, set payment_reminder_sent = true
+
+PAYMENT REMINDER MESSAGE (Casual tone, Thai):
+  "ลิงก์ชำระเงินของคุณจะหมดอายุในอีก 6 ชั่วโมงนะคะ 💳
+   ออเดอร์: #[Order ID] รวม ฿[Grand Total]
+   ชำระได้เลยนะคะ:
+   [ชำระเงิน ฿[Grand Total]] ← same payment link (if still valid)
+   
+   ต้องการความช่วยเหลือกดนี้เลยนะคะ 😊
+   [👤 คุยกับเจ้าหน้าที่]"
+
+PAYMENT REMINDER MESSAGE (Casual tone, English):
+  "Your payment link expires in 6 hours 💳
+   Order #[Order ID] — Total ฿[Grand Total]
+   Pay now:
+   [Pay ฿[Grand Total]] ← same payment link
+   
+   Need help? We're here 😊
+   [👤 Talk to staff]"
+
+STOP CONDITIONS (cancel the payment reminder before it fires):
+  - order.status changes to any of: PENDING_VERIFY, PAID, COMPLETED, CANCELLED → cancel immediately
+  - Customer sends any message before T+18h → do NOT cancel (payment reminders are not conversation-triggered)
+    (Note: customer replying does NOT cancel payment reminders, unlike interest follow-ups)
+  - Agent manually cancels the payment reminder in admin panel (sets payment_reminder_cancelled = true)
+
+AFTER PAYMENT LINK EXPIRES (T+24h):
+  order.status → PAYMENT_EXPIRED (set by Quartz.NET "PaymentExpiryJob")
+  AI sends expiry message:
+    Thai: "ลิงก์ชำระเงินหมดอายุแล้วค่ะ หากต้องการสั่งซื้อใหม่กรุณาติดต่อเจ้าหน้าที่นะคะ 🙏"
+    English: "Your payment link has expired. Please contact our team to place a new order."
+  Room tagged: "payment_expired" for agent to follow up
+  Handoff triggered (reason: "payment_link_expired")
+  Payment reminder does NOT retry after expiry
+
+COUNTER INDEPENDENCE:
+  payment_reminder_sent (boolean) is stored on order record, not on follow_up record
+  It does NOT count toward follow_up.attempt_count
+  It is NOT affected by max_attempts setting in Follow-up Management configuration
+  It is a separate mechanism — tracked only via order.payment_reminder_sent field
+```
+
+---
+
+## Stop Conditions (Exhaustive List)
+
+All conditions that halt a follow-up — including cancelling a timer before it fires, or stopping future attempts. Checked in this order at each scheduler cycle.
+
+```
+STOP CONDITION 1: Room status is closed or resolved
+  Check: room.status IN ('CLOSED', 'RESOLVED', 'COMPLETED')
+  Field: rooms collection, status field
+  Action: Cancel all pending follow-ups for this room immediately
+  Log: "follow_up_stopped: room_closed"
+
+STOP CONDITION 2: Order is paid or completed
+  Check: order.status IN ('PAID', 'COMPLETED')
+  Field: orders collection, WHERE room_id = :room_id
+  Action: Cancel all pending follow-ups for this room
+  Log: "follow_up_stopped: order_paid"
+
+STOP CONDITION 3: Max attempts reached
+  Check: follow_up.attempt_count >= follow_up_max_count (per workspace/channel setting)
+  Default max: 2 (configurable 1–5 per channel)
+  Action: Set follow_up_exhausted = true; stop scheduling future attempts
+  Log: "follow_up_stopped: max_attempts_reached"
+
+STOP CONDITION 4: Customer do-not-disturb flag
+  Check: customer.do_not_disturb = true
+  Field: CRM customer record
+  Action: Skip this cycle; do not send; recheck on next cycle (DND may lift)
+  Note: DND does not permanently stop follow-up — it only delays. If DND is removed, follow-up resumes.
+  Log: "follow_up_skipped: customer_dnd"
+
+STOP CONDITION 5: AI disabled for channel (AI-triggered follow-ups only)
+  Check: channel_settings[channel].ai_enabled = false
+    OR workspace_settings.ai_sales_agent_enabled = false
+  Action: Cancel AI-triggered follow-ups for this room only
+  Human-configured follow-ups are NOT affected
+  Log: "follow_up_stopped: ai_disabled_on_channel"
+
+STOP CONDITION 6: Agent manual cancellation
+  Check: follow_up.cancelled_by IS NOT NULL (agent_id written when agent cancels)
+  Action: Immediately stop all future attempts; mark cancelled
+  Source: Agent clicks [Cancel Follow-up] in chat room view
+  Log: "follow_up_cancelled_by_agent: {agent_id}"
+
+STOP CONDITION 7: Customer sends any message (reactivation)
+  Check: room.last_customer_message_at > follow_up.queued_at
+    (customer sent a message after this follow-up was queued)
+  Action: Cancel all pending follow-ups in queue for this room
+  Timing: Scheduler checks this condition at each 15-minute cycle; may cancel within 15 minutes of customer message
+  Log: "follow_up_stopped: conversation_reactivated"
+
+STOP CONDITION 8: Customer blocks or unsubscribes from channel
+  Check: platform webhook signals block/unsubscribe event for this customer+channel
+  Action: Cancel all follow-ups for this room; set customer.channel_blocked = true
+  No follow-ups ever sent to this customer on this channel after blocking
+  Log: "follow_up_stopped: customer_blocked_channel"
+  Note: customer.channel_blocked is per-channel (customer may be blocked on LINE but not Facebook)
+
+STOP CONDITION 9: Product out of stock (for product-specific follow-ups)
+  Check: product.stock = 0 at T-10min before follow-up send time
+    (stock pre-check runs 10 minutes before scheduled send)
+  Action: Cancel this specific follow-up attempt; do NOT reschedule
+  Does not affect other follow-ups for different products in same queue
+  Log: "follow_up_cancelled: product_out_of_stock (product_id: {id})"
+
+STOP CONDITION 10 (Payment follow-up specific): Payment link expired
+  Check: order.status = 'PAYMENT_EXPIRED'
+  Action: Switch message type to "renew link" → handoff to agent
+    (see Payment Follow-up section for exact flow)
+  Log: "payment_follow_up_converted_to_handoff: payment_expired"
+```
 
 ---
 
@@ -385,11 +573,30 @@ a single failed message delivery. These are independent counters.
 - [ ] Respects send window (default 09:00-21:00 Bangkok)
 - [ ] Respects debounce delay (default 4 hours between attempts)
 - [ ] Respects max attempts (default 2, configurable 1-5)
-- [ ] Stops if customer responds (conversation active)
-- [ ] Stops if order completed (status = Paid/Completed)
-- [ ] Stops if manually cancelled by agent
+- [ ] Stops if customer responds (conversation active) — Stop Condition 7
+- [ ] Stops if order completed (status = Paid/Completed) — Stop Condition 2
+- [ ] Stops if manually cancelled by agent — Stop Condition 6
+- [ ] Stops if room closed/resolved — Stop Condition 1
+- [ ] Skips (does not stop) if customer.do_not_disturb = true — Stop Condition 4
+- [ ] Stops if customer blocks channel — Stop Condition 8; sets customer.channel_blocked = true
 - [ ] [GAP 17] Scheduler refresh collision: Redis deduplication by workspace_id prevents duplicate processing when timer and status-change fire simultaneously
 - [ ] [GAP 17] Only 1 refresh cycle runs per workspace per 15-min window regardless of how many events arrive concurrently
+
+### AI-Triggered Follow-up
+- [ ] AI queues follow-up only when: session has intent ≥50% BUY or QUESTION + customer silent 120min + no active order + product identified in session
+- [ ] AI follow-up cancelled silently if product.stock = 0 at T-10min before send (no send, no reschedule)
+- [ ] Stock urgency message used when product.stock ≤ 5: adds "เหลือน้อยแล้ว!" and 🔥 to message
+- [ ] AI-triggered follow-up only fires if channel.ai_enabled = true AND workspace.ai_sales_agent_enabled = true
+- [ ] Abandoning AI-triggered follow-up does NOT disable human-configured follow-ups on same channel
+
+### Payment Follow-up (Independent System)
+- [ ] PaymentReminderJob runs every 5 minutes; sends reminder at T+18h after payment_link_sent_at
+- [ ] Payment reminder sent exactly once per order (payment_reminder_sent = true prevents re-send)
+- [ ] Payment reminder does NOT count toward follow_up.attempt_count or max_attempts
+- [ ] Payment reminder NOT cancelled when customer sends a message (unlike interest follow-ups)
+- [ ] Payment reminder message includes: order ID, total, same payment link, expiry countdown (6 hours)
+- [ ] At T+24h: order → PAYMENT_EXPIRED; AI sends expiry message; handoff triggered
+- [ ] payment_reminder_cancelled = true when agent manually cancels via admin panel
 
 ### Configurable Triggers (One Rule Per Channel)
 - [ ] Each channel has own complete rule (enable/disable, send window, trigger delay, messages)
@@ -628,3 +835,22 @@ All decisions below are final and locked. They were resolved via gap analysis ag
 
 **Affected sections**: Key User Flows — Disable for Unresponsive Customer, Edge Cases — Message Delivery Fails, Acceptance Criteria — Data Integrity, Configuration Defaults
 
+
+---
+
+## Prototype Updates (April 2026)
+
+### Settings Moved to Admin Settings Page
+
+**Change**: The Follow-up configuration panel (send window, per-channel templates, delay, max attempts) has been removed from the Follow-up Management page tab bar. It is now exclusively in **Settings → Follow-up** (accessible to Admins only).
+
+**Rationale**: The user confirmed "follow up setting should set by admin in setting" — settings are a separate admin concern from day-to-day follow-up queue management.
+
+**UI Changes**:
+- `FollowUpPage.tsx`: Removed the "ตั้งค่า" tab from the status filter bar. Removed `ChannelConfigPanel` rendering. Removed `activeView` state.
+- `SettingsPage.tsx`: Added "Follow-up" entry under Messaging group in sidebar. `SectionContent` now renders `<FollowUpSettings />` for `case 'follow-up'`.
+- `FollowUpSettings.tsx` (new): Dedicated settings component with global send window (09:00–21:00 Bangkok), out-of-window behavior (next morning / wait / cancel), and per-channel config (LINE, Facebook, Instagram, WhatsApp) — each with toggle, delay (30m–24h), max attempts (1–5), template editor with variable chips, and preview toggle.
+
+### Status Filter Bar Simplified
+
+The Follow-up page now shows only status filter tabs (All / Queued / Sent / Failed / Stopped) with no settings tab. A "สร้าง Follow-up" button remains in the page header.

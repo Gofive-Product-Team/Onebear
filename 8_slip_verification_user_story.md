@@ -220,20 +220,35 @@ Retry counter display:
 ## Verification Rules (AI Checks)
 
 ```
+PRE-ANALYSIS CHECKS (run before AI, in order):
+  0a. Duplicate slip detection (hash check, T+50ms) — see Duplicate Slip Detection section
+  0b. Blacklist check — Account on blacklist → Immediate rejection, no AI analysis
+
 MUST PASS FOR 100% CONFIDENCE (auto-approve if all mandatory checks clear):
   1. Bank logo recognized (valid Thai bank)
   2. Amount within tolerance: ±฿1 or ±1% of order total, whichever is larger (GAP 23)
-  3. Timestamp within last 24 hours
+  3. Timestamp within last 24 hours AND not in the future (Cases T1, T2)
   4. Recipient account matches shop account
   5. No blacklist match
+  6. No fake slip hard flags (F1: pixel manipulation, F4: QR mismatch) — see Fake Slip Detection
 
 RISK FACTORS (any present = confidence drops below 100% → manual review):
   1. Account name slightly different from customer
   2. Amount outside tolerance but not obviously wrong
-  3. Timestamp near 24h boundary
+  3. Timestamp near 24h boundary (Case T2)
   4. Slip image poor quality (but readable)
   5. Unusual bank code (rare bank)
   6. Multiple transfers from same account today (stacking)
+  7. Known fake template partial match (Check F2 soft flag)
+  8. Font inconsistency in amount field (Check F3)
+  9. Bank layout mismatch (Check F5)
+  10. Missing QR code on slip type that should have QR (Check F4 soft variant)
+  11. Timezone inconsistency on slip (Case T3)
+
+HARD FLAGS (force confidence = 0%, special admin warning required):
+  F1: Pixel manipulation detected (>15% anomaly rate in text regions)
+  F4: QR data does not match slip text (amount or timestamp mismatch)
+  T1: Slip timestamp is in the future
 
 BLACKLIST CHECK (happens before AI analysis):
   1. Account on blacklist → Immediate rejection, no AI analysis
@@ -260,6 +275,249 @@ Amount outside tolerance = confidence drops below 100% → manual review.
 Implementation:
   tolerance = max(1.00, order_total * 0.01)
   pass = abs(amount_paid - order_total) <= tolerance
+```
+
+---
+
+## Duplicate Slip Detection (Pre-Analysis Check)
+
+This check runs BEFORE AI analysis, within 50ms of upload. It is the first gate in the verification pipeline.
+
+```
+METHOD: SHA-256 hash of raw image bytes, checked against slip_submissions table.
+
+Execution timing:
+  T+0ms   Image received by system
+  T+1ms   SHA-256 hash computed from raw image bytes
+  T+50ms  Hash check completes: SELECT COUNT(*) FROM slip_submissions
+            WHERE image_hash = :hash AND status != 'REJECTED'
+           (indexed query on image_hash column)
+
+CASE A: Same slip, same order (customer resubmitting after rejection)
+  Condition: slip_submissions record exists with image_hash = :hash AND order_id = :current_order_id
+             AND status = 'REJECTED'
+  Behavior: Allow. Treated as normal resubmission.
+  Retry counter: incremented as normal (counts as 1 readable submission)
+  Note: This is the legitimate "customer retakes same slip after rejection" scenario.
+
+CASE B: Same slip, different order (attempting to reuse a verified slip)
+  Condition: slip_submissions record exists with image_hash = :hash AND order_id != :current_order_id
+             AND status != 'REJECTED'
+  Behavior: IMMEDIATE REJECTION — no AI analysis runs.
+  Response time: <1 second
+  reason_code: 'duplicate_slip'
+  Customer message: "This slip has already been used for a previous order. Each slip can only be used once."
+  Admin notification: "Duplicate slip attempt: ORD-[original_order_id] (original) → ORD-[current_order_id] (attempted)"
+  Suspicious activity tracking:
+    customer.suspicious_slip_count += 1
+    If suspicious_slip_count reaches 3: auto-add customer to MONITORING status
+      Admin sees: "Customer flagged for monitoring (3 duplicate slip attempts)"
+  Retry counter: does NOT increment (duplicate detection is not a readable submission failure)
+
+CASE C: Same slip, same order but already PAID
+  Condition: slip_submissions record exists with image_hash = :hash AND order_id = :current_order_id
+             AND order.status IN ('PAID', 'COMPLETED')
+  Behavior: REJECT — order already confirmed.
+  reason_code: 'already_paid'
+  Customer message: "Your order has already been confirmed. No additional payment is needed."
+  Admin notification: none required (benign — customer may not realize order is confirmed)
+  Retry counter: does NOT increment
+
+STORAGE:
+  image_hash written to slip_submissions record on every upload attempt (before any other check)
+  image_hash field: VARCHAR(64), indexed, non-nullable
+  Hash is stored even for REJECTED submissions (needed for Case A detection)
+
+HASH COLLISION:
+  SHA-256 collision probability ≈ 1 in 2^256 (negligible)
+  If collision detected (same hash, visually different images via manual admin review):
+    Treat as non-duplicate (extremely unlikely in practice)
+    System does not have built-in perceptual hash fallback for this edge case
+```
+
+---
+
+## Fake Slip Detection (AI Fraud Analysis)
+
+Fake slip detection runs within the AI analysis window (T+300ms to T+1800ms), in parallel with the standard verification checks. It uses visual and structural analysis to detect digitally altered or fabricated slip images.
+
+```
+HARD FLAGS (either forces confidence = 0%, no manual review option unlocks this):
+
+Check F1: Digital manipulation detection
+  Method: Pixel-level analysis of text regions vs background
+    - Extract text regions using OCR bounding boxes
+    - Compare compression artifacts: text region vs background region
+    - Flag if pixel anomaly rate in text regions > 15% (meaning text was likely pasted in)
+  On flag: confidence = 0% immediately
+  reason_code: 'image_manipulation_detected'
+  Admin banner: "⚠️ AI suspects this slip may be digitally altered. Review carefully."
+
+Check F4: QR code validation
+  Method: Decode QR/barcode present on slip image (using zxing-compatible library)
+  Thai bank slips that should have QR: PromptPay slips, SCB, KBank, BBL, Krungthai
+  If QR present:
+    Decode QR data → extract: transaction_id, amount, timestamp, account
+    Compare against OCR-extracted values from slip text
+    If QR amount != slip text amount (beyond ±฿1 tolerance): confidence = 0%
+    If QR timestamp != slip text timestamp (beyond ±60 seconds): confidence = 0%
+    reason_code: 'qr_data_mismatch'
+  If QR expected but absent:
+    Check: is this a slip type that always has QR? (bank-specific format database)
+    If yes and QR absent: confidence < 100% → manual review
+    reason_code: 'missing_expected_qr'
+  Note: QR absence alone does not force confidence to 0% — only QR data mismatch does
+
+Admin handling when confidence = 0% (hard flag):
+  Slip goes to manual review WITH special warning banner (cannot be hidden by admin)
+  Banner: "⚠️ AI suspects this slip may be digitally altered. Review carefully."
+  Banner is red, displayed above all slip details, requires acknowledgement before approve/reject buttons are shown
+  If admin clicks [Approve] on a slip with SUSPECTED_FAKE flag:
+    System requires secondary approval from a user with Manager or Admin role
+    (if reviewing admin IS Manager/Admin: system shows confirmation modal "This slip is flagged as potentially fake. Confirm approval?")
+    If second role is different user: pending approval notification sent to all other Manager/Admin users
+    Secondary approval timeout: 60 minutes → if no second approver, slip remains in manual review
+  reason_code for admin: 'suspected_fake' (internal only, customer sees generic message)
+```
+
+```
+SOFT FLAGS (reduce confidence below 100%, send to manual review — no special banner):
+
+Check F2: Known fake template recognition
+  Method: Perceptual hash comparison against database of known fake slip templates
+  Template database: Updated weekly by Onebear security team
+  Exact match (perceptual hash distance = 0): confidence = 0% → HARD FLAG
+  Near match (perceptual hash distance ≤ 10): confidence drops below 100% → manual review
+  reason_code: 'known_fake_template' (near match, soft) or 'exact_fake_template' (hard)
+
+Check F3: Font consistency check
+  Method: OCR extracts font metadata from amount field rendering
+  Bank-specific expected fonts:
+    Bangkok Bank: amount in Helvetica Neue Bold
+    KBank: amount in KBank proprietary font (identified by letter-spacing)
+    SCB: amount in SCB own font
+    Krungthai: amount in Krungthai font
+  If font detected in amount field does not match expected bank font:
+    confidence drops below 100% → manual review
+    reason_code: 'font_inconsistency'
+  Note: Font check has ~80% accuracy — treated as soft signal only
+
+Check F5: Bank-specific layout validation
+  Method: Template matching against expected layout per bank
+  Layout database: Per-bank slip layout specifications (field positions, logos, dimensions)
+  If slip layout deviates from expected bank layout by >20%:
+    confidence drops below 100% → manual review
+    reason_code: 'layout_mismatch'
+  If bank cannot be identified (no logo match): risk_factor_count += 1
+
+COMBINED SOFT FLAG IMPACT:
+  Each soft flag reduces confidence below 100% (exact amount depends on composite formula)
+  Any soft flag = goes to manual review (since auto-approve requires exactly 100%)
+  2+ soft flags = confidence shows as "< 50%" in admin review panel (additional visual warning)
+```
+
+---
+
+## Amount Mismatch — Specific Cases
+
+These expand on GAP 23 (amount tolerance ±฿1 or ±1%) with exact admin options for each sub-case.
+
+```
+AMOUNT COMPARISON FORMULA (exact — from GAP 23):
+  tolerance = max(1.00, order_total × 0.01)   [in Baht, rounded to 2 decimal places]
+  amount_ok = abs(slip_amount - order_total) <= tolerance
+  If amount_ok = false: risk_factor_count += 1 → confidence cannot reach 100%
+```
+
+```
+CASE AM1: Amount too low (underpayment beyond tolerance)
+  Example: Slip ฿4,900, order ฿5,000 (short ฿100; tolerance = ฿50; 100 > 50 → fails)
+  AI result: confidence < 100% → manual review
+  Admin review panel shows: "Amount short by ฿100.00 (received ฿4,900 / expected ฿5,000)"
+  Admin options:
+    [Approve anyway]          → standard approval flow (order → PAID)
+    [Reject - wrong amount]   → reason_code = 'wrong_amount'
+    [Request additional payment] → new option:
+      Customer receives: "We received ฿4,900 but your order total is ฿5,000.
+                         Please transfer the remaining ฿100 and send the new slip."
+      Order stays PENDING_VERIFY
+      New slip submission expected (retry counter resets? → No: retry counter is per order,
+        any readable submission from this point increments counter regardless of reason)
+
+CASE AM2: Amount too high (overpayment beyond tolerance)
+  Example: Slip ฿5,200, order ฿5,000 (overpaid ฿200; tolerance = ฿50; 200 > 50 → fails)
+  AI result: confidence < 100% → manual review
+  Admin review panel shows: "Overpayment of ฿200.00 (received ฿5,200 / expected ฿5,000)"
+  Admin options:
+    [Approve + credit ฿200]   → standard approval; order_credit record created:
+                                 INSERT INTO order_credits (customer_id, amount, reason, source_order_id)
+                                 VALUES (:customer_id, 200.00, 'overpayment', :order_id)
+    [Approve - no credit]     → standard approval; ฿200 treated as donation/absorbed
+    [Reject]                  → reason_code = 'wrong_amount'
+
+CASE AM3: Amount within tolerance but close (suspicious rounding)
+  Example: Slip ฿4,999, order ฿5,000 (difference ฿1; tolerance = ฿50; 1 ≤ 50 → PASSES)
+  AI result: amount_ok = true → does NOT reduce confidence for this alone
+  No special treatment. Standard confidence calculation applies.
+  Admin does NOT see a special warning for this case.
+
+CASE AM4: Fee deduction (bank transfer fee absorbed by tolerance)
+  Example: Slip ฿4,975, order ฿5,000 (short ฿25; typical transfer fee ฿25; tolerance = ฿50; 25 ≤ 50 → PASSES)
+  AI result: amount_ok = true → passes
+  Note: The ±฿50 tolerance for ฿5,000 order is intentionally sized to absorb Thai bank transfer fees (฿10–25).
+  If transfer fee exceeds tolerance (e.g., ฿60 fee on small order):
+    Slip falls into Case AM1 handling.
+
+CASE AM5: Zero amount or unreadable amount
+  Example: OCR extracts ฿0.00 or fails to read amount field
+  AI result: confidence = 0% immediately (cannot verify payment amount)
+  Goes to manual review
+  Admin sees: "Amount could not be read from slip — manual verification required"
+  reason_code (if rejected): 'wrong_amount' (customer message: wrong amount template)
+  reason_code (internal): 'amount_unreadable'
+```
+
+---
+
+## Timestamp Fraud Cases
+
+```
+CASE T1: Future timestamp (clock manipulation)
+  Condition: slip.timestamp > system_time (slip timestamp is after current time)
+  Detection: |slip.timestamp - NOW()| > 60 seconds AND slip.timestamp > NOW()
+    (60-second buffer to account for minor clock drift)
+  AI result: confidence = 0% immediately
+  reason_code: 'timestamp_future'
+  Hard flag: yes → admin sees warning banner "Slip timestamp is in the future — likely manipulated"
+  Admin note shown: "AI flagged: slip timestamp is [X] minutes in the future"
+  No secondary approval required (this is a hard fraud signal — single admin decision)
+
+CASE T2: Exactly 24h boundary
+  Condition: slip.timestamp is between 23h 59m and 24h 1m before NOW()
+  Slip at 23h 59m ago: timestamp_age = 23:59 < 24:00 → PASSES (within window)
+  Slip at 24h 01m ago: timestamp_age = 24:01 > 24:00 → FAILS (outside window)
+  AI result (fail): confidence < 100% → manual review (not a hard flag)
+  reason_code: 'expired_timestamp'
+  Admin sees: "Slip timestamp is 24 hours 1 minute old — just outside 24h window"
+  Admin may use discretion: [Approve anyway] for borderline cases
+
+CASE T3: Timezone inconsistency on slip
+  Condition: slip contains explicit timezone data inconsistent with issuing bank's region
+  Example: Bangkok Bank slip showing timezone UTC-5 (Eastern US time)
+  Thai bank slips expected timezone: ICT (UTC+7) or UTC (some digital formats)
+  Detection: OCR extracts timezone from slip → compare against bank's expected timezone
+  If mismatch detected:
+    confidence drops below 100% → manual review (soft flag)
+    reason_code: 'timezone_inconsistency'
+    Admin sees: "Slip shows timezone [X], expected [Y] for [Bank Name]"
+  Note: Not all slips include explicit timezone data.
+    If timezone absent: no deduction (absence is normal)
+    If timezone present and wrong: soft flag only (not hard)
+
+TIMESTAMP CHECK IMPLEMENTATION NOTE:
+  All timestamp comparisons use Asia/Bangkok (ICT, UTC+7) as the reference timezone.
+  slip.timestamp is converted to UTC before comparison with system UTC time.
+  System time source: NTP-synchronized server clock (Azure infrastructure).
 ```
 
 ---
@@ -488,6 +746,36 @@ IMAGE QUALITY:
 - [ ] Customer NOT told if rejection is due to blacklist — receives generic support message only
 - [ ] Audit log: Every verification action logged
 
+### Duplicate Slip Detection
+- [ ] SHA-256 hash computed on every upload at T+1ms, stored in slip_submissions.image_hash
+- [ ] Hash check completes within 50ms (indexed DB query)
+- [ ] Case A (same slip, same order, previously rejected): allowed — treated as normal resubmission
+- [ ] Case B (same slip, different order): immediate rejection < 1 second, reason_code = 'duplicate_slip'
+- [ ] Case B: customer.suspicious_slip_count incremented; admin notified with both order IDs
+- [ ] Case B: if suspicious_slip_count reaches 3, customer auto-added to MONITORING status
+- [ ] Case C (same slip, same order, order already PAID): rejection with reason_code = 'already_paid', no admin action
+- [ ] Duplicate detection does NOT increment retry counter
+
+### Fake Slip Detection
+- [ ] Check F1 (pixel manipulation): runs within AI analysis window; >15% anomaly rate → confidence = 0%
+- [ ] Check F4 (QR validation): QR data decoded; amount or timestamp mismatch → confidence = 0%
+- [ ] Checks F2, F3, F5 (template, font, layout): soft flags only → confidence < 100% → manual review
+- [ ] Hard flag (F1 or F4 fired): admin sees red banner "⚠️ AI suspects this slip may be digitally altered" — cannot be hidden
+- [ ] Admin must acknowledge hard-flag banner before approve/reject buttons are enabled
+- [ ] Admin approving SUSPECTED_FAKE slip: secondary approval required from Manager/Admin role
+- [ ] Secondary approval timeout: 60 minutes (slip stays in manual review if no second approver)
+- [ ] Future timestamp (Case T1): confidence = 0%, admin warning shown
+- [ ] Timezone inconsistency (Case T3): confidence < 100%, soft flag only
+
+### Amount Mismatch Cases
+- [ ] Case AM1 (underpayment): admin sees "Amount short by ฿X", options: Approve / Reject / Request additional payment
+- [ ] Case AM1 "Request additional payment": customer receives specific amount-owed message; order stays PENDING_VERIFY
+- [ ] Case AM2 (overpayment): admin sees "Overpayment of ฿X", options: Approve+credit / Approve-no-credit / Reject
+- [ ] Case AM2 "Approve+credit": order_credit record inserted with customer_id, amount, source_order_id
+- [ ] Case AM3 (within tolerance): no warning shown; confidence not reduced for this alone
+- [ ] Case AM4 (bank fee): ฿25 fee on ฿5,000 order passes tolerance (฿25 < ฿50 tolerance)
+- [ ] Case AM5 (unreadable amount): confidence = 0%; admin sees "Amount could not be read"
+
 ### Dashboard & Analytics
 - [ ] Slips pending review count + list (sortable by age)
 - [ ] AI auto-verification rate: % auto-approved / total
@@ -496,6 +784,9 @@ IMAGE QUALITY:
 - [ ] Rejection rate: % rejected by admin / reviewed
 - [ ] Blacklist count: Total blocked accounts
 - [ ] Blocked revenue: ฿ from blacklisted accounts (prevented fraud)
+- [ ] Fake slip detection count: total slips flagged as SUSPECTED_FAKE (daily + cumulative)
+- [ ] Duplicate slip attempt count: total Case B detections (daily + cumulative)
+- [ ] Suspicious customer count: customers in MONITORING status
 
 ### Error Handling
 - [ ] OCR fails (unreadable image): Ask customer for clearer image; does not count as retry
@@ -590,6 +881,50 @@ After 3rd submission:
   5. Customer message stays unchanged: "Your payment slip is being reviewed."
 ```
 
+### Fake Slip Detected
+```
+Problem: Customer submits digitally edited bank slip
+
+Check F1 fires (pixel anomaly > 15%):
+  1. Agent uploads slip
+  2. Duplicate hash check: no duplicate (new slip)
+  3. AI analysis runs: F1 fires → confidence forced to 0%
+  4. Status stays PENDING_VERIFY (manual review)
+  5. Admin sees slip review panel WITH red banner:
+     "⚠️ AI suspects this slip may be digitally altered. Review carefully."
+  6. Banner must be acknowledged (click [I understand]) before approve/reject shown
+  7. Admin reviews manually: "Amount mismatch visible — text looks pasted"
+  8. Admin clicks [Reject]
+  9. reason_code = 'suspicious_content'
+  10. Customer receives: "We were unable to verify your payment slip. Please contact our support team."
+  11. Admin notes internally: "SUSPECTED_FAKE — F1 pixel anomaly"
+  12. customer.suspicious_slip_count += 1
+
+If admin tries to approve SUSPECTED_FAKE slip:
+  Modal: "This slip is flagged as potentially fake. Confirm approval?"
+  If admin is Manager/Admin: single confirmation sufficient
+  If admin has lower permissions: system requires secondary Manager/Admin approval
+  Secondary approval request sent; 60-minute timeout applies
+```
+
+### Duplicate Slip Reuse Attempt
+```
+Problem: Customer submits same slip image for a second order
+
+New order created by same customer. Customer sends the same slip image.
+
+T+0ms   Agent uploads slip image
+T+1ms   SHA-256 hash computed: matches hash from ORD-2026-001 (previous order, PAID)
+T+50ms  Hash check: found in slip_submissions (Case B)
+T+51ms  IMMEDIATE REJECTION (no AI analysis)
+        reason_code = 'duplicate_slip'
+        Customer message: "This slip has already been used for a previous order.
+                          Each slip can only be used once."
+        Admin notification: "Duplicate slip attempt:
+                            ORD-2026-001 (original, PAID) → ORD-2026-015 (attempted)"
+        customer.suspicious_slip_count → 1 (or incremented if already > 0)
+```
+
 ---
 
 ## Integration Checklist
@@ -654,7 +989,8 @@ After 3rd submission:
 7. **Timestamp window**: Should it be 24 hours, 48 hours, or customer-configurable?
 8. **Auto-blacklist trigger**: Is 5 rejections the right number? Should it be 3 or 10?
 9. **Whitelist override**: Should admins be able to override blacklist decisions?
-10. **Duplicate detection**: Should system prevent submitting same slip twice across different orders?
+~~10. **Duplicate detection**: Should system prevent submitting same slip twice across different orders?~~
+**RESOLVED**: Yes. SHA-256 hash-based duplicate detection prevents reuse of verified slips across orders. See Duplicate Slip Detection section.
 11. **Customer appeals**: If rejected, can customer dispute/appeal the rejection?
 
 ---
