@@ -4,13 +4,13 @@
 **Priority**: 🔴 Critical (Core customer database)
 **Target Users**: Shop admins, managers, sales staff
 **Primary Device**: Desktop (70%), Mobile (30%)
-**Goal**: Unified customer view with segment prioritization, segment-first navigation, table/card switching
+**Goal**: Unified customer view with computed operational stages, stage-first navigation, table/card switching, and a filter drawer for scope/location/recency controls
 
 ---
 
 ## Feature Overview
 
-**CRM** is the central customer database. It shows all customers (people who created orders), their purchase history, and their status (Hot, At-risk, VIP, etc.). Admins can see who's currently handling each customer, filter by segment, and manage customer info.
+**CRM** is the central customer database. It shows all customers (people who created orders) and leads (prospects), their purchase history, and their operational stage (computed from business state). Admins can see who's currently handling each customer, filter by operational stage, and manage customer info.
 
 **Key Value**: Know your customers. Prioritize urgent ones. Never lose a sale.
 
@@ -56,8 +56,8 @@
 ┌────────────────────────────────────────────────────────────────────────────┐
 │ 👥 Customers                    [📊 Table] [🃏 Card]  [Segment Filter ▼]  │
 ├────────────────────────────────────────────────────────────────────────────┤
-│ Filter: [All] [🔴 Hot] [🟡 At-risk] [🆕 New] [⭐ VIP] [🟢 Loyal] [❄️ Cold]│
-│ Sort: [Most Recent Activity ▼]  Search: [________]                       │
+│ Stage: [ทั้งหมด] [รอชำระ] [รอติดตาม] [รออัปเดต] [กำลังดำเนินการ] [ขาดการติดต่อ]│
+│ [🔍 Search]  [⚙️ Filter Drawer ▶]                                         │
 ├────────────────────────────────────────────────────────────────────────────┤
 │ [☐] Name           Channel      LTV      Orders Last Purchase  Response   │
 ├────────────────────────────────────────────────────────────────────────────┤
@@ -91,7 +91,7 @@
 ┌────────────────────────────────────────────────────────────────────────────┐
 │ 👥 Customers                    [📊 Table] [🃏 Card]                      │
 ├────────────────────────────────────────────────────────────────────────────┤
-│ Filter: [🔴 Hot] [🟡 At-risk] [🆕 New] [⭐ VIP]                          │
+│ Stage: [ทั้งหมด] [รอชำระ] [รอติดตาม] [รออัปเดต] [กำลังดำเนินการ] [ขาดการติดต่อ]│
 ├────────────────────────────────────────────────────────────────────────────┤
 │ ┌──────────────────────┐  ┌──────────────────────┐  ┌──────────────────┐ │
 │ │ [JD] Jane Smith  ✅ │  │ [JD] John Doe     ⚠️  │  │ [ML] Mike Lee  ⭐ │
@@ -115,25 +115,76 @@
 
 ## Core Features
 
-### 1. Segment-First Navigation
+### 1. Operational Stage Navigation
 
-**Instead of showing ALL 500 customers, lead with segments:**
+The CRM uses two sets of computed stages — one for the **Leads** tab and one for the **Customers** tab. Stages are derived client-side from existing data fields (no extra API calls).
+
+---
+
+#### 1a. Lead Stages (ผู้สนใจ tab)
+
+Leads are prospective customers who have not yet placed an order. Their stage is computed from `hasAgentReply`, `followupDate`, `followupDone`, and `lastActivityTimestamp`.
+
+| Stage | Thai | Condition | Color |
+|-------|------|-----------|-------|
+| Awaiting first contact | รอติดต่อครั้งแรก | `hasAgentReply = false` | Amber |
+| Follow-up today | ติดต่อในวันนี้ | `followupDate` = today (and agent has replied) | Primary blue |
+| Not yet due | ยังไม่ถึงกำหนด | `followupDate` > today | Lavender |
+| Not followed up | ยังไม่ได้ติดตามต่อ | Agent replied, no follow-up scheduled, < 30 days inactive | Neutral grey |
+| Inactive / unqualified | ไม่ตรงเงื่อนไข | Last activity ≥ 30 days ago | Rose/red |
+
+**Priority order** (evaluation is top-to-bottom, first match wins):
+1. `hasAgentReply = false` → รอติดต่อครั้งแรก
+2. `followupDate` = today → ติดต่อในวันนี้
+3. `followupDate` > today → ยังไม่ถึงกำหนด
+4. `lastActivityTimestamp` ≥ 30 days ago → ไม่ตรงเงื่อนไข
+5. Fallback → ยังไม่ได้ติดตามต่อ
+
+**KPI cards** above the stage tabs surface counts for:
+- รอติดต่อครั้งแรก (total new leads requiring first outreach)
+- ติดต่อในวันนี้ (urgent today)
+- ไม่ตรงเงื่อนไข (at risk of being lost)
 
 ```
-Top row filter buttons (always visible):
-  [All (500)]  [🔴 Hot (12)]  [🟡 At-risk (8)]  [🆕 New (25)]  [⭐ VIP (3)]  [🟢 Loyal (18)]  [❄️ Cold (10)]
-
-Click [Hot (12)]
-  → Table/Cards filter to show only 12 Hot customers
-  → "12 customers | Most recent activity"
+Stage tab strip (leads):
+  [ทั้งหมด (45)]  [รอติดต่อครั้งแรก (10)]  [ติดต่อในวันนี้ (3)]
+  [ยังไม่ถึงกำหนด (8)]  [ยังไม่ได้ติดตามต่อ (12)]  [ไม่ตรงเงื่อนไข (12)]
 ```
 
-**Rules**:
-- ✅ Counts update in real-time as segments change
-- ✅ Clicking segment filters instantly (no page reload)
-- ✅ Default view: [All] customers
-- ✅ Remember last selected segment (persist in session)
-- ✅ Search works within selected segment
+---
+
+#### 1b. Customer Operational Stages (ลูกค้า tab)
+
+Customers are people who have placed at least one order. Their stage is computed from `paymentPending`, `followupDate`, `followupDone`, `lastMessageSender`, and `lastActivityTimestamp`.
+
+| Stage | Thai | Condition | Color |
+|-------|------|-----------|-------|
+| Awaiting payment | รอชำระ | `paymentPending = true` | Amber |
+| Follow-up scheduled | รอติดตาม | `followupDate` > now and not done | Lavender |
+| Update needed | รออัปเดต | `followupDate` was due and `followupDone = false` | Info blue |
+| In progress | กำลังดำเนินการ | Last message was sent by agent or AI | Primary blue |
+| Lost contact | ขาดการติดต่อ | Last activity ≥ 30 days ago | Rose/red |
+
+**Priority order** (evaluation is top-to-bottom, first match wins):
+1. `paymentPending = true` → รอชำระ
+2. `followupDate` > now → รอติดตาม
+3. `followupDate` was past and `followupDone = false` → รออัปเดต
+4. `lastMessageSender = 'agent' | 'ai'` → กำลังดำเนินการ
+5. `lastActivityTimestamp` ≥ 30 days ago → ขาดการติดต่อ
+6. Fallback → กำลังดำเนินการ
+
+```
+Stage tab strip (customers):
+  [ทั้งหมด (200)]  [รอชำระ (5)]  [รอติดตาม (18)]
+  [รออัปเดต (12)]  [กำลังดำเนินการ (148)]  [ขาดการติดต่อ (17)]
+```
+
+**Rules (both tabs)**:
+- ✅ Stage is computed purely client-side — no backend stage field required
+- ✅ Counts update whenever the underlying data changes (TanStack Query cache invalidation)
+- ✅ Clicking a stage chip filters the list instantly (no page reload)
+- ✅ Default: [ทั้งหมด] selected
+- ✅ Search works within the selected stage filter
 
 ---
 
@@ -213,25 +264,25 @@ Response Column (in Table):
 
 ---
 
-### 4. Customer Status & Tags
+### 4. Customer Status & Operational Stage Badge
 
-**Segment Tags** (Auto-calculated):
-```
-🔴 Hot      → Activity within 48 hours
-🟡 At-risk  → Purchased before + no activity 30+ days
-🆕 New      → Created within 7 days
-⭐ VIP      → LTV ≥ ฿5,000 (configurable)
-🟢 Loyal    → 3+ repeat purchases
-❄️ Cold     → No activity 60+ days
-🏢 Org      → Organization/B2B type
-```
+**Operational stage badge** shown on every row/card — computed from the rules in Section 1b:
+
+| Stage | Badge color | Dot color |
+|-------|-------------|-----------|
+| รอชำระ | Amber bg | Amber dot |
+| รอติดตาม | Lavender bg | Lavender dot |
+| รออัปเดต | Info blue bg | Info dot |
+| กำลังดำเนินการ | Primary-alpha bg | Primary dot |
+| ขาดการติดต่อ | Rose bg | Rose dot |
 
 **Rules**:
-- ✅ Only 1 tag shown on row (highest priority)
-- ✅ All tags visible on full profile
-- ✅ Tags update automatically on activity
-- ✅ AI-assigned tags show small ⭐ icon
-- ✅ Hover tag → see reason (tooltip)
+- ✅ Exactly 1 stage badge shown per row/card (computed, not editable)
+- ✅ Stage badge updates automatically when data changes (follow-up marked done, payment cleared, etc.)
+- ✅ AI-assigned tags (if any) still show small ⭐ icon alongside the stage badge
+- ✅ Hover stage badge → tooltip shows why this stage was assigned (stage computation rule)
+
+**Legacy segment tags** (Hot, VIP, At-risk, Cold) are still accessible in the customer profile detail view for backward compatibility with existing tag data, but are no longer the primary navigation axis on the list view.
 
 ---
 
@@ -333,22 +384,19 @@ Step 4: If match found → surface as duplicate candidate
 
 ### 6. Sorting
 
-**Default Sort Options**:
+**Sort options are controlled via the Filter Drawer** (see Section 8). The drawer exposes:
 ```
-[Sort by: ▼]
-  → Most recent activity (default)
-  → Highest LTV
-  → Most recent order
-  → Name A–Z
-  → Newest customers
-  → Highest risk (At-risk first)
+เรียงตามข้อมูล:
+  [สร้างล่าสุด]  [ติดต่อล่าสุด] (default)  [สั่งซื้อล่าสุด]
 ```
 
+The selected sort is applied when "กรองผลลัพธ์" is tapped.
+
 **Rules**:
-- ✅ Reorder immediately without page reload
-- ✅ Show arrow (↑ ascending / ↓ descending)
-- ✅ Save last selected sort (per session)
-- ✅ In Table: Click column header to sort (LTV, Orders, Date, etc.)
+- ✅ Reorder applied immediately on drawer confirm (no page reload)
+- ✅ Default sort: ติดต่อล่าสุด (most recent activity)
+- ✅ In Table: Click column header to sort (LTV, Orders, Date, etc.) — overrides drawer sort
+- ✅ Sort selection remembered as part of drawer filters state
 
 ---
 
@@ -369,6 +417,63 @@ Step 4: If match found → surface as duplicate candidate
 - ✅ Debounce 300ms (responsive, not laggy)
 - ✅ Escape or X clears search
 - ✅ Matching text highlighted
+
+---
+
+### 8. Filter Drawer (ตัวกรอง)
+
+**Trigger**: Funnel icon button (⚙️) next to the search bar. Pressing it slides in a right-side drawer panel. The button shows an active state (primary-colored) and a badge count when any non-default filter is active.
+
+**Drawer Layout**:
+```
+┌─────────────────────────────────────────────┐
+│ ตัวกรอง  [2]                             [✕]│
+├─────────────────────────────────────────────┤
+│ ขอบเขต                                      │
+│  [ ฉัน ] [ ทีม ] [ ภายในบริษัท ]           │
+├─────────────────────────────────────────────┤
+│ ตำแหน่งที่ตั้งลูกค้า        ภายใน 3 km      │
+│  ─●──────────────────────                  │
+│  0 km  2.5  5  7.5  10 km                  │
+├─────────────────────────────────────────────┤
+│ การติดตามลูกค้า                             │
+│  [ทั้งหมด] [> 3 วัน] [> 7 วัน] [> 14 วัน] │
+│  [> 30 วัน] [> 90 วัน] [ไม่มีการติดตาม]   │
+├─────────────────────────────────────────────┤
+│ เรียงตามข้อมูล                              │
+│  [สร้างล่าสุด] [ติดต่อล่าสุด] [สั่งซื้อล่าสุด]│
+└─────────────────────────────────────────────┤
+│  [รีเซ็ตทั้งหมด]    [กรองผลลัพธ์  2 รายการ]│
+└─────────────────────────────────────────────┘
+```
+
+**Filter Dimensions**:
+
+| Dimension | Options | Default | Behavior |
+|-----------|---------|---------|----------|
+| **ขอบเขต** (scope) | ฉัน / ทีม / ภายในบริษัท | ฉัน | Shows customers for self / team / whole company |
+| **ตำแหน่ง** (distance) | Slider 0–10 km (step 0.5) | 0 (no filter) | Filter customers within N km of user's GPS location |
+| **การติดตาม** (follow-up recency) | ทั้งหมด / > 3 วัน / > 7 วัน / > 14 วัน / > 30 วัน / > 90 วัน / ไม่มีการติดตาม | ทั้งหมด | Filter by days since last follow-up |
+| **เรียงตาม** (sort) | สร้างล่าสุด / ติดต่อล่าสุด / สั่งซื้อล่าสุด | ติดต่อล่าสุด | Ordering of results |
+
+**Active Filter Count Badge**:
+- Counts how many dimensions have non-default values
+- Shown on both the drawer header (e.g., "ตัวกรอง [2]") and the trigger button
+- รีเซ็ตทั้งหมด is disabled (greyed out) when count = 0
+
+**Distance Slider**:
+- Range: 0 km (no filter) to 10 km
+- While dragging: floating bubble above the thumb shows current value (e.g., "3 km")
+- Value 0 = "no distance filter applied" (thumb at leftmost position, inactive state)
+- Requires browser Geolocation API permission; if denied, slider is shown but filtering uses a fallback
+
+**Backdrop**: Tapping the dark overlay (outside the drawer) closes the drawer without applying changes.
+
+**Rules**:
+- ✅ Drawer state is local (resets to last applied values when re-opened)
+- ✅ Changes only take effect when "กรองผลลัพธ์" is tapped
+- ✅ "รีเซ็ตทั้งหมด" resets all 4 dimensions to their defaults immediately within the drawer
+- ✅ Filter is applied client-side where possible (scope/sort); distance filter requires server re-query with lat/lon params
 
 ---
 
@@ -485,12 +590,32 @@ Warning dialog shown:
 - [ ] View preference saved per user
 - [ ] Both views show same data
 
-### Segment Navigation
-- [ ] All 7 segments visible with counts
-- [ ] Counts update in real-time
-- [ ] Click segment → filter instantly
-- [ ] Default: [All] selected
-- [ ] Last segment selection remembered
+### Lead Stage Navigation
+- [ ] 5 lead stage tabs visible with counts
+- [ ] KPI bar shows รอติดต่อครั้งแรก / ติดต่อในวันนี้ / ไม่ตรงเงื่อนไข counts
+- [ ] Stage computed client-side (no separate API call)
+- [ ] Clicking a stage chip filters the table instantly
+- [ ] Default: [ทั้งหมด] selected
+- [ ] "แปลงเป็นลูกค้า" button converts lead to customer
+
+### Customer Operational Stage Navigation
+- [ ] 5 operational stage tabs visible with counts
+- [ ] Stage computed client-side from paymentPending / followupDate / lastMessageSender
+- [ ] Clicking a stage chip filters the list instantly
+- [ ] Default: [ทั้งหมด] selected
+- [ ] Stage badge shown on every row and card
+
+### Filter Drawer
+- [ ] Funnel button in top bar opens right-side slide-in drawer
+- [ ] Backdrop click closes drawer without applying changes
+- [ ] Scope switcher: ฉัน / ทีม / ภายในบริษัท (single-select segment control)
+- [ ] Distance slider: 0–10 km, floating value bubble visible while dragging
+- [ ] Follow-up recency chips: single-select, ทั้งหมด as default
+- [ ] Sort chips: single-select, ติดต่อล่าสุด as default
+- [ ] Active filter count badge shown on drawer header and trigger button
+- [ ] รีเซ็ตทั้งหมด disabled (greyed) when no active filters; resets all on click
+- [ ] กรองผลลัพธ์ applies filters and closes drawer
+- [ ] Trigger button shows active/highlighted state when any filter is non-default
 
 ### Table View
 - [ ] 7 columns: Name | Channel | LTV | Orders | Last Purchase | Response | Actions
@@ -621,15 +746,28 @@ Warning dialog shown:
 6. John now shows: "👤 Agent B" as handler
 ```
 
-### Segment-First Filtering
+### Stage-Based Prioritization
 ```
-1. Manager arrives at CRM
-2. Default: [All (500)] customers
-3. "I need to check At-risk VIPs"
-4. Click [🟡 At-risk (8)]
-5. See only 8 customers
-6. Identify priority: 2 at 40+ days inactive
-7. Assign to agent for urgent follow-up
+1. Sales staff arrives at CRM, Customers tab
+2. Default: [ทั้งหมด] with operational stage counts visible
+3. "I need to check who needs follow-up"
+4. Click [รออัปเดต (12)]
+5. See only 12 customers whose follow-up deadline has passed
+6. Open filter drawer → set Follow-up recency to "> 7 วัน"
+7. List narrows to customers who haven't been followed up in 7+ days
+8. Tap กรองผลลัพธ์ → list updated
+9. Contact highest-priority customers from the top
+```
+
+### Lead Stage Workflow
+```
+1. Sales staff opens Leads tab
+2. KPI bar shows: รอติดต่อครั้งแรก (10) | ติดต่อในวันนี้ (3) | ไม่ตรงเงื่อนไข (12)
+3. Click [ติดต่อในวันนี้ (3)]
+4. See 3 leads with follow-up due today
+5. Click first lead → open detail → start chat or call
+6. After successful sale → click [แปลงเป็นลูกค้า]
+7. Lead promoted to Customers tab
 ```
 
 ---
@@ -660,11 +798,11 @@ Warning dialog shown:
 
 | Metric | Target | Check Period |
 |--------|--------|---|
-| **Segment adoption** | > 80% filtering by segment | Weekly |
+| **Stage adoption** | > 80% filtering by operational stage | Weekly |
 | **Handler clarity** | 100% customers show current handler | Ongoing |
 | **View preference** | 60% Table / 40% Card split | Monthly |
 | **Search usage** | > 50% of admins search weekly | Monthly |
-| **Segment accuracy** | > 95% tags correct | Daily |
+| **Stage accuracy** | > 95% computed stages match expected | Daily |
 | **At-risk engagement** | > 40% contacted within 24h | Weekly |
 
 ---
@@ -676,7 +814,7 @@ Warning dialog shown:
 | **View** | Chat messages list | Customer list |
 | **Shows** | Active conversations | All customers (who placed orders) |
 | **Sorting** | By recency | By LTV, orders, activity, name |
-| **Filtering** | By assigned/unread | By segment (Hot, VIP, At-risk) |
+| **Filtering** | By assigned/unread | By operational stage (computed) + filter drawer |
 | **Action** | Reply to message | View history, reassign, bulk follow-up |
 | **Primary task** | "What messages need reply?" | "Who should we prioritize?" |
 
