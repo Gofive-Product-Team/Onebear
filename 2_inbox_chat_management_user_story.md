@@ -56,9 +56,13 @@
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│ 📬 Inbox                          🔔 SLA Alert: 2 chats  │
+│  Chats  [🔴 3]                      [🔍 Filter] [⚠ Spam]│
 ├──────────────────────────────────────────────────────────┤
-│ Filter: [All] [Unread] [AI] [Assigned to me] [Pinned]  │
+│  🔍 Search customer...                                   │
+├──────────────────────────────────────────────────────────┤
+│  [All 12] [New 3] [In Progress 7] [Resolved 2]          │
+├──────────────────────────────────────────────────────────┤
+│  Active filters: [LINE ×] [VIP ×]  [Clear]              │
 ├──────────────────────────────────────────────────────────┤
 │ Chat List:                                               │
 │ ┌─────────────────────────────────────────────────────┐  │
@@ -416,6 +420,74 @@ After transition (Customer):
 
 ---
 
+### 10. Inbox Filter System
+
+Agents can narrow the chat list using a multi-dimension filter popover. Filters are additive (AND logic across dimensions). Active filters are shown as removable chips in the filter bar.
+
+**Filter Bar Layout**:
+```
+┌─────────────────────────────────────────────────────────┐
+│  Chats [🔴 5]                       [🔍 Filter] [⚠ Spam]│
+│  🔍 Search customer...                                  │
+│  [All 12] [New 3] [In Progress 7] [Resolved 2]         │
+│  Active: [LINE ×] [VIP ×] [ไลฟ์ ×]   [Clear all]      │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Filter Popover — Main Menu** (opens when pressing 🔍 Filter button):
+```
+┌────────────────────────────────┐
+│  FILTER BY                  ✕  │
+│  [Clear all]                   │
+│  💬 Channel   All channels  >  │
+│  # Tag        All tags      >  │
+│  🌐 แหล่งที่มา ทุกแหล่งที่มา >  │
+│  👥 กลุ่มลูกค้า ทุกกลุ่ม    >  │
+└────────────────────────────────┘
+Note: กลุ่มลูกค้า row only shows when group tags are configured
+```
+
+**Filter Dimensions**:
+
+| Dimension | Thai Label | Data Source | Multi-select |
+|-----------|-----------|-------------|-------------|
+| Channel | Channel | Fixed list (LINE, Facebook, Instagram, WhatsApp, TikTok, Lazada, Shopee) | ✅ |
+| Tag | Tag | Customer tags on chat room | ✅ |
+| แหล่งที่มา | Source | TagCategory(type=source) from Settings; fallback: Organic, Paid Ads, ไลฟ์, โพสต์, สตอรี่, เพื่อนแนะนำ, QR Code, Direct Message | ✅ |
+| กลุ่มลูกค้า | Customer Group | TagCategory(type=group) from Settings; hidden when no groups configured | ✅ |
+
+**Status Tabs** (row below search bar — these are separate from Filter popover):
+- `All` — all rooms
+- `New` — state = New
+- `In Progress` — state = InProgress
+- `Resolved` — state = Resolved
+
+**Filter Logic**:
+```
+Displayed rooms = rooms where:
+  (channels is empty OR room.platform ∈ channels)
+  AND (tags is empty OR room.tags ∩ tags ≠ ∅)
+  AND (sources is empty OR room.source ∈ sources)
+  AND (groups is empty OR room.groupNames ∩ groups ≠ ∅)
+  AND room.state matches selected status tab
+  AND room matches search query
+```
+
+**Behavior Rules**:
+- ✅ Filter popover opens as a floating panel anchored to the filter button
+- ✅ Selecting any filter value immediately updates the list (no "Apply" button needed)
+- ✅ Each active filter dimension shows a count badge on the filter button
+- ✅ Active filters shown as chips below the status tabs row
+- ✅ Each chip has an × to remove just that filter
+- ✅ "Clear all" button resets all filter dimensions at once
+- ✅ แหล่งที่มา list uses data from TagCategory(type=source); shows hardcoded Thai options if none configured
+- ✅ กลุ่มลูกค้า panel is hidden when workspace has no group-type tag categories
+- ✅ When กลุ่มลูกค้า items list is empty (configured but no items): show "ยังไม่มีรายการ กรุณาตั้งค่าในหน้า Settings"
+- ✅ Filter state is NOT persisted across sessions (reset to empty on page refresh)
+- ✅ Search, status tabs, and filter popover work together (all applied simultaneously)
+
+---
+
 ## Acceptance Criteria
 
 ### Multi-channel Routing
@@ -499,6 +571,22 @@ After transition (Customer):
 - [ ] **[GAP 5]** Previous agent retains read access to thread after reassignment
 - [ ] **[GAP 5]** Chat header shows currently assigned agent as active handler
 - [ ] **[GAP 5]** Reassigned agent can respond; original agent can view but is no longer primary handler
+
+### Inbox Filter System
+- [ ] Filter popover opens anchored below the filter button; closes on X or outside click
+- [ ] Filter popover main menu shows 4 rows: Channel, Tag, แหล่งที่มา, กลุ่มลูกค้า
+- [ ] กลุ่มลูกค้า row only appears when workspace has group-type tag categories configured
+- [ ] Clicking a row navigates to its detail list; Back button returns to menu
+- [ ] Channel detail list: LINE, Facebook, Instagram, WhatsApp, TikTok, Lazada, Shopee (fixed)
+- [ ] แหล่งที่มา detail list: loaded from TagCategory(type=source); falls back to hardcoded Thai options
+- [ ] กลุ่มลูกค้า detail list: loaded from TagCategory(type=group); empty state shows Settings prompt
+- [ ] Each item has a checkbox; selecting updates list immediately
+- [ ] Filter button shows active count badge when any filters are set
+- [ ] Active filter chips appear below status tabs; each chip has an × to remove
+- [ ] "Clear all" in popover menu and in chip bar both reset all filter dimensions
+- [ ] Status tabs (All / New / In Progress / Resolved) filter independently from popover filters
+- [ ] Search bar filters independently; all three work simultaneously
+- [ ] Filter criteria: Channel (platform match), Tag (any tag match), แหล่งที่มา (source match), กลุ่มลูกค้า (any group match)
 
 ### Contact → Customer Transition
 - [ ] **[GAP 4]** Contact label in chat header updates to "Customer" when order reaches "Pending Payment"
