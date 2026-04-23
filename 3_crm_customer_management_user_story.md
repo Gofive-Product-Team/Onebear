@@ -56,7 +56,7 @@
 ┌────────────────────────────────────────────────────────────────────────────┐
 │ 👥 Customers                    [📊 Table] [🃏 Card]  [Segment Filter ▼]  │
 ├────────────────────────────────────────────────────────────────────────────┤
-│ Filter: [All] [🔴 Hot] [🟡 At-risk] [🆕 New] [⭐ VIP] [🟢 Loyal] [❄️ Cold]│
+│ Stage: [ทั้งหมด] [รอชำระ] [รอติดตาม] [รออัปเดต] [กำลังดำเนินการ] [ขาดการติดต่อ]│
 │ Sort: [Most Recent Activity ▼]  Search: [________]                       │
 ├────────────────────────────────────────────────────────────────────────────┤
 │ [☐] Name           Channel      LTV      Orders Last Purchase  Response   │
@@ -115,25 +115,32 @@
 
 ## Core Features
 
-### 1. Segment-First Navigation
+### 1. Operational Stage Navigation
 
-**Instead of showing ALL 500 customers, lead with segments:**
+**Two entity types each have 5 operational stages derived at runtime:**
 
-```
-Top row filter buttons (always visible):
-  [All (500)]  [🔴 Hot (12)]  [🟡 At-risk (8)]  [🆕 New (25)]  [⭐ VIP (3)]  [🟢 Loyal (18)]  [❄️ Cold (10)]
+**Lead stages** (computed by `getLeadStage()`):
+- `รอติดต่อครั้งแรก` — no agent/AI reply ever
+- `ติดต่อในวันนี้` — follow-up due today
+- `ยังไม่ถึงกำหนด` — follow-up scheduled but future
+- `ยังไม่ได้ติดตามต่อ` — replied but no follow-up, inactive < 30 days
+- `ไม่ตรงเงื่อนไข` — inactive >= 30 days (cold)
 
-Click [Hot (12)]
-  → Table/Cards filter to show only 12 Hot customers
-  → "12 customers | Most recent activity"
-```
+**Customer stages** (computed by `getCustomerStage()`):
+- `รอชำระ` — payment pending
+- `รอติดตาม` — follow-up scheduled, not yet due
+- `รออัปเดต` — follow-up overdue and not done
+- `กำลังดำเนินการ` — agent/AI replied last, awaiting customer
+- `ขาดการติดต่อ` — inactive >= 30 days
+
+`INACTIVE_THRESHOLD_DAYS = 30`
 
 **Rules**:
-- ✅ Counts update in real-time as segments change
-- ✅ Clicking segment filters instantly (no page reload)
-- ✅ Default view: [All] customers
-- ✅ Remember last selected segment (persist in session)
-- ✅ Search works within selected segment
+- ✅ Stage counts computed client-side from loaded records
+- ✅ Clicking stage tab filters instantly (no page reload)
+- ✅ Default view: [ทั้งหมด] (all records)
+- ✅ Search works within selected stage
+- ✅ Stage tabs displayed inside the table card (not above it)
 
 ---
 
@@ -213,25 +220,24 @@ Response Column (in Table):
 
 ---
 
-### 4. Customer Status & Tags
+### 4. Operational Stage Badges
 
-**Segment Tags** (Auto-calculated):
-```
-🔴 Hot      → Activity within 48 hours
-🟡 At-risk  → Purchased before + no activity 30+ days
-🆕 New      → Created within 7 days
-⭐ VIP      → LTV ≥ ฿5,000 (configurable)
-🟢 Loyal    → 3+ repeat purchases
-❄️ Cold     → No activity 60+ days
-🏢 Org      → Organization/B2B type
-```
+Each customer row shows a status badge derived from its operational stage. The badge uses a colored dot + label:
+
+| Stage | Color |
+|-------|-------|
+| รอชำระ | Amber |
+| รอติดตาม | Lavender |
+| รออัปเดต | Info/Blue |
+| กำลังดำเนินการ | Primary/Teal |
+| ขาดการติดต่อ | Rose/Red |
+
+**Active/Inactive badge**: Based on `lastActivityTimestamp < 30 days` → shows ใช้งาน (teal) or ไม่ใช้งาน (grey).
 
 **Rules**:
-- ✅ Only 1 tag shown on row (highest priority)
-- ✅ All tags visible on full profile
-- ✅ Tags update automatically on activity
-- ✅ AI-assigned tags show small ⭐ icon
-- ✅ Hover tag → see reason (tooltip)
+- ✅ Stage computed at runtime from record fields (no server-side segment tag)
+- ✅ One stage shown per row
+- ✅ Stage updates automatically when fields change
 
 ---
 
@@ -485,12 +491,12 @@ Warning dialog shown:
 - [ ] View preference saved per user
 - [ ] Both views show same data
 
-### Segment Navigation
-- [ ] All 7 segments visible with counts
-- [ ] Counts update in real-time
-- [ ] Click segment → filter instantly
-- [ ] Default: [All] selected
-- [ ] Last segment selection remembered
+### Operational Stage Navigation
+- [ ] All stage tabs visible with counts (leads: 5 stages, customers: 5 stages)
+- [ ] Stage tabs displayed inside the table card
+- [ ] Click stage → filter instantly
+- [ ] Default: [ทั้งหมด] selected
+- [ ] Stage counts computed from loaded records
 
 ### Table View
 - [ ] 7 columns: Name | Channel | LTV | Orders | Last Purchase | Response | Actions
@@ -513,13 +519,6 @@ Warning dialog shown:
 - [ ] Show "⚠️ Unassigned" if not assigned
 - [ ] Update in real-time (no refresh needed)
 - [ ] Click handler → see options
-
-### Segment Tags
-- [ ] Show 1 tag on list (highest priority)
-- [ ] Show all tags on profile
-- [ ] Auto-calculate based on activity
-- [ ] Update immediately
-- [ ] Hover tag → tooltip shows reason
 
 ### Search & Filter
 - [ ] Search by name, phone, email, channel username
@@ -775,3 +774,19 @@ Before Feature #4, please confirm:
 **Decisions locked by**: MASTER_PROTOTYPE_SPECIFICATION.md
 **Date locked**: April 8, 2026
 **Locked by**: Product team gap resolution session
+
+---
+
+### GAP 17 — No Segment Filter Tabs (Locked)
+
+**Decision**: The customer page does NOT use segment-based filter tabs (Hot/At-risk/New/VIP/Loyal/Cold). Only operational stages are used as filter tabs.
+
+**Logic**:
+- Leads use 5 operational stages: รอติดต่อครั้งแรก / ติดต่อในวันนี้ / ยังไม่ถึงกำหนด / ยังไม่ได้ติดตามต่อ / ไม่ตรงเงื่อนไข
+- Customers use 5 operational stages: รอชำระ / รอติดตาม / รออัปเดต / กำลังดำเนินการ / ขาดการติดต่อ
+- Inactive threshold: 30 days for both leads and customers
+
+**Implementation note**: `getLeadStage()` and `getCustomerStage()` functions compute stage from record fields client-side. Stage tabs render inside the table card with underline-style active indicator.
+
+**Decisions locked by**: Product team  
+**Date locked**: 2026-04-24
